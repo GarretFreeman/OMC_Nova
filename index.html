@@ -82,6 +82,7 @@
       .certificate{border:none;box-shadow:none}
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
 <body>
   <div id="gate">
@@ -218,6 +219,7 @@
         <h2 style="margin:0">📝 Générateur de certificat</h2>
         <div style="display:flex;gap:8px">
           <button class="btn secondary" data-back>← Retour</button>
+          <button class="btn" id="sendDiscord">Envoyer vers Discord</button>
           <button class="btn" id="printCert">Imprimer / PDF</button>
         </div>
       </div>
@@ -255,6 +257,14 @@
         <div data-col="6">
           <label>N° d'identification (RP)</label>
           <input id="docId" placeholder="OMC-XXXX" />
+        </div>
+        <div data-col="12">
+          <label>Webhook Discord (ne sera pas enregistré)</label>
+          <input id="webhookUrl" placeholder="https://discord.com/api/webhooks/…" />
+        </div>
+        <div data-col="12">
+          <label>Message (optionnel)</label>
+          <input id="webhookMsg" placeholder="Texte qui accompagnera l'image dans Discord" />
         </div>
       </form>
 
@@ -455,6 +465,49 @@
     document.getElementById('printCert').addEventListener('click',()=>{
       // Keep doctor in local storage for convenience
       if(doctor.value) localStorage.setItem('omc_doctor_name', doctor.value);
+      refreshCert();
+      window.print();
+    });
+
+    // ======== Send certificate to Discord via Webhook (as PNG) ========
+    async function sendToDiscord(){
+      const url = (document.getElementById('webhookUrl').value||'').trim();
+      const msg = (document.getElementById('webhookMsg').value||'Certificat OMC');
+      if(!url){ alert('Renseigne l\'URL du webhook Discord.'); return; }
+      if(!url.startsWith('https://discord.com/api/webhooks/')){
+        if(!confirm('L\'URL ne ressemble pas à un webhook Discord officiel. Continuer ?')) return;
+      }
+
+      const btn = document.getElementById('sendDiscord');
+      btn.disabled = true; btn.textContent = 'Envoi en cours…';
+      try{
+        // Capture la carte certificat en image
+        const node = document.getElementById('certPreview');
+        const canvas = await html2canvas(node, {scale: 2, backgroundColor: '#ffffff'});
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+
+        const form = new FormData();
+        form.append('payload_json', JSON.stringify({content: msg}));
+        form.append('file', blob, `cert_omc_${Date.now()}.png`);
+
+        const resp = await fetch(url, {method:'POST', body: form});
+        if(!resp.ok){
+          const txt = await resp.text();
+          throw new Error('Discord a renvoyé une erreur: '+txt);
+        }
+        alert('✅ Envoyé dans le salon Discord !');
+      }catch(e){
+        console.error(e);
+        alert('Échec de l\'envoi : '+ e.message + '
+
+Si le navigateur bloque (CORS), on pourra passer par un micro-relai gratuit.');
+      }finally{
+        btn.disabled = false; btn.textContent = 'Envoyer vers Discord';
+      }
+    }
+
+    const sendBtn = document.getElementById('sendDiscord');
+    if(sendBtn){ sendBtn.addEventListener('click', sendToDiscord); }
       refreshCert();
       window.print();
     });
