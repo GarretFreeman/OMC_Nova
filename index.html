@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OMC — Intranet</title>
+  <style>
+    :root{
+      --bg:#0f172a; /* slate-900 */
+      --card:#111827; /* gray-900 */
+      --muted:#1f2937; /* gray-800 */
+      --text:#e5e7eb; /* gray-200 */
+      --accent:#38bdf8; /* sky-400 */
+      --accent-2:#22d3ee; /* cyan-400 */
+      --ok:#22c55e; /* green-500 */
+      --warn:#f59e0b; /* amber-500 */
+      --danger:#ef4444; /* red-500 */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(135deg,var(--bg),#03121b 60%);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+    .wrap{max-width:1100px;margin:0 auto;padding:24px}
+    header{display:flex;align-items:center;gap:16px;margin:12px 0 24px}
+    header img{height:56px;width:56px;object-fit:contain;border-radius:12px;background:#0b2f44;border:1px solid #11364a}
+    header h1{font-size:clamp(22px,4vw,32px);margin:0;letter-spacing:0.3px}
+    header .badge{margin-left:auto;padding:6px 10px;border:1px solid #1f3a4a;border-radius:999px;font-size:12px;background:#0b2130}
+
+    .card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));
+      border:1px solid rgba(148,163,184,0.15);border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,0.25)}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+    .col-6{grid-column:span 6}
+    .col-12{grid-column:span 12}
+    @media (max-width:900px){.col-6{grid-column:span 12}}
+
+    .btn{appearance:none;border:none;border-radius:12px;padding:10px 14px;font-weight:600;color:#03121b;background:var(--accent);cursor:pointer}
+    .btn.secondary{background:#0b2230;color:var(--text);border:1px solid #1a3240}
+    .btn.ghost{background:transparent;color:var(--text);border:1px dashed #244552}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+
+    .choices{display:flex;flex-wrap:wrap;gap:12px}
+    .choice{flex:1 1 220px;min-height:120px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px;border-radius:16px;border:1px solid #1f3a4a;background:linear-gradient(180deg,#061a25,#07121a)}
+    .choice h3{margin:0 0 8px;font-size:18px}
+    .choice p{margin:0;color:#cbd5e1;font-size:14px;opacity:.9}
+
+    label{display:block;margin:12px 0 6px;font-weight:600}
+    input,select,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2b3f4a;background:#0a1821;color:var(--text)}
+    .row{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+    .row > *[data-col="6"]{grid-column:span 6}
+    .row > *[data-col="4"]{grid-column:span 4}
+    .row > *[data-col="3"]{grid-column:span 3}
+    .row > *[data-col="2"]{grid-column:span 2}
+    @media (max-width:900px){.row > *{grid-column:span 12 !important}}
+
+    .muted{color:#94a3b8;font-size:13px}
+    .total{font-size:28px;font-weight:800}
+    .tag{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #1e3a4a;background:#0b2230;color:#9ed9ff;font-size:12px}
+    .hr{height:1px;background:linear-gradient(90deg,transparent,#1d3a4a,transparent);margin:16px 0}
+
+    /* Certificate preview */
+    .certificate{
+      background:white;color:#0b2130;border-radius:12px;padding:28px;border:1px solid #e2e8f0;
+    }
+    .certificate header{display:flex;gap:14px;align-items:center}
+    .certificate header img{height:54px;width:54px;border-radius:10px;border:1px solid #d1e0e8;background:#eef7fb}
+    .certificate h2{margin:4px 0 0;font-size:20px}
+    .cert-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+    .cert-field{padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
+    .cert-label{font-size:12px;color:#64748b;margin-bottom:4px}
+    .cert-value{font-weight:600}
+    .cert-footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:18px}
+    .signature{margin-top:34px;border-top:1px solid #e2e8f0;padding-top:6px;font-size:12px;color:#64748b}
+
+    /* Login gate */
+    #gate{position:fixed;inset:0;background:radial-gradient(1200px 700px at 70% -10%,rgba(56,189,248,.12),transparent 60%),
+      linear-gradient(135deg,#06131b,#02080c);display:flex;align-items:center;justify-content:center;}
+    .gate-card{width:min(520px,92vw);}
+
+    /* Print styles for certificate */
+    @media print {
+      body{background:white}
+      #gate, header, #home, #calc, #cert form, .no-print{display:none !important}
+      .certificate{border:none;box-shadow:none}
+    }
+  </style>
+</head>
+<body>
+  <div id="gate">
+    <div class="wrap gate-card">
+      <div class="card">
+        <header>
+          <img src="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" alt="OMC" />
+          <h1>Ocean Medical Center — Intranet</h1>
+          <span class="badge">Accès réservé</span>
+        </header>
+        <p class="muted">Cet espace est réservé aux membres de l'OMC. Merci d'entrer le mot de passe interne.</p>
+        <label for="pwd">Mot de passe</label>
+        <input id="pwd" type="password" placeholder="••••••••" />
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button class="btn" id="loginBtn">Entrer</button>
+          <button class="btn ghost" id="rememberToggle" title="Se souvenir sur cet appareil">Se souvenir</button>
+        </div>
+        <p class="muted" style="margin-top:10px">Astuce : vous pouvez changer le mot de passe dans le code (const <strong>OMC_PASSWORD</strong>).</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <header class="no-print">
+      <img src="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" alt="OMC" />
+      <h1>Ocean Medical Center — Intranet</h1>
+      <span class="badge" id="who">Connecté</span>
+    </header>
+
+    <!-- HOME -->
+    <section id="home" class="card no-print">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px">
+        <div>
+          <div class="tag">🛡️ Portail Interne</div>
+          <h2 style="margin:6px 0 0">Bienvenue</h2>
+          <p class="muted">Choisissez un module ci-dessous. Tout est calculé en local, rien n'est envoyé.</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn secondary" id="logout">Se déconnecter</button>
+        </div>
+      </div>
+      <div class="choices">
+        <div class="choice" data-open="calc">
+          <div>
+            <h3>Calcul des coûts d'intervention</h3>
+            <p>Barème, déplacements, consommables, équipe In/Out…</p>
+          </div>
+          <button class="btn">Ouvrir</button>
+        </div>
+        <div class="choice" data-open="cert">
+          <div>
+            <h3>Réaliser un certificat</h3>
+            <p>Certificat médical simple, embauche, aptitude port d'arme (RP).</p>
+          </div>
+          <button class="btn">Ouvrir</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CALC -->
+    <section id="calc" class="card" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <h2 style="margin:0">🧮 Calcul des coûts d'intervention</h2>
+        <button class="btn secondary" data-back>← Retour</button>
+      </div>
+      <div class="hr"></div>
+
+      <div class="row">
+        <div data-col="6">
+          <label>Type d'équipe</label>
+          <select id="teamType">
+            <option value="in">Équipe IN (hôpital)</option>
+            <option value="out">Équipe OUT (terrain)</option>
+          </select>
+        </div>
+        <div data-col="3">
+          <label>Médecins</label>
+          <input type="number" id="nbMed" min="0" value="1" />
+        </div>
+        <div data-col="3">
+          <label>Ambulanciers / Infirmiers</label>
+          <input type="number" id="nbAmb" min="0" value="1" />
+        </div>
+
+        <div data-col="4">
+          <label>Durée (heures)</label>
+          <input type="number" id="hours" min="0" step="0.5" value="1" />
+        </div>
+        <div data-col="4">
+          <label>Distance (km aller-retour)</label>
+          <input type="number" id="km" min="0" step="1" value="10" />
+        </div>
+        <div data-col="4">
+          <label>Consommables (€)</label>
+          <input type="number" id="cons" min="0" step="1" value="0" />
+        </div>
+
+        <div data-col="6">
+          <label>Barème (€/h) médecin</label>
+          <input type="number" id="rateMed" min="0" step="1" value="350" />
+        </div>
+        <div data-col="6">
+          <label>Barème (€/h) ambulancier/infirmier</label>
+          <input type="number" id="rateAmb" min="0" step="1" value="180" />
+        </div>
+
+        <div data-col="6">
+          <label>Frais véhicule (€/km)</label>
+          <input type="number" id="rateKm" min="0" step="0.1" value="3" />
+        </div>
+        <div data-col="6">
+          <label>Majoration OUT (%)</label>
+          <input type="number" id="outCoef" min="0" step="1" value="15" />
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="row">
+        <div data-col="6">
+          <button class="btn" id="compute">Calculer</button>
+          <button class="btn ghost" id="resetCalc" style="margin-left:8px">Réinitialiser</button>
+        </div>
+        <div data-col="6" style="text-align:right">
+          <div class="muted">Total estimé</div>
+          <div class="total" id="total">0 €</div>
+          <div class="muted" id="breakdown"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CERTIFICATE -->
+    <section id="cert" class="card" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <h2 style="margin:0">📝 Générateur de certificat</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn secondary" data-back>← Retour</button>
+          <button class="btn" id="printCert">Imprimer / PDF</button>
+        </div>
+      </div>
+      <div class="hr"></div>
+
+      <form id="certForm" class="row no-print">
+        <div data-col="6">
+          <label>Type de certificat</label>
+          <select id="certType">
+            <option value="medical">Certificat médical simple</option>
+            <option value="embauche">Visite d'embauche</option>
+            <option value="arme">Aptitude — Permis de port d'arme (RP)</option>
+          </select>
+        </div>
+        <div data-col="6">
+          <label>Date</label>
+          <input type="date" id="certDate" />
+        </div>
+        <div data-col="6">
+          <label>Nom & Prénom du patient</label>
+          <input id="patient" placeholder="Ex : John DOE" />
+        </div>
+        <div data-col="6">
+          <label>Date de naissance</label>
+          <input id="dob" placeholder="Ex : 01/01/1995" />
+        </div>
+        <div data-col="12">
+          <label>Observations / Conclusion</label>
+          <textarea id="notes" rows="4" placeholder="Ex : Examen clinique sans anomalie. Aptitude confirmée pour ..."></textarea>
+        </div>
+        <div data-col="6">
+          <label>Médecin / Intervenant</label>
+          <input id="doctor" placeholder="Dr. Jane SMITH" />
+        </div>
+        <div data-col="6">
+          <label>N° d'identification (RP)</label>
+          <input id="docId" placeholder="OMC-XXXX" />
+        </div>
+      </form>
+
+      <div class="hr no-print"></div>
+
+      <div class="certificate" id="certPreview">
+        <header>
+          <img src="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" alt="OMC" />
+          <div>
+            <div class="tag" style="margin-bottom:4px">OCEAN MEDICAL CENTER — LOS SANTOS & SANDY SHORES</div>
+            <h2 id="certTitle">Certificat médical</h2>
+          </div>
+        </header>
+        <div class="cert-grid">
+          <div class="cert-field">
+            <div class="cert-label">Patient</div>
+            <div class="cert-value" id="pvPatient">—</div>
+          </div>
+          <div class="cert-field">
+            <div class="cert-label">Date de naissance</div>
+            <div class="cert-value" id="pvDob">—</div>
+          </div>
+          <div class="cert-field">
+            <div class="cert-label">Date</div>
+            <div class="cert-value" id="pvDate">—</div>
+          </div>
+          <div class="cert-field">
+            <div class="cert-label">Référence</div>
+            <div class="cert-value" id="pvRef">—</div>
+          </div>
+        </div>
+        <div class="cert-field" style="margin-top:14px">
+          <div class="cert-label">Objet / Conclusion</div>
+          <div class="cert-value" id="pvNotes">—</div>
+        </div>
+        <div class="cert-footer">
+          <div>
+            <div class="cert-label">Établi par</div>
+            <div class="cert-value" id="pvDoctor">—</div>
+            <div class="signature">Signature et cachet</div>
+          </div>
+          <div style="text-align:right">
+            <div class="cert-label">Pôle</div>
+            <div class="cert-value">Urgences / Médecine Générale</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // ======== Simple intranet gate (front-only) ========
+    const OMC_PASSWORD = "omc2025"; // ⟵ À personnaliser
+
+    const gate = document.getElementById('gate');
+    const loginBtn = document.getElementById('loginBtn');
+    const rememberBtn = document.getElementById('rememberToggle');
+    const pwdInput = document.getElementById('pwd');
+
+    const rememberKey = 'omc_remember_me';
+    const tokenKey = 'omc_session_token';
+
+    function setLoggedIn(){ gate.style.display='none'; }
+    function setLoggedOut(){ gate.style.display='flex'; localStorage.removeItem(tokenKey); }
+
+    // Autologin if remembered
+    try{
+      const saved = localStorage.getItem(tokenKey);
+      if(saved === btoa(OMC_PASSWORD)) setLoggedIn();
+    }catch(e){/* noop */}
+
+    loginBtn.addEventListener('click', ()=>{
+      const ok = pwdInput.value === OMC_PASSWORD;
+      if(!ok){ alert('Mot de passe incorrect'); return; }
+      if(localStorage.getItem(rememberKey)==='1'){
+        localStorage.setItem(tokenKey, btoa(OMC_PASSWORD));
+      }
+      setLoggedIn();
+    });
+
+    rememberBtn.addEventListener('click', ()=>{
+      const cur = localStorage.getItem(rememberKey)==='1';
+      localStorage.setItem(rememberKey, cur?'0':'1');
+      rememberBtn.classList.toggle('secondary');
+      rememberBtn.textContent = (cur? 'Se souvenir' : 'Mémorisé ✅');
+    });
+
+    // ======== Navigation ========
+    const home = document.getElementById('home');
+    const calc = document.getElementById('calc');
+    const cert = document.getElementById('cert');
+
+    document.querySelectorAll('.choice').forEach(el=>{
+      el.addEventListener('click',()=>{
+        const panel = el.getAttribute('data-open');
+        if(panel==='calc'){ home.style.display='none'; calc.style.display='block'; }
+        if(panel==='cert'){ home.style.display='none'; cert.style.display='block'; }
+      })
+    });
+
+    document.querySelectorAll('[data-back]').forEach(b=> b.addEventListener('click',()=>{
+      calc.style.display='none'; cert.style.display='none'; home.style.display='block';
+    }));
+
+    document.getElementById('logout').addEventListener('click',()=>{
+      setLoggedOut();
+    });
+
+    // ======== Calculator logic ========
+    const el = id=>document.getElementById(id);
+    const fmt = n=> new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(n);
+
+    function compute(){
+      const team = el('teamType').value; // in / out
+      const nMed = +el('nbMed').value;
+      const nAmb = +el('nbAmb').value;
+      const hours = +el('hours').value;
+      const km = +el('km').value;
+      const cons = +el('cons').value;
+      const rMed = +el('rateMed').value;
+      const rAmb = +el('rateAmb').value;
+      const rKm = +el('rateKm').value;
+      const outCoef = +el('outCoef').value / 100;
+
+      const human = nMed*rMed*hours + nAmb*rAmb*hours;
+      const vehicle = km*rKm;
+      let base = human + vehicle + cons;
+      if(team==='out') base = base*(1+outCoef);
+
+      el('total').textContent = fmt(base);
+      el('breakdown').textContent = `Humain: ${fmt(human)} • Véhicule: ${fmt(vehicle)} • Consommables: ${fmt(cons)} ${team==='out'? '• Majoration OUT incluse' : ''}`;
+    }
+
+    el('compute').addEventListener('click', compute);
+    el('resetCalc').addEventListener('click', ()=>{
+      ['nbMed','nbAmb','hours','km','cons','rateMed','rateAmb','rateKm','outCoef'].forEach(k=>el(k).value = el(k).defaultValue);
+      el('teamType').value='in';
+      el('total').textContent='0 €';
+      el('breakdown').textContent='';
+    });
+
+    // ======== Certificate generator ========
+    const certMap = {
+      medical: {
+        title: 'Certificat médical',
+        defaultNotes: "Examen clinique sans anomalie. Aucune contre-indication relevée pour les activités de la vie courante.",
+      },
+      embauche: {
+        title: "Certificat de visite d'embauche",
+        defaultNotes: "Apte à l'emploi envisagé. Recommandations communiquées si nécessaire.",
+      },
+      arme: {
+        title: "Certificat d'aptitude — Permis de port d'arme (RP)",
+        defaultNotes: "Aptitude confirmée à la détention et au port d'arme dans le cadre RP, sous réserve du respect des règles de sécurité.",
+      }
+    };
+
+    const certType = el('certType');
+    const certDate = el('certDate');
+    const patient = el('patient');
+    const dob = el('dob');
+    const notes = el('notes');
+    const doctor = el('doctor');
+    const docId = el('docId');
+
+    const pvTitle = el('certTitle');
+    const pvPatient = el('pvPatient');
+    const pvDob = el('pvDob');
+    const pvDate = el('pvDate');
+    const pvRef = el('pvRef');
+    const pvNotes = el('pvNotes');
+    const pvDoctor = el('pvDoctor');
+
+    // Defaults
+    certDate.valueAsNumber = Date.now() - (new Date()).getTimezoneOffset()*60000; // today
+    doctor.value = localStorage.getItem('omc_doctor_name') || '';
+
+    function refreshCert(){
+      const t = certMap[certType.value];
+      pvTitle.textContent = t.title;
+      if(!notes.value) notes.value = t.defaultNotes;
+
+      pvPatient.textContent = patient.value || '—';
+      pvDob.textContent = dob.value || '—';
+      pvDate.textContent = certDate.value || '—';
+      const ref = (docId.value||'OMC-REF')+ ' • ' + (Math.random().toString(36).slice(2,7)).toUpperCase();
+      pvRef.textContent = ref;
+      pvNotes.textContent = notes.value || '—';
+      pvDoctor.textContent = (doctor.value||'—') + (docId.value? ' — '+docId.value : '');
+    }
+
+    ['change','keyup','input'].forEach(evt=>{
+      [certType,certDate,patient,dob,notes,doctor,docId].forEach(c=> c.addEventListener(evt, refreshCert));
+    });
+
+    refreshCert();
+
+    document.getElementById('printCert').addEventListener('click',()=>{
+      // Keep doctor in local storage for convenience
+      if(doctor.value) localStorage.setItem('omc_doctor_name', doctor.value);
+      refreshCert();
+      window.print();
+    });
+  </script>
+</body>
+</html>
