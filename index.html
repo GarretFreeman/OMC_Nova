@@ -8,7 +8,7 @@
     :root{
       --bg:#0f172a; --card:#111827; --muted:#1f2937; --text:#e5e7eb;
       --accent:#38bdf8; --accent-2:#22d3ee; --ok:#22c55e;
-      --warn:#f59e0b; --danger:#ef4444;
+      --warn:#f59e0b; --danger:#ef4444; --border:#1f2937;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -37,6 +37,7 @@
     .tag{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #1e3a4a;background:#0b2230;color:#9ed9ff;font-size:12px}
     .hr{height:1px;background:linear-gradient(90deg,transparent,#1d3a4a,transparent);margin:16px 0}
 
+    /* Certificate preview */
     .certificate{background:white;color:#0b2130;border-radius:12px;padding:28px;border:1px solid #e2e8f0;}
     .certificate header{display:flex;gap:14px;align-items:center}
     .certificate header img{height:54px;width:54px;border-radius:10px;border:1px solid #d1e0e8;background:#eef7fb}
@@ -48,9 +49,32 @@
     .cert-footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:18px}
     .signature{margin-top:34px;border-top:1px solid #e2e8f0;padding-top:6px;font-size:12px;color:#64748b}
 
+    /* Login gate */
     #gate{position:fixed;inset:0;background:radial-gradient(1200px 700px at 70% -10%,rgba(56,189,248,.12),transparent 60%),
       linear-gradient(135deg,#06131b,#02080c);display:flex;align-items:center;justify-content:center;}
     .gate-card{width:min(520px,92vw);}
+
+    /* ==== Calculator styles (harmonisés) ==== */
+    .grid-2{display:grid;grid-template-columns:1.2fr .8fr;gap:20px}
+    @media (max-width:900px){ .grid-2{grid-template-columns:1fr} }
+    .section{padding:18px}
+    .tabs{display:flex; gap:12px; flex-wrap:wrap; margin:14px 0 20px; justify-content:center; padding:10px; background:rgba(15,23,42,.5); border:1px solid var(--border); border-radius:16px; backdrop-filter:saturate(1.2) blur(6px); box-shadow:0 8px 24px rgba(0,0,0,.3)}
+    .tab{appearance:none; border:1px solid var(--border); background:#0b1223; color:var(--text); padding:8px 12px; border-radius:14px; cursor:pointer; display:grid; place-items:center; gap:6px}
+    .tab[aria-selected="true"]{background:linear-gradient(180deg, #0ea5e9, #0284c7); color:#001019; border-color:#0369a1; box-shadow:0 6px 16px rgb(2 132 199 / .45)}
+    .tab .tab-caption{font-size:12px; color:#9ca3af}
+    .list{max-height:520px; overflow:auto; padding:6px}
+    .item{display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:12px; padding:10px 12px; border:1px dashed transparent; border-radius:12px}
+    .item + .item{margin-top:8px}
+    .item:hover{background:#0c1529; border-color:#16223c}
+    .pill{font-size:12px; padding:4px 8px; border:1px solid var(--border); border-radius:999px; color:#cbd5e1}
+    .qty{display:flex; align-items:center; gap:6px}
+    .qty input{width:56px; padding:8px 10px; border-radius:10px; border:1px solid var(--border); background:#0b1223; color:#fff; text-align:center}
+    .btn{appearance:none; border:none; padding:10px 14px; border-radius:12px; background:#0e172a; color:var(--text); border:1px solid var(--border); cursor:pointer}
+    .btn:hover{filter:brightness(1.1)}
+    .totals{padding:18px; border-top:1px solid var(--border); display:grid; gap:10px}
+    .totals .row{display:flex; justify-content:space-between; align-items:center}
+    .total{font-size:28px; font-weight:800}
+    .summary{white-space:pre-wrap; background:#0b1223; border:1px solid var(--border); border-radius:12px; padding:12px; min-height:120px}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 </head>
@@ -81,25 +105,86 @@
       <span class="badge" id="who">Connecté</span>
     </header>
 
-    <!-- Home -->
+    <!-- Accueil -->
     <section id="home" class="card no-print">
       <div class="choices">
+        <div class="choice" data-open="calc">
+          <div>
+            <h3>Calcul des coûts d'intervention</h3>
+            <p>Catalogue d’actes (USD), quantités, TVA, total.</p>
+          </div>
+          <button class="btn">Ouvrir</button>
+        </div>
         <div class="choice" data-open="cert">
           <div>
             <h3>Réaliser un certificat</h3>
-            <p>Pro / PPA / Divers</p>
+            <p>Pro / PPA / Divers — envoi Discord.</p>
           </div>
           <button class="btn">Ouvrir</button>
         </div>
       </div>
     </section>
 
-    <!-- Certificat -->
+    <!-- Module Calcul -->
+    <section id="calc" class="card" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <h2 style="margin:0">🧮 Calcul des coûts d’intervention (USD)</h2>
+        <button class="btn" data-back>← Retour</button>
+      </div>
+      <div class="hr"></div>
+
+      <div class="grid-2">
+        <!-- Catalogue -->
+        <section class="section">
+          <div class="tabs" id="tabs" role="tablist" aria-label="Catégories de soins">
+            <button class="tab" role="tab" aria-selected="true" data-cat="Administratif">
+              <span class="tab-caption">Administratif</span>
+            </button>
+            <button class="tab" role="tab" aria-selected="false" data-cat="Transport">
+              <span class="tab-caption">Transport</span>
+            </button>
+            <button class="tab" role="tab" aria-selected="false" data-cat="Soins Hôpital">
+              <span class="tab-caption">Soins Hôpital</span>
+            </button>
+            <button class="tab" role="tab" aria-selected="false" data-cat="Soins sur site">
+              <span class="tab-caption">Soins sur site</span>
+            </button>
+          </div>
+          <div id="list" class="list" aria-live="polite"></div>
+        </section>
+
+        <!-- Récap -->
+        <section class="section card">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:6px">
+            <h3 style="margin:0">Récapitulatif</h3>
+            <div style="display:flex; gap:8px">
+              <button class="btn" id="reset">Réinitialiser</button>
+            </div>
+          </div>
+          <div id="summary" class="summary">— Aucun soin sélectionné —</div>
+
+          <div class="totals">
+            <div class="row"><span>Sous-total</span><strong id="subtotal">$0</strong></div>
+            <div class="row muted"><span>Taxes (optionnelles)</span>
+              <span>
+                <label style="display:inline-flex; align-items:center; gap:6px">
+                  <input type="checkbox" id="taxEnable"> TVA
+                </label>
+                <input type="number" id="taxRate" value="0" min="0" max="100" step="0.5" style="width:80px; margin-left:8px; padding:6px 8px; border-radius:8px; border:1px solid var(--border); background:#0b1223; color:#fff"> %
+              </span>
+            </div>
+            <div class="row"><span>Total</span><span class="total" id="total">$0</span></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- Module Certificat -->
     <section id="cert" class="card" style="display:none">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
         <h2 style="margin:0">📝 Générateur de certificat</h2>
         <div style="display:flex;gap:8px">
-          <button class="btn secondary" data-back>← Retour</button>
+          <button class="btn" data-back>← Retour</button>
           <button class="btn" id="sendDiscord">Envoyer vers Discord</button>
         </div>
       </div>
@@ -129,13 +214,13 @@
           <input id="dob" placeholder="Ex : 01/01/1995" />
         </div>
 
-        <!-- Entreprise (uniquement pour PRO) -->
+        <!-- Entreprise (PRO uniquement) -->
         <div data-col="12" id="companyWrap">
           <label>Entreprise</label>
           <input id="company" placeholder="Ex : Gruppe Sechs, LTD" />
         </div>
 
-        <!-- Conclusions / réserves (PRO & PPA) -->
+        <!-- Conclusion / réserves (PRO & PPA) -->
         <div data-col="12" id="conclusionWrap">
           <label>Conclusion</label>
           <div style="display:flex;gap:16px;flex-wrap:wrap">
@@ -148,13 +233,12 @@
           <textarea id="reserveText" rows="3" placeholder="Préciser les réserves…"></textarea>
         </div>
 
-        <!-- Notes libres (uniquement DIVERS) -->
+        <!-- Divers : texte libre -->
         <div data-col="12" id="notesWrap" style="display:none">
           <label>Texte du certificat</label>
           <textarea id="notes" rows="5" placeholder="Saisir le contenu du certificat…"></textarea>
         </div>
 
-        <!-- Docteur (toujours) -->
         <div data-col="12">
           <label>Médecin / Intervenant</label>
           <input id="doctor" placeholder="Dr. Jane SMITH" />
@@ -216,186 +300,290 @@
     </section>
   </div>
 
-<script>
-/* ====== Config ====== */
-const OMC_PASSWORD = "omc2025";
-const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1417874223115931789/fa_Ar35jK1b8i2Z3itgqpg79Q0ZN0VnFaIF63R10QouiIJ8JTIMAihW8k_2gNflYJPn3";
+  <!-- libs -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script>
+  /* ====== Config ====== */
+  const OMC_PASSWORD = "omc2025";
+  const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1417874223115931789/fa_Ar35jK1b8i2Z3itgqpg79Q0ZN0VnFaIF63R10QouiIJ8JTIMAihW8k_2gNflYJPn3";
 
-/* ====== Login ====== */
-const gate = document.getElementById('gate');
-const loginBtn = document.getElementById('loginBtn');
-const pwdInput = document.getElementById('pwd');
-function setLoggedIn(){ gate.style.display='none'; }
-loginBtn.addEventListener('click',()=>{ if(pwdInput.value===OMC_PASSWORD){ setLoggedIn(); } else { alert("Mot de passe incorrect"); }});
-pwdInput.addEventListener('keyup',e=>{ if(e.key==="Enter") loginBtn.click(); });
+  /* ====== Login ====== */
+  const gate = document.getElementById('gate');
+  const loginBtn = document.getElementById('loginBtn');
+  const pwdInput = document.getElementById('pwd');
+  function setLoggedIn(){ gate.style.display='none'; }
+  loginBtn.addEventListener('click',()=>{ if(pwdInput.value===OMC_PASSWORD){ setLoggedIn(); } else { alert("Mot de passe incorrect"); }});
+  pwdInput.addEventListener('keyup',e=>{ if(e.key==="Enter") loginBtn.click(); });
 
-/* ====== Nav ====== */
-const home = document.getElementById('home');
-const cert = document.getElementById('cert');
-document.querySelectorAll('.choice').forEach(el=>el.addEventListener('click',()=>{home.style.display='none';cert.style.display='block';}));
-document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>{cert.style.display='none';home.style.display='block';}));
-
-/* ====== Helpers ====== */
-const el = id => document.getElementById(id);
-const pad2 = n => n.toString().padStart(2,'0');
-function buildRefJJMMHHMM(dateObj = new Date()){
-  const d = pad2(dateObj.getDate());
-  const m = pad2(dateObj.getMonth()+1);
-  const H = pad2(dateObj.getHours());
-  const M = pad2(dateObj.getMinutes());
-  return `${d}${m}${H}${M}`;
-}
-
-/* ====== Form fields ====== */
-const certType = el('certType');
-const certDate = el('certDate');
-const patient  = el('patient');
-const dob      = el('dob');
-const companyWrap = el('companyWrap');
-const company  = el('company');
-const conclusionWrap = el('conclusionWrap');
-const reserveWrap = el('reserveWrap');
-const reserveText = el('reserveText');
-const notesWrap = el('notesWrap');
-const notes    = el('notes');
-const doctor   = el('doctor');
-
-/* ====== Preview fields ====== */
-const pvTitle = el('certTitle');
-const pvTag = el('certTag');
-const pvPatient = el('pvPatient');
-const pvDob = el('pvDob');
-const pvDate = el('pvDate');
-const pvRef = el('pvRef');
-const pvCompanyWrap = el('pvCompanyWrap');
-const pvCompany = el('pvCompany');
-const pvNotes = el('pvNotes');
-const pvDoctor = el('pvDoctor');
-
-/* Defaults */
-certDate.valueAsNumber = Date.now() - (new Date()).getTimezoneOffset()*60000;
-
-/* ====== UI logic by type ====== */
-function updateVisibility(){
-  const type = certType.value;
-  // Pro: entreprise visible, conclusions visibles, notes (libres) masquées
-  if(type === 'pro'){
-    companyWrap.style.display = '';
-    conclusionWrap.style.display = '';
-    notesWrap.style.display = 'none';
-  }
-  // PPA: pas d'entreprise, conclusions visibles, notes masquées
-  if(type === 'ppa'){
-    companyWrap.style.display = 'none';
-    conclusionWrap.style.display = '';
-    notesWrap.style.display = 'none';
-  }
-  // Divers: uniquement champ libre
-  if(type === 'divers'){
-    companyWrap.style.display = 'none';
-    conclusionWrap.style.display = 'none';
-    reserveWrap.style.display = 'none';
-    notesWrap.style.display = '';
-  }
-}
-
-/* ====== Build preview ====== */
-function currentConclusionText(){
-  const type = certType.value;
-  if(type === 'divers'){
-    return (notes.value || '—');
-  }
-  const choice = (document.querySelector('input[name="concl"]:checked') || {}).value || 'ok';
-  if(choice === 'ok'){
-    return "Examen clinique sans anomalie. Aucune contre-indication relevée par rapport à l’objet du certificat.";
-  }else{
-    const r = reserveText.value.trim();
-    return "Apte avec réserve" + (r ? " — " + r : "");
-  }
-}
-
-function refreshCert(){
-  // Titre
-  if(certType.value === 'pro'){
-    pvTitle.textContent = "Certificat médical d’aptitude professionnelle";
-    pvTag.textContent = "OCEAN MEDICAL CENTER — APTITUDE PRO";
-  }else if(certType.value === 'ppa'){
-    pvTitle.textContent = "Certificat de capacité à passer l’examen du PPA";
-    pvTag.textContent = "OCEAN MEDICAL CENTER — PPA";
-  }else{
-    pvTitle.textContent = "Certificat — Divers";
-    pvTag.textContent = "OCEAN MEDICAL CENTER";
-  }
-
-  // Champs de base
-  pvPatient.textContent = patient.value || '—';
-  pvDob.textContent = dob.value || '—';
-  pvDate.textContent = certDate.value || '—';
-
-  // Référence JJMMHHMM (à partir de l'heure actuelle)
-  pvRef.textContent = buildRefJJMMHHMM(new Date());
-
-  // Entreprise visible seulement pour PRO
-  if(certType.value === 'pro'){
-    pvCompanyWrap.style.display = '';
-    pvCompany.textContent = company.value || '—';
-  }else{
-    pvCompanyWrap.style.display = 'none';
-    pvCompany.textContent = '—';
-  }
-
-  // Conclusion / Notes
-  pvNotes.textContent = currentConclusionText();
-
-  // Docteur
-  pvDoctor.textContent = doctor.value || '—';
-}
-
-/* ====== Events ====== */
-['change','keyup','input'].forEach(evt=>{
-  [certType,certDate,patient,dob,company,notes,doctor,reserveText].forEach(c=> c.addEventListener(evt, ()=>{ updateVisibility(); refreshCert(); }));
-});
-document.querySelectorAll('input[name="concl"]').forEach(r=>{
-  r.addEventListener('change', ()=>{
-    reserveWrap.style.display = (r.value==='reserve' && r.checked && certType.value!=='divers') ? '' : 'none';
-    refreshCert();
+  /* ====== Navigation ====== */
+  const home = document.getElementById('home');
+  const calc = document.getElementById('calc');
+  const cert = document.getElementById('cert');
+  document.querySelectorAll('.choice').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const panel = el.getAttribute('data-open');
+      home.style.display='none';
+      if(panel==='calc') calc.style.display='block';
+      if(panel==='cert') cert.style.display='block';
+    });
   });
-});
+  document.querySelectorAll('[data-back]').forEach(b=> b.addEventListener('click',()=>{
+    calc.style.display='none'; cert.style.display='none'; home.style.display='block';
+  }));
 
-/* Init UI */
-updateVisibility();
-refreshCert();
-
-/* ====== Send to Discord (PNG) ====== */
-async function sendToDiscord(){
-  const btn = document.getElementById('sendDiscord');
-  btn.disabled = true; btn.textContent = 'Envoi…';
-  try{
-    const node = document.getElementById('certPreview');
-    const canvas = await html2canvas(node, {scale: 2, backgroundColor: '#ffffff'});
-    const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
-
-    const destinataire = (patient.value || '—');
-    const content = `Certificat OMC — confidentiel à l’attention de ${destinataire}`;
-
-    const form = new FormData();
-    form.append('payload_json', JSON.stringify({content}));
-    form.append('file', blob, `certificat_${buildRefJJMMHHMM(new Date())}.png`);
-
-    const resp = await fetch(DISCORD_WEBHOOK, {method:'POST', body: form});
-    if(!resp.ok){
-      const txt = await resp.text();
-      throw new Error('Discord: '+txt);
-    }
-    alert("✅ Envoyé dans Discord !");
-  }catch(e){
-    alert("Erreur d’envoi : " + e.message);
-    console.error(e);
-  }finally{
-    btn.disabled = false; btn.textContent = 'Envoyer vers Discord';
+  /* ====== Helpers ====== */
+  const el = id => document.getElementById(id);
+  const pad2 = n => n.toString().padStart(2,'0');
+  function buildRefJJMMHHMM(dateObj = new Date()){
+    const d = pad2(dateObj.getDate());
+    const m = pad2(dateObj.getMonth()+1);
+    const H = pad2(dateObj.getHours());
+    const M = pad2(dateObj.getMinutes());
+    return `${d}${m}${H}${M}`;
   }
-}
-document.getElementById('sendDiscord').addEventListener('click', sendToDiscord);
-</script>
+
+  /* ====== CERTIFICAT ====== */
+  const certType = el('certType');
+  const certDate = el('certDate');
+  const patient  = el('patient');
+  const dob      = el('dob');
+  const companyWrap = el('companyWrap');
+  const company  = el('company');
+  const conclusionWrap = el('conclusionWrap');
+  const reserveWrap = el('reserveWrap');
+  const reserveText = el('reserveText');
+  const notesWrap = el('notesWrap');
+  const notes    = el('notes');
+  const doctor   = el('doctor');
+
+  const pvTitle = el('certTitle');
+  const pvTag = el('certTag');
+  const pvPatient = el('pvPatient');
+  const pvDob = el('pvDob');
+  const pvDate = el('pvDate');
+  const pvRef = el('pvRef');
+  const pvCompanyWrap = el('pvCompanyWrap');
+  const pvCompany = el('pvCompany');
+  const pvNotes = el('pvNotes');
+  const pvDoctor = el('pvDoctor');
+
+  certDate.valueAsNumber = Date.now() - (new Date()).getTimezoneOffset()*60000;
+
+  function updateVisibility(){
+    const type = certType.value;
+    if(type === 'pro'){
+      companyWrap.style.display = '';
+      conclusionWrap.style.display = '';
+      notesWrap.style.display = 'none';
+    }
+    if(type === 'ppa'){
+      companyWrap.style.display = 'none';
+      conclusionWrap.style.display = '';
+      notesWrap.style.display = 'none';
+    }
+    if(type === 'divers'){
+      companyWrap.style.display = 'none';
+      conclusionWrap.style.display = 'none';
+      reserveWrap.style.display = 'none';
+      notesWrap.style.display = '';
+    }
+  }
+
+  function currentConclusionText(){
+    const type = certType.value;
+    if(type === 'divers'){
+      return (notes.value || '—');
+    }
+    const choice = (document.querySelector('input[name="concl"]:checked') || {}).value || 'ok';
+    if(choice === 'ok'){
+      return "Examen clinique sans anomalie. Aucune contre-indication relevée par rapport à l’objet du certificat.";
+    }else{
+      const r = reserveText.value.trim();
+      return "Apte avec réserve" + (r ? " — " + r : "");
+    }
+  }
+
+  function refreshCert(){
+    if(certType.value === 'pro'){
+      pvTitle.textContent = "Certificat médical d’aptitude professionnelle";
+      pvTag.textContent = "OCEAN MEDICAL CENTER — APTITUDE PRO";
+    }else if(certType.value === 'ppa'){
+      pvTitle.textContent = "Certificat de capacité à passer l’examen du PPA";
+      pvTag.textContent = "OCEAN MEDICAL CENTER — PPA";
+    }else{
+      pvTitle.textContent = "Certificat — Divers";
+      pvTag.textContent = "OCEAN MEDICAL CENTER";
+    }
+
+    pvPatient.textContent = patient.value || '—';
+    pvDob.textContent = dob.value || '—';
+    pvDate.textContent = certDate.value || '—';
+    pvRef.textContent = buildRefJJMMHHMM(new Date());
+
+    if(certType.value === 'pro'){
+      pvCompanyWrap.style.display = '';
+      pvCompany.textContent = company.value || '—';
+    }else{
+      pvCompanyWrap.style.display = 'none';
+      pvCompany.textContent = '—';
+    }
+
+    pvNotes.textContent = currentConclusionText();
+    pvDoctor.textContent = doctor.value || '—';
+  }
+
+  ['change','keyup','input'].forEach(evt=>{
+    [certType,certDate,patient,dob,company,notes,doctor,reserveText].forEach(c=> c.addEventListener(evt, ()=>{ updateVisibility(); refreshCert(); }));
+  });
+  document.querySelectorAll('input[name="concl"]').forEach(r=>{
+    r.addEventListener('change', ()=>{
+      reserveWrap.style.display = (r.value==='reserve' && r.checked && certType.value!=='divers') ? '' : 'none';
+      refreshCert();
+    });
+  });
+  updateVisibility();
+  refreshCert();
+
+  async function sendToDiscord(){
+    const btn = document.getElementById('sendDiscord');
+    btn.disabled = true; btn.textContent = 'Envoi…';
+    try{
+      const node = document.getElementById('certPreview');
+      const canvas = await html2canvas(node, {scale: 2, backgroundColor: '#ffffff'});
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      const destinataire = (patient.value || '—');
+      const content = `Certificat OMC — confidentiel à l’attention de ${destinataire}`;
+
+      const form = new FormData();
+      form.append('payload_json', JSON.stringify({content}));
+      form.append('file', blob, `certificat_${buildRefJJMMHHMM(new Date())}.png`);
+
+      const resp = await fetch(DISCORD_WEBHOOK, {method:'POST', body: form});
+      if(!resp.ok){
+        const txt = await resp.text();
+        throw new Error('Discord: '+txt);
+      }
+      alert("✅ Envoyé dans Discord !");
+    }catch(e){
+      alert("Erreur d’envoi : " + e.message);
+      console.error(e);
+    }finally{
+      btn.disabled = false; btn.textContent = 'Envoyer vers Discord';
+    }
+  }
+  document.getElementById('sendDiscord').addEventListener('click', sendToDiscord);
+
+  /* ====== CALCULATEUR (USD) ====== */
+  const CATALOG = [
+    // Administratif
+    { id:'CERT_TRAVAIL', name:'Certificat aptitude travail', priceUSD:450,  category:'Administratif' },
+    { id:'CERT_PPA',     name:'Certificat aptitude PPA',     priceUSD:6500, category:'Administratif' },
+    // Transport
+    { id:'AMBUL_LOCAL',  name:'Transport ambulance locale',  priceUSD:200,  category:'Transport' },
+    // Soins Hôpital
+    { id:'HOP_SOIN',     name:'Soins',                       priceUSD:450,  category:'Soins Hôpital' },
+    { id:'HOP_REA',      name:'Réanimation',                 priceUSD:800,  category:'Soins Hôpital' },
+    { id:'HOP_RADIO',    name:'Radio de contrôle',           priceUSD:480,  category:'Soins Hôpital' },
+    { id:'HOP_SUTURE',   name:'Points de suture',            priceUSD:500,  category:'Soins Hôpital' },
+    { id:'HOP_ATTELLE',  name:"Fourniture et pose d'une attelle", priceUSD:950, category:'Soins Hôpital' },
+    { id:'HOP_PLATRE',   name:"Fourniture et pose d'un plâtre",   priceUSD:1100, category:'Soins Hôpital' },
+    // Soins sur site
+    { id:'SITE_SOIN',    name:'Soins',                       priceUSD:450,  category:'Soins sur site' },
+    { id:'SITE_REA',     name:'Réanimation',                 priceUSD:800,  category:'Soins sur site' },
+  ];
+
+  const state = new Map(); // id -> qty
+  let activeCategory = 'Administratif';
+
+  const elsCalc = {
+    list: document.getElementById('list'),
+    tabs: document.getElementById('tabs'),
+    summary: document.getElementById('summary'),
+    subtotal: document.getElementById('subtotal'),
+    total: document.getElementById('total'),
+    taxEnable: document.getElementById('taxEnable'),
+    taxRate: document.getElementById('taxRate'),
+    reset: document.getElementById('reset'),
+  };
+  const fmtUSD = (n) => new Intl.NumberFormat('en-US', { style:'currency', currency: 'USD' }).format(n);
+
+  function syncTabs(){
+    for (const btn of elsCalc.tabs.querySelectorAll('.tab')) {
+      btn.setAttribute('aria-selected', String(btn.dataset.cat === activeCategory));
+    }
+  }
+  function renderList(){
+    elsCalc.list.innerHTML='';
+    CATALOG.filter(x => x.category === activeCategory).forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'item';
+
+      const left = document.createElement('div');
+      left.innerHTML = `<div style="font-weight:600">${item.name}</div>
+                        <div class="muted" style="font-size:13px">${item.id} · <span class="pill">${item.category}</span></div>`;
+
+      const price = document.createElement('div');
+      price.className = 'muted';
+      price.textContent = fmtUSD(item.priceUSD);
+
+      const qty = document.createElement('div');
+      qty.className = 'qty';
+      const minus = document.createElement('button'); minus.className='btn'; minus.textContent='−';
+      const input = document.createElement('input'); input.type='number'; input.min='0'; input.step='1';
+      input.value = state.get(item.id) ?? 0;
+      const plus = document.createElement('button'); plus.className='btn'; plus.textContent='+';
+
+      minus.onclick = () => { const v=Math.max(0, (state.get(item.id)||0)-1); state.set(item.id, v); input.value=v; updateSummary(); };
+      plus.onclick  = () => { const v=(state.get(item.id)||0)+1; state.set(item.id, v); input.value=v; updateSummary(); };
+      input.oninput = () => { const v=Math.max(0, parseInt(input.value||'0',10)); state.set(item.id, v); input.value=v; updateSummary(); };
+
+      qty.append(minus, input, plus);
+      row.append(left, price, qty);
+      elsCalc.list.appendChild(row);
+    });
+  }
+  function compute(){
+    let lines = [];
+    let subtotal = 0;
+    for(const item of CATALOG){
+      const q = state.get(item.id)||0;
+      if(!q) continue;
+      const unit = item.priceUSD;
+      const line = unit * q;
+      subtotal += line;
+      lines.push(`• ${item.name} × ${q} — ${fmtUSD(line)} (${fmtUSD(unit)}/u)`);
+    }
+    const taxEnabled = elsCalc.taxEnable.checked;
+    const taxRate = Math.max(0, Number(elsCalc.taxRate.value||0));
+    const taxValue = taxEnabled ? (subtotal * taxRate/100) : 0;
+    const total = subtotal + taxValue;
+    return { lines, subtotal, taxEnabled, taxRate, taxValue, total };
+  }
+  function updateSummary(){
+    const {lines, subtotal, taxEnabled, taxRate, taxValue, total} = compute();
+    elsCalc.summary.textContent = lines.length ? lines.join('\n') : '— Aucun soin sélectionné —';
+    elsCalc.subtotal.textContent = fmtUSD(subtotal);
+    elsCalc.total.textContent = fmtUSD(total);
+    elsCalc.taxRate.disabled = !taxEnabled;
+    elsCalc.taxRate.style.opacity = taxEnabled ? 1 : .6;
+  }
+
+  elsCalc.tabs.addEventListener('click', (e) => {
+    const btn = e.target.closest('.tab');
+    if (!btn) return;
+    activeCategory = btn.dataset.cat;
+    syncTabs();
+    renderList();
+    updateSummary();
+  });
+  elsCalc.taxEnable.addEventListener('change', updateSummary);
+  elsCalc.taxRate.addEventListener('input', updateSummary);
+  elsCalc.reset.addEventListener('click', ()=>{ state.clear(); updateSummary(); renderList(); });
+
+  // Init calc
+  syncTabs();
+  renderList();
+  updateSummary();
+  </script>
 </body>
 </html>
