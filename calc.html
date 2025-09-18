@@ -1,1 +1,81 @@
+<!doctype html>
+</div>
+<div id="list" class="list" aria-live="polite"></div>
+<div class="summary" id="summary">— Aucun soin sélectionné —</div>
+<div style="display:grid; gap:10px">
+<div style="display:flex; justify-content:space-between; align-items:center"><span>Sous-total</span><strong id="subtotal">$0</strong></div>
+<div style="display:flex; gap:10px; align-items:center">
+<span style="color:#9ca3af">TVA</span>
+<label style="display:inline-flex; align-items:center; gap:6px"><input type="checkbox" id="taxEnable"> Activer</label>
+<input type="number" id="taxRate" value="0" min="0" max="100" step="0.5" style="width:80px"> %
+<button id="reset" style="margin-left:auto; appearance:none; border:1px solid var(--ring); border-radius:12px; padding:8px 10px; background:#0b1223; color:var(--text); cursor:pointer">Réinitialiser</button>
+</div>
+<div style="display:flex; justify-content:space-between; align-items:center"><span>Total</span><span class="total" id="total">$0</span></div>
+</div>
+</div>
+</div>
 
+
+<script>
+// ===== Données catalogue (comme convenu) =====
+const CATALOG = [
+{ id:'CERT_TRAVAIL', name:'Certificat aptitude travail', priceUSD:450, category:'Administratif' },
+{ id:'CERT_PPA', name:'Certificat aptitude PPA', priceUSD:6500, category:'Administratif' },
+{ id:'AMBUL_LOCAL', name:'Transport ambulance locale', priceUSD:200, category:'Transport' },
+{ id:'HOP_SOIN', name:'Soins', priceUSD:450, category:'Soins Hôpital' },
+{ id:'HOP_REA', name:'Réanimation', priceUSD:800, category:'Soins Hôpital' },
+{ id:'HOP_RADIO', name:'Radio de contrôle', priceUSD:480, category:'Soins Hôpital' },
+{ id:'HOP_SUTURE', name:'Points de suture', priceUSD:500, category:'Soins Hôpital' },
+{ id:'HOP_ATTELLE', name:"Fourniture et pose d'un plâtre", priceUSD:1100, category:'Soins Hôpital' },
+{ id:'HOP_PLATRE', name:"Fourniture et pose d'une attelle", priceUSD:950, category:'Soins Hôpital' },
+{ id:'SITE_SOIN', name:'Soins', priceUSD:450, category:'Soins sur site' },
+{ id:'SITE_REA', name:'Réanimation', priceUSD:800, category:'Soins sur site' },
+];
+
+
+const els = {
+list: document.getElementById('list'),
+tabs: document.getElementById('tabs'),
+summary: document.getElementById('summary'),
+subtotal: document.getElementById('subtotal'),
+total: document.getElementById('total'),
+taxEnable: document.getElementById('taxEnable'),
+taxRate: document.getElementById('taxRate'),
+reset: document.getElementById('reset'),
+};
+
+
+const fmtUSD = (n) => new Intl.NumberFormat('en-US', { style:'currency', currency: 'USD' }).format(n);
+const state = new Map();
+let activeCategory = 'Administratif';
+
+
+function syncTabs(){
+for (const btn of els.tabs.querySelectorAll('.tab')) {
+btn.setAttribute('aria-selected', String(btn.dataset.cat === activeCategory));
+}
+}
+function renderList(){
+els.list.innerHTML='';
+CATALOG.filter(x => x.category === activeCategory).forEach(item => {
+const row = document.createElement('div'); row.className = 'item';
+const left = document.createElement('div');
+left.innerHTML = `<div style="font-weight:600">${item.name}</div><div style="color:#9ca3af; font-size:13px">${item.id} · <span class="pill">${item.category}</span></div>`;
+const price = document.createElement('div'); price.style.color='#9ca3af'; price.textContent = fmtUSD(item.priceUSD);
+const qty = document.createElement('div'); qty.className = 'qty';
+const minus = document.createElement('button'); minus.textContent='−'; minus.style.cssText='appearance:none;border:1px solid var(--ring);border-radius:10px;padding:6px 10px;background:#0b1223;color:var(--text)';
+const input = document.createElement('input'); input.type='number'; input.min='0'; input.step='1'; input.value = state.get(item.id) ?? 0;
+const plus = document.createElement('button'); plus.textContent='+'; plus.style.cssText=minus.style.cssText;
+minus.onclick = () => { const v=Math.max(0, (state.get(item.id)||0)-1); state.set(item.id, v); input.value=v; updateSummary(); };
+plus.onclick = () => { const v=(state.get(item.id)||0)+1; state.set(item.id, v); input.value=v; updateSummary(); };
+input.oninput = () => { const v=Math.max(0, parseInt(input.value||'0',10)); state.set(item.id, v); input.value=v; updateSummary(); };
+qty.append(minus, input, plus);
+row.append(left, price, qty);
+els.list.appendChild(row);
+});
+}
+function compute(){
+let lines = []; let subtotal = 0;
+for(const item of CATALOG){
+const q = state.get(item.id)||0; if(!q) continue;
+</html>
