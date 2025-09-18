@@ -102,4 +102,68 @@
 
     // Fallback date robuste
     if (certDate) {
-      const todayISO = new Date(Date.now()- (new Date
+      const todayISO = new Date(Date.now()- (new Date()).getTimezoneOffset()*60000).toISOString().slice(0,10);
+      try { certDate.valueAsNumber = Date.now() - (new Date()).getTimezoneOffset()*60000; }
+      catch { certDate.value = todayISO; }
+    }
+
+    function updateVisibility(){
+      const type=certType.value;
+      if(type==='pro'){ companyWrap.style.display=''; conclusionWrap.style.display=''; notesWrap.style.display='none'; }
+      if(type==='ppa'){ companyWrap.style.display='none'; conclusionWrap.style.display=''; notesWrap.style.display='none'; }
+      if(type==='divers'){ companyWrap.style.display='none'; conclusionWrap.style.display='none'; reserveWrap.style.display='none'; notesWrap.style.display=''; }
+    }
+    function currentConclusion(){
+      const type=certType.value;
+      if(type==='divers') return (notes.value||'—');
+      const choice=(document.querySelector('input[name="concl"]:checked')||{}).value||'ok';
+      if(choice==='ok') return 'Examen clinique sans anomalie. Aucune contre-indication.';
+      const r=(reserveText.value||'').trim();
+      return 'Apte avec réserve' + (r? ' — '+r : '');
+    }
+    function refreshCert(){
+      if(certType.value==='pro'){ pvTitle.textContent='Certificat médical d’aptitude professionnelle'; pvTag.textContent='OCEAN MEDICAL CENTER — APTITUDE PRO'; }
+      else if(certType.value==='ppa'){ pvTitle.textContent='Certificat de capacité à passer l’examen du PPA'; pvTag.textContent='OCEAN MEDICAL CENTER — PPA'; }
+      else { pvTitle.textContent='Certificat — Divers'; pvTag.textContent='OCEAN MEDICAL CENTER'; }
+      pvPatient.textContent=patient.value||'—';
+      pvDob.textContent=dob.value||'—';
+      pvDate.textContent=certDate.value||'—';
+      pvRef.textContent=refJJMMHHMM(new Date());
+      if(certType.value==='pro'){ pvCompanyWrap.style.display=''; pvCompany.textContent=company.value||'—'; } else { pvCompanyWrap.style.display='none'; pvCompany.textContent='—'; }
+      pvNotes.textContent=currentConclusion();
+      pvDoctor.textContent=doctor.value||'—';
+    }
+
+    ['change','keyup','input'].forEach(evt=>{
+      [certType,certDate,patient,dob,company,notes,doctor,reserveText].forEach(c=> c.addEventListener(evt, ()=>{ updateVisibility(); refreshCert(); }));
+    });
+    document.querySelectorAll('input[name="concl"]').forEach(r=> r.addEventListener('change', ()=>{
+      reserveWrap.style.display = (r.value==='reserve' && r.checked && certType.value!=='divers') ? '' : 'none'; refreshCert();
+    }));
+
+    updateVisibility(); refreshCert();
+
+    async function sendToDiscord(){
+      const btn=document.getElementById('sendDiscord');
+      btn.disabled=true; btn.textContent='Envoi…';
+      try{
+        const node=document.getElementById('certPreview');
+        const canvas=await html2canvas(node,{scale:2, backgroundColor:'#ffffff'});
+        const blob=await new Promise(res=> canvas.toBlob(res,'image/png'));
+        const content=`Certificat OMC — à l’attention de ${patient.value||'—'}`;
+        const form=new FormData(); form.append('payload_json', JSON.stringify({content})); form.append('file', blob, `certificat_${refJJMMHHMM(new Date())}.png`);
+        const resp=await fetch(DISCORD_WEBHOOK+'?wait=true',{method:'POST', body:form}); if(!resp.ok) throw new Error('Discord '+resp.status);
+        alert('✅ Envoyé dans Discord !');
+      }catch(e){ alert('Erreur d’envoi : '+e.message); console.error(e); }
+      finally{ btn.disabled=false; btn.textContent='Envoyer vers Discord'; }
+    }
+    document.getElementById('sendDiscord').addEventListener('click', sendToDiscord);
+
+    // Tests (console via ?test)
+    if(location.search.includes('test')){
+      try{ const r=refJJMMHHMM(); console.assert(r.length===8, 'Référence JJMMHHMM incorrecte: '+r); console.log('%c[Tests cert] OK','color:#22c55e'); }catch(e){ console.error('[Tests cert] FAIL', e); }
+    }
+  });
+  </script>
+</body>
+</html>
