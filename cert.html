@@ -1,1 +1,53 @@
+<!doctype html>
+<div class="panel">
+<div class="certificate" id="certPreview">
+<header>
+<img src="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" alt="OMC">
+<div>
+<div id="certTag" style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #1e3a4a;background:#0b2230;color:#9ed9ff;font-size:12px">OCEAN MEDICAL CENTER</div>
+<h2 id="certTitle">Certificat</h2>
+</div>
+</header>
+<div class="cert-grid">
+<div class="cert-field"><div class="cert-label">Patient</div><div class="cert-value" id="pvPatient">—</div></div>
+<div class="cert-field"><div class="cert-label">Naissance</div><div class="cert-value" id="pvDob">—</div></div>
+<div class="cert-field"><div class="cert-label">Date</div><div class="cert-value" id="pvDate">—</div></div>
+<div class="cert-field"><div class="cert-label">Réf (JJMMHHMM)</div><div class="cert-value" id="pvRef">—</div></div>
+<div class="cert-field" id="pvCompanyWrap" style="display:none"><div class="cert-label">Entreprise</div><div class="cert-value" id="pvCompany">—</div></div>
+</div>
+<div class="cert-field" style="margin-top:14px"><div class="cert-label">Objet / Conclusion</div><div class="cert-value" id="pvNotes">—</div></div>
+<div class="cert-footer">
+<div><div class="cert-label">Établi par</div><div class="cert-value" id="pvDoctor">—</div><div class="signature">Signature et cachet</div></div>
+<div style="text-align:right"><div class="cert-label">Mention</div><div class="cert-value">Usage interne OMC</div></div>
+</div>
+</div>
+</div>
+</div>
 
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1417874223115931789/fa_Ar35jK1b8i2Z3itgqpg79Q0ZN0VnFaIF63R10QouiIJ8JTIMAihW8k_2gNflYJPn3';
+const el=id=>document.getElementById(id);
+const certType=el('certType'), certDate=el('certDate'), patient=el('patient'), dob=el('dob'), companyWrap=el('companyWrap'), company=el('company');
+const conclusionWrap=el('conclusionWrap'), reserveWrap=el('reserveWrap'), reserveText=el('reserveText'), notesWrap=el('notesWrap'), notes=el('notes'), doctor=el('doctor');
+const pvTitle=el('certTitle'), pvTag=el('certTag'), pvPatient=el('pvPatient'), pvDob=el('pvDob'), pvDate=el('pvDate'), pvRef=el('pvRef'), pvCompanyWrap=el('pvCompanyWrap'), pvCompany=el('pvCompany'), pvNotes=el('pvNotes'), pvDoctor=el('pvDoctor');
+const pad2=n=>String(n).padStart(2,'0'); const refJJMMHHMM=(d=new Date())=>`${pad2(d.getDate())}${pad2(d.getMonth()+1)}${pad2(d.getHours())}${pad2(d.getMinutes())}`;
+certDate.valueAsNumber = Date.now() - (new Date()).getTimezoneOffset()*60000;
+function updateVisibility(){ const type=certType.value; if(type==='pro'){ companyWrap.style.display=''; conclusionWrap.style.display=''; notesWrap.style.display='none'; } if(type==='ppa'){ companyWrap.style.display='none'; conclusionWrap.style.display=''; notesWrap.style.display='none'; } if(type==='divers'){ companyWrap.style.display='none'; conclusionWrap.style.display='none'; reserveWrap.style.display='none'; notesWrap.style.display=''; } }
+function currentConclusion(){ const type=certType.value; if(type==='divers') return (notes.value||'—'); const choice=(document.querySelector('input[name="concl"]:checked')||{}).value||'ok'; if(choice==='ok') return 'Examen clinique sans anomalie. Aucune contre‑indication.'; const r=(reserveText.value||'').trim(); return 'Apte avec réserve' + (r? ' — '+r : ''); }
+function refreshCert(){ if(certType.value==='pro'){ pvTitle.textContent='Certificat médical d’aptitude professionnelle'; pvTag.textContent='OCEAN MEDICAL CENTER — APTITUDE PRO'; } else if(certType.value==='ppa'){ pvTitle.textContent='Certificat de capacité à passer l’examen du PPA'; pvTag.textContent='OCEAN MEDICAL CENTER — PPA'; } else { pvTitle.textContent='Certificat — Divers'; pvTag.textContent='OCEAN MEDICAL CENTER'; } pvPatient.textContent=patient.value||'—'; pvDob.textContent=dob.value||'—'; pvDate.textContent=certDate.value||'—'; pvRef.textContent=refJJMMHHMM(new Date()); if(certType.value==='pro'){ pvCompanyWrap.style.display=''; pvCompany.textContent=company.value||'—'; } else { pvCompanyWrap.style.display='none'; pvCompany.textContent='—'; } pvNotes.textContent=currentConclusion(); pvDoctor.textContent=doctor.value||'—'; }
+;['change','keyup','input'].forEach(evt=>{ [certType,certDate,patient,dob,company,notes,doctor,reserveText].forEach(c=> c.addEventListener(evt, ()=>{ updateVisibility(); refreshCert(); })); });
+document.querySelectorAll('input[name="concl"]').forEach(r=> r.addEventListener('change', ()=>{ reserveWrap.style.display = (r.value==='reserve' && r.checked && certType.value!=='divers') ? '' : 'none'; refreshCert(); }));
+updateVisibility(); refreshCert();
+async function sendToDiscord(){ const btn=document.getElementById('sendDiscord'); btn.disabled=true; btn.textContent='Envoi…'; try{ const node=document.getElementById('certPreview'); const canvas=await html2canvas(node,{scale:2, backgroundColor:'#ffffff'}); const blob=await new Promise(res=> canvas.toBlob(res,'image/png')); const content=`Certificat OMC — à l’attention de ${patient.value||'—'}`; const form=new FormData(); form.append('payload_json', JSON.stringify({content})); form.append('file', blob, `certificat_${refJJMMHHMM(new Date())}.png`); const resp=await fetch(DISCORD_WEBHOOK+'?wait=true',{method:'POST', body:form}); if(!resp.ok) throw new Error('Discord '+resp.status); alert('✅ Envoyé dans Discord !'); }catch(e){ alert('Erreur d’envoi : '+e.message); console.error(e); } finally{ btn.disabled=false; btn.textContent='Envoyer vers Discord'; } }
+document.getElementById('sendDiscord').addEventListener('click', sendToDiscord);
+
+
+// Tests (console via ?test)
+if(location.search.includes('test')){
+try{ const r=refJJMMHHMM(); console.assert(r.length===8, 'Référence JJMMHHMM incorrecte: '+r); console.log('%c[Tests cert] OK','color:#22c55e'); }catch(e){ console.error('[Tests cert] FAIL', e); }
+}
+</script>
+</body>
+</html>
