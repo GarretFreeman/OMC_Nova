@@ -1,4 +1,17 @@
 <!doctype html>
+zonesSvg.forEach(el=> el.addEventListener('click', ()=> setActiveZone(el.dataset.zone)));
+zoneSelect.addEventListener('change', e=> setActiveZone(e.target.value));
+lesionSelect.addEventListener('change', e=>{ state.lesion=e.target.value; renderImg(); });
+patientId.addEventListener('input', e=> state.patient = e.target.value);
+comments.addEventListener('input', e=> state.comments = e.target.value);
+
+
+document.getElementById('btnImgRender').addEventListener('click', renderImg);
+document.getElementById('btnImgPrint').addEventListener('click', ()=> window.print());
+document.getElementById('btnImgDiscord').addEventListener('click', ()=>{
+imgCanvas.toBlob(async (blob)=>{
+const content=`Zone: ${zLabel(state.zone)} | Lésion: ${lLabel(state.zone, state.lesion)} | Patient: ${state.patient || '-' }
+${state.comments || ''}`;
 const form=new FormData(); form.append('payload_json', JSON.stringify({content}));
 form.append('file', blob, `omc-imagerie-${Date.now()}.png`);
 const res=await fetch(WEBHOOK_URL+'?wait=true', {method:'POST', body:form});
@@ -37,11 +50,13 @@ logH('Rendu mis à jour', `${zLabel(state.zone)} • ${lLabel(state.zone,state.l
 }
 
 
-// Init + Tests
 setActiveZone(''); renderImg();
+
+
 if(location.search.includes('test')){
 try{ setActiveZone('bras_gauche'); lesionSelect.value='fracture_humerus'; state.lesion='fracture_humerus'; renderImg(); console.log('%c[Tests img] OK','color:#22c55e'); }catch(e){ console.error('[Tests img] FAIL', e); }
 }
+});
 </script>
 </body>
 </html>
