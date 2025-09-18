@@ -1,59 +1,105 @@
 <!doctype html>
-if(type==='divers'){ companyWrap.style.display='none'; conclusionWrap.style.display='none'; reserveWrap.style.display='none'; notesWrap.style.display=''; }
-}
-function currentConclusion(){
-const type=certType.value;
-if(type==='divers') return (notes.value||'—');
-const choice=(document.querySelector('input[name="concl"]:checked')||{}).value||'ok';
-if(choice==='ok') return 'Examen clinique sans anomalie. Aucune contre‑indication.';
-const r=(reserveText.value||'').trim();
-return 'Apte avec réserve' + (r? ' — '+r : '');
-}
-function refreshCert(){
-if(certType.value==='pro'){ pvTitle.textContent='Certificat médical d’aptitude professionnelle'; pvTag.textContent='OCEAN MEDICAL CENTER — APTITUDE PRO'; }
-else if(certType.value==='ppa'){ pvTitle.textContent='Certificat de capacité à passer l’examen du PPA'; pvTag.textContent='OCEAN MEDICAL CENTER — PPA'; }
-else { pvTitle.textContent='Certificat — Divers'; pvTag.textContent='OCEAN MEDICAL CENTER'; }
-pvPatient.textContent=patient.value||'—';
-pvDob.textContent=dob.value||'—';
-pvDate.textContent=certDate.value||'—';
-pvRef.textContent=refJJMMHHMM(new Date());
-if(certType.value==='pro'){ pvCompanyWrap.style.display=''; pvCompany.textContent=company.value||'—'; } else { pvCompanyWrap.style.display='none'; pvCompany.textContent='—'; }
-pvNotes.textContent=currentConclusion();
-pvDoctor.textContent=doctor.value||'—';
-}
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OMC — Certificats</title>
+  <link rel="icon" href="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" type="image/png">
+  <style>
+    :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; }
+    *{box-sizing:border-box} body{background:var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial; margin:0}
+    .wrap{max-width:1100px;margin:40px auto; padding:0 16px}
+    .block{background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--ring); border-radius:var(--radius)}
+    .header{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:16px 20px; border-bottom:1px solid var(--ring)}
+    .header .brand{display:flex; align-items:center; gap:10px}
+    .header a{appearance:none; border:1px solid var(--ring); border-radius:12px; padding:8px 10px; background:#0b1223; color:#e5e7eb; text-decoration:none}
+    .panel{background:#0b1223; border:1px solid var(--ring); border-radius:var(--radius); padding:14px; margin:16px}
+    .field{display:flex; flex-direction:column; gap:6px; margin-bottom:10px}
+    .certificate{background:white;color:#0b2130;border-radius:12px;padding:28px;border:1px solid #e2e8f0;}
+    .certificate header{display:flex;gap:14px;align-items:center}
+    .certificate header img{height:54px;width:54px;border-radius:10px;border:1px solid #d1e0e8;background:#eef7fb}
+    .certificate h2{margin:4px 0 0;font-size:20px}
+    .cert-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+    .cert-field{padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
+    .cert-label{font-size:12px;color:#64748b;margin-bottom:4px}
+    .cert-value{font-weight:600}
+    .cert-footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:18px}
+    .signature{margin-top:34px;border-top:1px solid #e2e8f0;padding-top:6px;font-size:12px;color:#64748b}
+    button{appearance:none; border:1px solid var(--ring); border-radius:12px; padding:10px 12px; background:#0b1223; color:#e5e7eb; cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="wrap block">
+    <div class="header">
+      <div class="brand"><a href="index.html">← Accueil</a><h1 style="margin:0">Générateur de certificat</h1></div>
+      <button id="sendDiscord">Envoyer vers Discord</button>
+    </div>
 
+    <div class="panel">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+        <div class="field"><label>Type de certificat</label>
+          <select id="certType">
+            <option value="pro">Aptitude professionnelle</option>
+            <option value="ppa">Capacité examen PPA</option>
+            <option value="divers">Divers</option>
+          </select>
+        </div>
+        <div class="field"><label>Date</label><input type="date" id="certDate"></div>
+        <div class="field"><label>Patient</label><input id="patient" placeholder="John DOE"></div>
+        <div class="field"><label>Date de naissance</label><input id="dob" placeholder="01/01/1995"></div>
+        <div class="field" id="companyWrap"><label>Entreprise</label><input id="company" placeholder="Gruppe Sechs, LTD"></div>
+        <div class="field" id="conclusionWrap" style="grid-column:1/3">
+          <label>Conclusion</label>
+          <label><input type="radio" name="concl" value="ok" checked> Aucune contre-indication</label>
+          <label><input type="radio" name="concl" value="reserve"> Apte avec réserve</label>
+        </div>
+        <div class="field" id="reserveWrap" style="display:none; grid-column:1/3"><label>Réserves</label><textarea id="reserveText" rows="3"></textarea></div>
+        <div class="field" id="notesWrap" style="display:none; grid-column:1/3"><label>Texte du certificat</label><textarea id="notes" rows="5"></textarea></div>
+        <div class="field"><label>Médecin</label><input id="doctor" placeholder="Dr. Jane SMITH"></div>
+      </div>
+    </div>
 
-['change','keyup','input'].forEach(evt=>{
-[certType,certDate,patient,dob,company,notes,doctor,reserveText].forEach(c=> c.addEventListener(evt, ()=>{ updateVisibility(); refreshCert(); }));
-});
-document.querySelectorAll('input[name="concl"]').forEach(r=> r.addEventListener('change', ()=>{ reserveWrap.style.display = (r.value==='reserve' && r.checked && certType.value!=='divers') ? '' : 'none'; refreshCert(); }));
+    <div class="panel">
+      <div class="certificate" id="certPreview">
+        <header>
+          <img src="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" alt="OMC">
+          <div>
+            <div id="certTag" style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #1e3a4a;background:#0b2230;color:#9ed9ff;font-size:12px">OCEAN MEDICAL CENTER</div>
+            <h2 id="certTitle">Certificat</h2>
+          </div>
+        </header>
+        <div class="cert-grid">
+          <div class="cert-field"><div class="cert-label">Patient</div><div class="cert-value" id="pvPatient">—</div></div>
+          <div class="cert-field"><div class="cert-label">Naissance</div><div class="cert-value" id="pvDob">—</div></div>
+          <div class="cert-field"><div class="cert-label">Date</div><div class="cert-value" id="pvDate">—</div></div>
+          <div class="cert-field"><div class="cert-label">Réf (JJMMHHMM)</div><div class="cert-value" id="pvRef">—</div></div>
+          <div class="cert-field" id="pvCompanyWrap" style="display:none"><div class="cert-label">Entreprise</div><div class="cert-value" id="pvCompany">—</div></div>
+        </div>
+        <div class="cert-field" style="margin-top:14px"><div class="cert-label">Objet / Conclusion</div><div class="cert-value" id="pvNotes">—</div></div>
+        <div class="cert-footer">
+          <div><div class="cert-label">Établi par</div><div class="cert-value" id="pvDoctor">—</div><div class="signature">Signature et cachet</div></div>
+          <div style="text-align:right"><div class="cert-label">Mention</div><div class="cert-value">Usage interne OMC</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1417874223115931789/fa_Ar35jK1b8i2Z3itgqpg79Q0ZN0VnFaIF63R10QouiIJ8JTIMAihW8k_2gNflYJPn3';
+    const el=id=>document.getElementById(id);
+    const pad2=n=>String(n).padStart(2,'0');
+    const refJJMMHHMM=(d=new Date())=>`${pad2(d.getDate())}${pad2(d.getMonth()+1)}${pad2(d.getHours())}${pad2(d.getMinutes())}`;
 
-updateVisibility(); refreshCert();
+    const certType=el('certType'), certDate=el('certDate'), patient=el('patient'), dob=el('dob');
+    const companyWrap=el('companyWrap'), company=el('company');
+    const conclusionWrap=el('conclusionWrap'), reserveWrap=el('reserveWrap'), reserveText=el('reserveText');
+    const notesWrap=el('notesWrap'), notes=el('notes'), doctor=el('doctor');
+    const pvTitle=el('certTitle'), pvTag=el('certTag'), pvPatient=el('pvPatient'), pvDob=el('pvDob');
+    const pvDate=el('pvDate'), pvRef=el('pvRef'), pvCompanyWrap=el('pvCompanyWrap'), pvCompany=el('pvCompany');
+    const pvNotes=el('pvNotes'), pvDoctor=el('pvDoctor');
 
-
-async function sendToDiscord(){
-const btn=document.getElementById('sendDiscord');
-btn.disabled=true; btn.textContent='Envoi…';
-try{
-const node=document.getElementById('certPreview');
-const canvas=await html2canvas(node,{scale:2, backgroundColor:'#ffffff'});
-const blob=await new Promise(res=> canvas.toBlob(res,'image/png'));
-const content=`Certificat OMC — à l’attention de ${patient.value||'—'}`;
-const form=new FormData(); form.append('payload_json', JSON.stringify({content})); form.append('file', blob, `certificat_${refJJMMHHMM(new Date())}.png`);
-const resp=await fetch(DISCORD_WEBHOOK+'?wait=true',{method:'POST', body:form}); if(!resp.ok) throw new Error('Discord '+resp.status);
-alert('✅ Envoyé dans Discord !');
-}catch(e){ alert('Erreur d’envoi : '+e.message); console.error(e); }
-finally{ btn.disabled=false; btn.textContent='Envoyer vers Discord'; }
-}
-document.getElementById('sendDiscord').addEventListener('click', sendToDiscord);
-
-
-// Tests (console via ?test)
-if(location.search.includes('test')){
-try{ const r=refJJMMHHMM(); console.assert(r.length===8, 'Référence JJMMHHMM incorrecte: '+r); console.log('%c[Tests cert] OK','color:#22c55e'); }catch(e){ console.error('[Tests cert] FAIL', e); }
-}
-});
-</script>
-</body>
-</html>
+    // Fallback date robuste
+    if (certDate) {
+      const todayISO = new Date(Date.now()- (new Date
