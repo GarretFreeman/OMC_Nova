@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OMC Nord — Accueil • Calcul • Certificats • Imagerie</title>
+  <title>OMC — Accueil • Calcul • Certificats • Imagerie</title>
   <link rel="icon" href="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" type="image/png">
   <style>
     :root{
@@ -314,7 +314,9 @@
   function showHome(){ for(const k in sections){ sections[k].style.display = (k==='home') ? 'block':'none'; } }
   function showModule(key){ for(const k in sections){ sections[k].style.display = (k===key) ? 'block':'none'; } window.scrollTo({top:0, behavior:'smooth'}); }
   document.addEventListener('click', (e)=>{ const t=e.target.closest('[data-open]'); if(t){ e.preventDefault(); showModule(t.dataset.open); }});
-document.addEventListener('click', (e)=>{ const t=e.target.closest('[data-home]'); if(t){ e.preventDefault(); showHome(); }});
+document.addEventListener('click', (e)=>{ const t=e.target.closest('[data-home]'); if(t){ e.preventDefault(); document.addEventListener('click', function(e){ var card=e.target.closest('.choice[data-open]'); if(card){ e.preventDefault(); showModule(card.dataset.open);} });
+  document.addEventListener('keydown', function(e){ if((e.key==='Enter'||e.key===' ') && e.target.classList && e.target.classList.contains('choice') && e.target.dataset.open){ e.preventDefault(); showModule(e.target.dataset.open);} });
+  showHome(); }});
 showHome();
 
   /* ====== Discord webhooks ====== */
