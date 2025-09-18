@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OMC — Accueil • Calcul • Certificats • Imagerie</title>
+  <title>OMC Nord — Accueil • Calcul • Certificats • Imagerie</title>
   <link rel="icon" href="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" type="image/png">
   <style>
     :root{
@@ -29,16 +29,17 @@
     .btn-accent{background:linear-gradient(180deg, #0d2416, #10321d); border-color:#14532d}
     .btn-danger{background:linear-gradient(180deg, #2a0f12, #431018); border-color:#5f1e2a}
 
-    /* === Accueil === */
+    /* === Accueil (minimal) === */
     .hero{display:grid; grid-template-columns: 1fr; gap:16px; padding:20px}
     .hero-head{display:flex; align-items:center; gap:14px}
     .hero-head img{height:48px; width:48px; border-radius:10px; border:1px solid var(--ring); background:#071423; padding:4px}
     .choice-grid{display:grid; grid-template-columns: repeat(3, 1fr); gap:16px}
     @media (max-width:960px){ .choice-grid{grid-template-columns:1fr} }
-    .choice{display:flex; flex-direction:column; gap:10px; padding:18px; border:1px solid var(--ring); border-radius:16px; background:linear-gradient(180deg,#0b1223,#0a101d); box-shadow:var(--shadow)}
-    .choice h3{margin:0; font-size:18px}
-    .choice p{margin:0; color:#cbd5e1; font-size:14px}
-    .choice .actions{display:flex; justify-content:space-between; align-items:center}
+    .choice{display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px; padding:24px; border:1px solid var(--ring); border-radius:16px; background:linear-gradient(180deg,#0b1223,#0a101d); box-shadow:var(--shadow); cursor:pointer; text-align:center}
+    .choice:hover{background:#0c1529; border-color:#16223c}
+    .choice-figure{width:72px; height:72px; display:grid; place-items:center; border-radius:16px; border:1px solid var(--ring); background:#071423; color:var(--primary)}
+    .icon{width:40px; height:40px}
+    .choice-title{font-size:16px; font-weight:700; margin-top:8px}
 
     /* === CALCULATRICE (issu de ton script) === */
     #calc .grid{display:grid; gap:16px; grid-template-columns:1.2fr .8fr; padding:16px}
@@ -81,15 +82,11 @@
     .field{display:flex; flex-direction:column; gap:6px; margin-bottom:10px}
     .controls{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px}
     .label{font-size:12px; color:#9ca3af}
-      .choice{align-items:center; text-align:center}
-    .choice .btn{margin-top:8px}
-    .choice-figure{width:64px; height:64px; display:grid; place-items:center; border-radius:14px; border:1px solid var(--ring); background:#071423; color:var(--primary)}
-    .icon{width:36px; height:36px}
   </style>
 </head>
 <body>
 
-  <!-- ===== Accueil ===== -->
+  <!-- ===== Accueil (entête + 3 cartes) ===== -->
   <div class="wrap block" id="home">
     <div class="hero">
       <div class="hero-head">
@@ -100,52 +97,23 @@
         </div>
       </div>
       <div class="choice-grid">
-        <div class="choice" data-open="calc">
+        <div class="choice" data-open="calc" role="button" tabindex="0">
           <div class="choice-figure" aria-hidden="true">
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="3" ry="3" opacity="0.2"/><rect x="7" y="7" width="10" height="4" rx="1"/><rect x="7" y="13" width="3" height="3" rx="1"/><rect x="11" y="13" width="3" height="3" rx="1"/><rect x="15" y="13" width="3" height="3" rx="1"/></svg>
           </div>
-          <h3>Calcul des coûts</h3>
-          <button class="btn btn-primary" data-open="calc">Ouvrir</button>
+          <div class="choice-title">Calculs des coûts</div>
         </div>
-        <div class="choice" data-open="cert">
+        <div class="choice" data-open="cert" role="button" tabindex="0">
           <div class="choice-figure" aria-hidden="true">
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="3" width="14" height="18" rx="2" ry="2" opacity="0.2"/><rect x="7" y="7" width="10" height="2" rx="1"/><rect x="7" y="11" width="10" height="2" rx="1"/><rect x="7" y="15" width="7" height="2" rx="1"/></svg>
           </div>
-          <h3>Certificats</h3>
-          <button class="btn btn-primary" data-open="cert">Ouvrir</button>
+          <div class="choice-title">Certificats</div>
         </div>
-        <div class="choice" data-open="imagerie">
+        <div class="choice" data-open="imagerie" role="button" tabindex="0">
           <div class="choice-figure" aria-hidden="true">
             <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="16" rx="2" ry="2" opacity="0.2"/><path d="M7 8h10M8 12c2 0 4 3 4 3s2-3 4-3" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
           </div>
-          <h3>Imagerie</h3>
-          <button class="btn btn-primary" data-open="imagerie">Ouvrir</button>
-        </div>
-      </div>
-          <div class="actions">
-            <span class="muted">Administratif · Transport · Hôpital · Site</span>
-            <button class="btn btn-primary" data-open="calc">Ouvrir</button>
-          </div>
-        </div>
-        <div class="choice">
-          <div>
-            <h3>📝 Certificats</h3>
-            <p>PRO, PPA, Divers — aperçu et envoi Discord.</p>
-          </div>
-          <div class="actions">
-            <span class="muted">Canvas imprimable</span>
-            <button class="btn btn-primary" data-open="cert">Ouvrir</button>
-          </div>
-        </div>
-        <div class="choice">
-          <div>
-            <h3>🖼️ Imagerie médicale</h3>
-            <p>Corps cliquable → lésion → rendu X‑ray → Discord.</p>
-          </div>
-          <div class="actions">
-            <span class="muted">Tête, thorax, membres</span>
-            <button class="btn btn-primary" data-open="imagerie">Ouvrir</button>
-          </div>
+          <div class="choice-title">Imagerie</div>
         </div>
       </div>
     </div>
@@ -313,11 +281,19 @@
   const sections = { home: document.getElementById('home'), calc: document.getElementById('calc'), cert: document.getElementById('cert'), imagerie: document.getElementById('imagerie') };
   function showHome(){ for(const k in sections){ sections[k].style.display = (k==='home') ? 'block':'none'; } }
   function showModule(key){ for(const k in sections){ sections[k].style.display = (k===key) ? 'block':'none'; } window.scrollTo({top:0, behavior:'smooth'}); }
-  document.addEventListener('click', (e)=>{ const t=e.target.closest('[data-open]'); if(t){ e.preventDefault(); showModule(t.dataset.open); }});
-document.addEventListener('click', (e)=>{ const t=e.target.closest('[data-home]'); if(t){ e.preventDefault(); document.addEventListener('click', function(e){ var card=e.target.closest('.choice[data-open]'); if(card){ e.preventDefault(); showModule(card.dataset.open);} });
-  document.addEventListener('keydown', function(e){ if((e.key==='Enter'||e.key===' ') && e.target.classList && e.target.classList.contains('choice') && e.target.dataset.open){ e.preventDefault(); showModule(e.target.dataset.open);} });
-  showHome(); }});
-showHome();
+  // Délégation d'événements (clic + clavier)
+  document.addEventListener('click', (e)=>{
+    const card = e.target.closest('.choice[data-open], [data-open]');
+    if(card){ e.preventDefault(); showModule(card.dataset.open); return; }
+    const back = e.target.closest('[data-home]');
+    if(back){ e.preventDefault(); showHome(); }
+  });
+  document.addEventListener('keydown', (e)=>{
+    if((e.key==='Enter' || e.key===' ') && e.target.classList?.contains('choice') && e.target.dataset.open){
+      e.preventDefault(); showModule(e.target.dataset.open);
+    }
+  });
+  showHome();
 
   /* ====== Discord webhooks ====== */
   const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1417874223115931789/fa_Ar35jK1b8i2Z3itgqpg79Q0ZN0VnFaIF63R10QouiIJ8JTIMAihW8k_2gNflYJPn3'; // Certificats (existant)
@@ -344,8 +320,7 @@ showHome();
   function syncTabs(){ for (const btn of elsCalc.tabs.querySelectorAll('.tab')) { btn.setAttribute('aria-selected', String(btn.dataset.cat === activeCategory)); } }
   function renderList(){ elsCalc.list.innerHTML=''; CATALOG.filter(x => x.category === activeCategory).forEach(item => { const row = document.createElement('div'); row.className = 'item'; const left = document.createElement('div'); left.innerHTML = `<div style="font-weight:600">${item.name}</div><div class="muted" style="font-size:13px">${item.id} · <span class="pill">${item.category}</span></div>`; const price = document.createElement('div'); price.className='muted'; price.textContent = fmtUSD(item.priceUSD); const qty = document.createElement('div'); qty.className='qty'; const minus=document.createElement('button'); minus.className='btn'; minus.textContent='−'; const input=document.createElement('input'); input.type='number'; input.min='0'; input.step='1'; input.value= stateCalc.get(item.id) ?? 0; const plus=document.createElement('button'); plus.className='btn'; plus.textContent='+'; minus.onclick=()=>{ const v=Math.max(0,(stateCalc.get(item.id)||0)-1); stateCalc.set(item.id,v); input.value=v; updateSummary(); }; plus.onclick=()=>{ const v=(stateCalc.get(item.id)||0)+1; stateCalc.set(item.id,v); input.value=v; updateSummary(); }; input.oninput=()=>{ const v=Math.max(0, parseInt(input.value||'0',10)); stateCalc.set(item.id,v); input.value=v; updateSummary(); }; qty.append(minus,input,plus); row.append(left,price,qty); elsCalc.list.appendChild(row); }); }
   function compute(){ let lines=[]; let subtotal=0; for(const item of CATALOG){ const q=stateCalc.get(item.id)||0; if(!q) continue; const unit=item.priceUSD; const line=unit*q; subtotal+=line; lines.push(`• ${item.name} × ${q} — ${fmtUSD(line)} (${fmtUSD(unit)}/u)`); } const taxEnabled=elsCalc.taxEnable.checked; const taxRate=Math.max(0, Number(elsCalc.taxRate.value||0)); const taxValue=taxEnabled ? (subtotal*taxRate/100) : 0; const total=subtotal+taxValue; return {lines, subtotal, taxEnabled, taxRate, taxValue, total}; }
-  function updateSummary(){ const {lines, subtotal, total} = compute(); elsCalc.summary.textContent = lines.length ? lines.join('
-') : '— Aucun soin sélectionné —'; elsCalc.subtotal.textContent = fmtUSD(subtotal); elsCalc.total.textContent = fmtUSD(total); elsCalc.taxRate.disabled = !elsCalc.taxEnable.checked; elsCalc.taxRate.style.opacity = elsCalc.taxEnable.checked ? 1 : .6; }
+  function updateSummary(){ const {lines, subtotal, total} = compute(); elsCalc.summary.textContent = lines.length ? lines.join('\n') : '— Aucun soin sélectionné —'; elsCalc.subtotal.textContent = fmtUSD(subtotal); elsCalc.total.textContent = fmtUSD(total); elsCalc.taxRate.disabled = !elsCalc.taxEnable.checked; elsCalc.taxRate.style.opacity = elsCalc.taxEnable.checked ? 1 : .6; }
   elsCalc.tabs.addEventListener('click', (e)=>{ const btn=e.target.closest('.tab'); if(!btn) return; activeCategory=btn.dataset.cat; syncTabs(); renderList(); updateSummary(); });
   elsCalc.taxEnable.addEventListener('change', updateSummary);
   elsCalc.taxRate.addEventListener('input', updateSummary);
@@ -387,8 +362,7 @@ showHome();
   comments.addEventListener('input', e=> stateImg.comments = e.target.value);
   document.getElementById('btnImgRender').addEventListener('click', renderImg);
   document.getElementById('btnImgPrint').addEventListener('click', ()=> window.print());
-  document.getElementById('btnImgDiscord').addEventListener('click', ()=>{ imgCanvas.toBlob(async (blob)=>{ const content=`Zone: ${zLabel(stateImg.zone)} | Lésion: ${lLabel(stateImg.zone, stateImg.lesion)} | Patient: ${stateImg.patient || '-' }
-${stateImg.comments || ''}`; const form=new FormData(); form.append('payload_json', JSON.stringify({content})); form.append('file', blob, `omc-imagerie-${Date.now()}.png`); const res=await fetch(WEBHOOK_URL+'?wait=true', {method:'POST', body:form}); if(!res.ok) alert('Envoi Discord échoué'); else alert('Image envoyée sur Discord'); }, 'image/png'); });
+  document.getElementById('btnImgDiscord').addEventListener('click', ()=>{ imgCanvas.toBlob(async (blob)=>{ const content=`Zone: ${zLabel(stateImg.zone)} | Lésion: ${lLabel(stateImg.zone, stateImg.lesion)} | Patient: ${stateImg.patient || '-' }\n${stateImg.comments || ''}`; const form=new FormData(); form.append('payload_json', JSON.stringify({content})); form.append('file', blob, `omc-imagerie-${Date.now()}.png`); const res=await fetch(WEBHOOK_URL+'?wait=true', {method:'POST', body:form}); if(!res.ok) alert('Envoi Discord échoué'); else alert('Image envoyée sur Discord'); }, 'image/png'); });
   function bone(x1,y1,x2,y2){ ictx.save(); ictx.strokeStyle='#dbeafe'; ictx.lineWidth=10; ictx.lineCap='round'; ictx.beginPath(); ictx.moveTo(x1,y1); ictx.lineTo(x2,y2); ictx.stroke(); ictx.restore(); }
   function drawArm(x,y){ bone(x-60, y, x-10, y+120); bone(x-20, y+120, x, y+240); bone(x-40, y+120, x-20, y+240); }
   function drawLeg(x,y){ bone(x-20, y-10, x+10, y+110); bone(x-10, y+110, x, y+240); bone(x+15, y+110, x+20, y+240); }
@@ -400,6 +374,39 @@ ${stateImg.comments || ''}`; const form=new FormData(); form.append('payload_jso
   function drawLesion(zone,les){ if(zone==='bras_gauche'){ if(les==='fracture_humerus') drawCrack(210,200,60); if(les==='luxation_coude') marker(210,260,'Luxation'); } if(zone==='bras_droit'){ if(les==='fracture_radius_ulna') drawCrack(460,300,60); if(les==='entorse_poignet') marker(470,350,'Entorse'); } if(zone==='jambe_gauche'){ if(les==='fracture_tibia') drawCrack(230,360,60); if(les==='entorse_cheville') marker(230,420,'Entorse'); } if(zone==='jambe_droite'){ if(les==='fracture_femur') drawCrack(420,300,60); if(les==='entorse_genou') marker(420,340,'Entorse'); } if(zone==='thorax'){ if(les==='cote_fracture') drawCrack(320,210,60); if(les==='pneumonie') halo(330,220,40); } if(zone==='tete'){ if(les==='crane_fracture') drawCrack(320,140,50); if(les==='sinusite') halo(320,160,30); } }
   function renderImg(){ const w=imgCanvas.width,h=imgCanvas.height; const g=ictx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#01060d'); g.addColorStop(1,'#0a1424'); ictx.fillStyle=g; ictx.fillRect(0,0,w,h); ictx.save(); ictx.globalAlpha=.08; ictx.strokeStyle='#8ab4f8'; ictx.lineWidth=1; for(let x=0;x<w;x+=32){ ictx.beginPath(); ictx.moveTo(x,0); ictx.lineTo(x,h); ictx.stroke(); } for(let y=0;y<h;y+=32){ ictx.beginPath(); ictx.moveTo(0,y); ictx.lineTo(w,y); ictx.stroke(); } ictx.restore(); ictx.fillStyle='#cfe6ff'; ictx.font='14px ui-sans-serif'; ictx.fillText(`Zone: ${zLabel(stateImg.zone)}`,16,24); ictx.fillText(`Lésion: ${lLabel(stateImg.zone,stateImg.lesion)}`,16,44); if(stateImg.patient){ ictx.fillText(`Patient: ${stateImg.patient}`,16,64); } ictx.strokeStyle='#dbeafe'; ictx.lineWidth=8; ictx.lineCap='round'; switch(stateImg.zone){ case 'bras_gauche': drawArm(180,140); break; case 'bras_droit': drawArm(460,140); break; case 'jambe_gauche': drawLeg(220,280); break; case 'jambe_droite': drawLeg(420,280); break; case 'thorax': drawRibcage(); break; case 'tete': drawSkull(); break; default: ictx.globalAlpha=.25; ictx.fillStyle='#93c5fd'; ictx.beginPath(); ictx.ellipse(w/2,h/2,120,180,0,0,Math.PI*2); ictx.fill(); ictx.globalAlpha=1; } if(stateImg.lesion){ drawLesion(stateImg.zone,stateImg.lesion); } logH('Rendu mis à jour', `${zLabel(stateImg.zone)} • ${lLabel(stateImg.zone,stateImg.lesion)}`); }
   setActiveZone(''); renderImg();
+
+  /* ====== TESTS (console) ====== */
+  (function runTests(){
+    try{
+      console.log('%c[Tests] Démarrage','color:#9ef');
+      // Test 1: Navigation
+      showModule('calc');
+      console.assert(sections.calc.style.display==='block', 'Calc devrait être visible');
+      showHome();
+      console.assert(sections.home.style.display==='block', 'Accueil devrait être visible');
+
+      // Test 2: Calculatrice — sous-total + total sans TVA
+      stateCalc.clear();
+      stateCalc.set('CERT_TRAVAIL', 2); // 2 x 450 = 900
+      stateCalc.set('HOP_PLATRE', 1);   // 1 x 1100 = 1100
+      elsCalc.taxEnable.checked = false; elsCalc.taxRate.value = 0;
+      const r1 = compute();
+      console.assert(r1.subtotal === 2000, 'Sous-total attendu 2000, obtenu: '+r1.subtotal);
+      console.assert(r1.total === 2000, 'Total sans TVA attendu 2000, obtenu: '+r1.total);
+
+      // Test 3: Calculatrice — avec TVA 10%
+      elsCalc.taxEnable.checked = true; elsCalc.taxRate.value = 10;
+      const r2 = compute();
+      console.assert(r2.total === 2200, 'Total avec TVA 10% attendu 2200, obtenu: '+r2.total);
+
+      // Test 4: Imagerie — rendu basique
+      setActiveZone('bras_gauche');
+      lesionSelect.value = 'fracture_humerus';
+      stateImg.lesion = 'fracture_humerus';
+      renderImg(); // ne doit pas lever d'exception
+      console.log('%c[Tests] Ok','color:#22c55e');
+    }catch(e){ console.error('[Tests] Échec', e); }
+  })();
   </script>
 </body>
 </html>
