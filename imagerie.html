@@ -22,17 +22,14 @@
     .main-grid{display:grid; grid-template-columns:1fr 1.2fr; gap:16px; align-items:stretch}
     @media (max-width:1000px){ .main-grid{grid-template-columns:1fr} }
 
-    /* Body map pro */
+    /* Carte du corps (image + overlay cliquable) */
     .bodymap-pro{position:relative; width:100%; background:#0b1223; border:1px solid var(--ring); border-radius:12px; padding:12px; display:flex; align-items:center; justify-content:center}
-    .bodyframe{position:relative; width:min(520px,100%); aspect-ratio:3/7;}
-    .body-bg{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:.7; filter:drop-shadow(0 6px 18px rgba(0,0,0,.45)); pointer-events:none; display:none}
-    .bodyframe.has-bg .body-bg{display:block}
-
-    /* Overlay SVG zones */
+    .bodyframe{position:relative; width:min(520px,100%); aspect-ratio:418/940;}
+    .body-bg{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:.9; filter:drop-shadow(0 8px 24px rgba(0,0,0,.45)); pointer-events:none}
     .zones-svg{position:absolute; inset:0; width:100%; height:100%}
-    .zone{cursor:pointer; transition:.15s ease; fill:url(#skinGrad); stroke:rgba(148,163,184,.25); stroke-width:1}
-    .zone:hover{filter:brightness(1.15); stroke:#60a5fa}
-    .zone.active{filter:brightness(1.25) drop-shadow(0 0 0.6rem rgba(96,165,250,.55)); stroke:#60a5fa; stroke-width:2}
+    .zone{cursor:pointer; transition:.15s ease; fill:rgba(96,165,250,.12); stroke:rgba(148,163,184,.25); stroke-width:1}
+    .zone:hover{fill:rgba(96,165,250,.22); stroke:#60a5fa}
+    .zone.active{fill:rgba(96,165,250,.32); filter:drop-shadow(0 0 .6rem rgba(96,165,250,.55)); stroke:#60a5fa; stroke-width:2}
     .zone-label{pointer-events:none; fill:#cfe6ff; font:600 10px ui-sans-serif,system-ui}
 
     /* Contrôles + preview */
@@ -74,42 +71,35 @@
         <section>
           <h3 style="margin:0 0 10px; color:#9ca3af">Zones du corps</h3>
           <div class="bodymap-pro">
-            <div class="bodyframe" id="bodyframe">
-              <!-- Mettre ces fichiers si tu veux une image réaliste -->
-              <img id="bodyBg" class="body-bg" src="assets/body-front.svg" alt="Silhouette anatomique (face)">
-              <!-- Overlay SVG (zones cliquables) -->
-              <svg class="zones-svg" viewBox="0 0 220 520" xmlns="http://www.w3.org/2000/svg" aria-label="Carte du corps humain">
-                <defs>
-                  <linearGradient id="skinGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#1a2540"/>
-                    <stop offset="1" stop-color="#0f1a2f"/>
-                  </linearGradient>
-                </defs>
+            <div class="bodyframe">
+              <!-- Ton image (mets-la dans /assets/corps-humain.png) -->
+              <img class="body-bg" src="assets/corps-humain.png" alt="Silhouette anatomique (face)">
+              <!-- Overlay cliquable aligné sur l'image (viewBox = pixels de l'image) -->
+              <svg class="zones-svg" viewBox="0 0 418 940" xmlns="http://www.w3.org/2000/svg" aria-label="Carte du corps humain">
                 <!-- Tête -->
-                <circle class="zone" data-zone="tete" cx="110" cy="50" r="28"/>
-                <text class="zone-label" x="110" y="52" text-anchor="middle">TÊTE</text>
+                <circle class="zone" data-zone="tete" cx="209" cy="110" r="80"/>
+                <text class="zone-label" x="209" y="115" text-anchor="middle">TÊTE</text>
                 <!-- Thorax -->
-                <path class="zone" data-zone="thorax" d="M70 95 C70 80,150 80,150 95 v90 c0 10-10 22-40 25-30-3-40-15-40-25z"/>
-                <text class="zone-label" x="110" y="145" text-anchor="middle">THORAX</text>
+                <rect class="zone" data-zone="thorax" x="120" y="230" width="180" height="210" rx="40" ry="40"/>
+                <text class="zone-label" x="210" y="335" text-anchor="middle">THORAX</text>
                 <!-- Bras gauche -->
-                <path class="zone" data-zone="bras_gauche" d="M55 105 c-14 6-20 18-22 36-2 20 4 37 8 46 4 8 12 12 21 10 9-2 16-9 17-18 2-16 2-38 3-56 1-9-7-15-27-18z"/>
-                <text class="zone-label" x="50" y="165" text-anchor="middle">BRAS G.</text>
+                <polygon class="zone" data-zone="bras_gauche"
+                  points="80,230 60,300 50,380 40,520 60,620 90,620 100,500 110,360 115,280" />
+                <text class="zone-label" x="70" y="360" text-anchor="middle">BRAS G.</text>
                 <!-- Bras droit -->
-                <path class="zone" data-zone="bras_droit" d="M165 105 c14 6 20 18 22 36 2 20-4 37-8 46-4 8-12 12-21 10-9-2-16-9-17-18-2-16-2-38-3-56-1-9 7-15 27-18z"/>
-                <text class="zone-label" x="170" y="165" text-anchor="middle">BRAS D.</text>
+                <polygon class="zone" data-zone="bras_droit"
+                  points="338,230 358,300 368,380 378,520 358,620 328,620 318,500 308,360 303,280" />
+                <text class="zone-label" x="348" y="360" text-anchor="middle">BRAS D.</text>
                 <!-- Jambe gauche -->
-                <path class="zone" data-zone="jambe_gauche" d="M88 250 c-10 3-15 12-16 22-4 30-10 86-10 114 0 9 7 16 16 16h6c9 0 16-7 16-16 0-28 2-84 4-109 1-9-7-23-16-27z"/>
-                <text class="zone-label" x="86" y="340" text-anchor="middle">JAMBE G.</text>
+                <polygon class="zone" data-zone="jambe_gauche"
+                  points="185,440 175,600 172,760 175,840 200,920 220,900 215,760 210,600 210,440" />
+                <text class="zone-label" x="190" y="700" text-anchor="middle">JAMBE G.</text>
                 <!-- Jambe droite -->
-                <path class="zone" data-zone="jambe_droite" d="M132 250 c10 3 15 12 16 22 4 30 10 86 10 114 0 9-7 16-16 16h-6c-9 0-16-7-16-16 0-28-2-84 4-109 1-9 7-23 16-27z"/>
-                <text class="zone-label" x="134" y="340" text-anchor="middle">JAMBE D.</text>
+                <polygon class="zone" data-zone="jambe_droite"
+                  points="233,440 243,600 246,760 243,840 218,920 198,900 203,760 208,600 208,440" />
+                <text class="zone-label" x="228" y="700" text-anchor="middle">JAMBE D.</text>
               </svg>
             </div>
-          </div>
-          <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
-            <label style="color:#9ca3af">Vue :</label>
-            <button class="btn" id="viewFront">Face</button>
-            <button class="btn" id="viewBack">Dos</button>
           </div>
         </section>
 
@@ -167,95 +157,71 @@
   document.addEventListener('DOMContentLoaded', () => {
     const WEBHOOK_URL = 'https://discord.com/api/webhooks/1418132282199375934/89dXmvPn7XeQLb0mEPr-320ICJafq0nlThgjEKQPXUDp9FEBnGPg5unhi06NSoHbD9b0';
 
-    // DOM
-    const zoneSelect    = document.getElementById('zoneSelect');
-    const lesionSelect  = document.getElementById('lesionSelect');
-    const imgCanvas     = document.getElementById('imgCanvas');
-    const ictx          = imgCanvas.getContext('2d');
-    const historyBox    = document.getElementById('history');
-    const zonesSvg      = Array.from(document.querySelectorAll('.zones-svg .zone'));
-    const patientId     = document.getElementById('patientId');
-    const comments      = document.getElementById('comments');
-    const bodyframe     = document.getElementById('bodyframe');
-    const bodyBg        = document.getElementById('bodyBg');
+    // ---- Références DOM
+    const zoneSelect=document.getElementById('zoneSelect');
+    const lesionSelect=document.getElementById('lesionSelect');
+    const imgCanvas=document.getElementById('imgCanvas');
+    const ictx=imgCanvas.getContext('2d');
+    const historyBox=document.getElementById('history');
+    const zonesSvg=[...document.querySelectorAll('.zones-svg .zone')];
+    const patientId=document.getElementById('patientId');
+    const comments=document.getElementById('comments');
 
-    // Si l'image existe, on l'affiche; sinon on reste en vector-only
-    if (bodyBg) {
-      bodyBg.addEventListener('load', () => bodyframe.classList.add('has-bg'));
-      bodyBg.addEventListener('error', () => bodyframe.classList.remove('has-bg'));
-    }
-
-    // Dictionnaire des lésions par zone
-    const LESIONS = {
-      tete:         [{value:'crane_fracture',label:'Fracture crânienne'},{value:'sinusite',label:'Sinusite (radio de sinus)'}],
-      thorax:       [{value:'cote_fracture',label:'Fracture côte'},{value:'pneumonie',label:'Infiltrat pulmonaire'}],
-      bras_gauche:  [{value:'fracture_humerus',label:'Fracture humérus'},{value:'luxation_coude',label:'Luxation du coude'}],
-      bras_droit:   [{value:'fracture_radius_ulna',label:'Fracture radius/ulna'},{value:'entorse_poignet',label:'Entorse poignet'}],
-      jambe_gauche: [{value:'fracture_tibia',label:'Fracture tibia'},{value:'entorse_cheville',label:'Entorse cheville'}],
-      jambe_droite: [{value:'fracture_femur',label:'Fracture fémur'},{value:'entorse_genou',label:'Entorse genou'}]
+    // ---- Dictionnaires
+    const LESIONS={
+      tete:[{value:'crane_fracture',label:'Fracture crânienne'},{value:'sinusite',label:'Sinusite (radio de sinus)'}],
+      thorax:[{value:'cote_fracture',label:'Fracture côte'},{value:'pneumonie',label:'Infiltrat pulmonaire'}],
+      bras_gauche:[{value:'fracture_humerus',label:'Fracture humérus'},{value:'luxation_coude',label:'Luxation du coude'}],
+      bras_droit:[{value:'fracture_radius_ulna',label:'Fracture radius/ulna'},{value:'entorse_poignet',label:'Entorse poignet'}],
+      jambe_gauche:[{value:'fracture_tibia',label:'Fracture tibia'},{value:'entorse_cheville',label:'Entorse cheville'}],
+      jambe_droite:[{value:'fracture_femur',label:'Fracture fémur'},{value:'entorse_genou',label:'Entorse genou'}]
     };
-
-    const state = { zone:'', lesion:'', patient:'', comments:'' };
-    const zLabel = k => ({tete:'Tête', thorax:'Thorax', bras_gauche:'Bras gauche', bras_droit:'Bras droit', jambe_gauche:'Jambe gauche', jambe_droite:'Jambe droite'})[k] || k || '—';
+    const state={ zone:'', lesion:'', patient:'', comments:'' };
+    const zLabel=k=>({tete:'Tête', thorax:'Thorax', bras_gauche:'Bras gauche', bras_droit:'Bras droit', jambe_gauche:'Jambe gauche', jambe_droite:'Jambe droite'})[k]||k||'—';
     function lLabel(z,val){ const arr=LESIONS[z]||[]; const f=arr.find(x=>x.value===val); return (f? f.label:val)||'—'; }
     function logH(action,details){ const t=new Date().toLocaleString(); const line=document.createElement('div'); line.innerHTML = `<b>[${t}] ${action}</b>${details? ' — '+String(details) : ''}`; historyBox.prepend(line); }
 
-    function populateLesions(zoneKey){
-      lesionSelect.innerHTML = '';
-      const opt = document.createElement('option');
-      opt.value = '';
-      opt.textContent = zoneKey ? '— Choisir une lésion —' : '— Sélectionnez une zone d\u0027abord —';
+    // ---- Sélection visuelle des zones (overlay)
+    function highlight(zoneKey){
+      zonesSvg.forEach(z=>z.classList.toggle('active', z.dataset.zone===zoneKey));
+    }
+    function setActiveZone(zoneKey){
+      highlight(zoneKey);
+      if(zoneSelect.value!==zoneKey){ zoneSelect.value=zoneKey||''; }
+      lesionSelect.innerHTML='';
+      const opt=document.createElement('option');
+      opt.value=''; opt.textContent=zoneKey? '— Choisir une lésion —' : '— Sélectionnez une zone d\u0027abord —';
       lesionSelect.appendChild(opt);
       if(zoneKey && LESIONS[zoneKey]){
         LESIONS[zoneKey].forEach(l=>{
-          const o = document.createElement('option'); o.value = l.value; o.textContent = l.label; lesionSelect.appendChild(o);
+          const o=document.createElement('option'); o.value=l.value; o.textContent=l.label; lesionSelect.appendChild(o);
         });
       }
+      state.zone=zoneKey||''; state.lesion=''; renderImg();
     }
+    zonesSvg.forEach(el=> el.addEventListener('click', ()=> setActiveZone(el.dataset.zone)));
+    zoneSelect.addEventListener('change', e=> setActiveZone(e.target.value));
+    lesionSelect.addEventListener('change', e=>{ state.lesion=e.target.value; renderImg(); });
+    patientId.addEventListener('input', e=> state.patient = e.target.value);
+    comments.addEventListener('input', e=> state.comments = e.target.value);
 
-    function highlightOverlay(zoneKey){
-      zonesSvg.forEach(z => z.classList.toggle('active', z.dataset.zone === zoneKey));
-    }
-
-    function setActiveZone(zoneKey){
-      highlightOverlay(zoneKey);
-      if (zoneSelect.value !== zoneKey) zoneSelect.value = zoneKey || '';
-      populateLesions(zoneKey);
-      state.zone = zoneKey || '';
-      state.lesion = '';
-      renderImg();
-    }
-
-    // Events UI
-    zonesSvg.forEach(el => el.addEventListener('click', () => setActiveZone(el.dataset.zone)));
-    zoneSelect.addEventListener('change', e => setActiveZone(e.target.value));
-    lesionSelect.addEventListener('change', e => { state.lesion = e.target.value; renderImg(); });
-    patientId.addEventListener('input', e => state.patient = e.target.value);
-    comments.addEventListener('input', e => state.comments = e.target.value);
-
+    // ---- Actions
     document.getElementById('btnImgRender').addEventListener('click', renderImg);
-    document.getElementById('btnImgPrint').addEventListener('click', () => window.print());
-    const sendBtns = [document.getElementById('btnImgDiscord'), document.getElementById('btnImgDiscord2')].filter(Boolean);
-    sendBtns.forEach(btn => btn.addEventListener('click', () => {
-      imgCanvas.toBlob(async (blob)=>{
-        const content = `Zone: ${zLabel(state.zone)} | Lésion: ${lLabel(state.zone, state.lesion)} | Patient: ${state.patient || '-' }\n${state.comments || ''}`;
-        const form = new FormData();
-        form.append('payload_json', JSON.stringify({content}));
-        form.append('file', blob, `omc-imagerie-${Date.now()}.png`);
-        const res = await fetch(WEBHOOK_URL+'?wait=true', {method:'POST', body:form});
-        if(!res.ok) alert('Envoi Discord échoué'); else alert('Image envoyée sur Discord');
-      }, 'image/png');
-    }));
+    document.getElementById('btnImgPrint').addEventListener('click', ()=> window.print());
+    const sendBtns=[document.getElementById('btnImgDiscord'), document.getElementById('btnImgDiscord2')].filter(Boolean);
+    sendBtns.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        imgCanvas.toBlob(async (blob)=>{
+          const content=`Zone: ${zLabel(state.zone)} | Lésion: ${lLabel(state.zone, state.lesion)} | Patient: ${state.patient || '-' }\n${state.comments || ''}`;
+          const form=new FormData(); form.append('payload_json', JSON.stringify({content}));
+          form.append('file', blob, `omc-imagerie-${Date.now()}.png`);
+          const res=await fetch(WEBHOOK_URL+'?wait=true', {method:'POST', body:form});
+          if(!res.ok) alert('Envoi Discord échoué'); else alert('Image envoyée sur Discord');
+        }, 'image/png');
+      });
+    });
 
-    // Vue Face / Dos (change uniquement l'image de fond si dispo)
-    const frontBtn = document.getElementById('viewFront');
-    const backBtn  = document.getElementById('viewBack');
-    if (frontBtn && backBtn && bodyBg){
-      frontBtn.addEventListener('click', () => { bodyBg.src = 'assets/body-front.svg'; });
-      backBtn .addEventListener('click', () => { bodyBg.src = 'assets/body-back.svg';  });
-    }
-
-    /* ====== Dessin sur canvas ====== */
+    // ---- Dessin "radio" (canvas)
     function bone(x1,y1,x2,y2){ ictx.save(); ictx.strokeStyle='#dbeafe'; ictx.lineWidth=10; ictx.lineCap='round'; ictx.beginPath(); ictx.moveTo(x1,y1); ictx.lineTo(x2,y2); ictx.stroke(); ictx.restore(); }
     function drawArm(x,y){ bone(x-60, y, x-10, y+120); bone(x-20, y+120, x, y+240); bone(x-40, y+120, x-20, y+240); }
     function drawLeg(x,y){ bone(x-20, y-10, x+10, y+110); bone(x-10, y+110, x, y+240); bone(x+15, y+110, x+20, y+240); }
@@ -264,7 +230,6 @@
     function drawCrack(cx,cy,len=40){ ictx.save(); ictx.strokeStyle='#fda4af'; ictx.lineWidth=3; ictx.beginPath(); ictx.moveTo(cx-len/2,cy); ictx.lineTo(cx-len/4,cy-8); ictx.lineTo(cx,cy+4); ictx.lineTo(cx+len/4,cy-10); ictx.lineTo(cx+len/2,cy); ictx.stroke(); ictx.restore(); }
     function marker(x,y,txt){ ictx.save(); ictx.fillStyle='#fde68a'; ictx.strokeStyle='#f59e0b'; ictx.beginPath(); ictx.arc(x,y,10,0,Math.PI*2); ictx.fill(); ictx.stroke(); ictx.fillStyle='#ffffff'; ictx.font='12px ui-sans-serif'; ictx.fillText(txt, x+14, y+4); ictx.restore(); }
     function halo(x,y,r){ const g=ictx.createRadialGradient(x,y,2,x,y,r); g.addColorStop(0,'rgba(147,197,253,0.8)'); g.addColorStop(1,'rgba(147,197,253,0.05)'); ictx.fillStyle=g; ictx.beginPath(); ictx.arc(x,y,r,0,Math.PI*2); ictx.fill(); }
-
     function drawLesion(zone,les){
       if(zone==='bras_gauche'){ if(les==='fracture_humerus') drawCrack(210,200,60); if(les==='luxation_coude') marker(210,260,'Luxation'); }
       if(zone==='bras_droit'){ if(les==='fracture_radius_ulna') drawCrack(460,300,60); if(les==='entorse_poignet') marker(470,350,'Entorse'); }
@@ -275,7 +240,7 @@
     }
 
     function renderImg(){
-      const w=imgCanvas.width, h=imgCanvas.height;
+      const w=imgCanvas.width,h=imgCanvas.height;
       const g=ictx.createLinearGradient(0,0,0,h);
       g.addColorStop(0,'#01060d'); g.addColorStop(1,'#0a1424');
       ictx.fillStyle=g; ictx.fillRect(0,0,w,h);
@@ -300,22 +265,18 @@
         case 'tete':        drawSkull();      break;
         default:
           ictx.globalAlpha=.25; ictx.fillStyle='#93c5fd';
-          ictx.beginPath(); ictx.ellipse(w/2,h/2,120,180,0,0,Math.PI*2);
-          ictx.fill(); ictx.globalAlpha=1;
+          ictx.beginPath(); ictx.ellipse(w/2,h/2,120,180,0,0,Math.PI*2); ictx.fill();
+          ictx.globalAlpha=1;
       }
       if(state.lesion){ drawLesion(state.zone,state.lesion); }
 
       logH('Rendu mis à jour', `${zLabel(state.zone)} • ${lLabel(state.zone,state.lesion)}`);
     }
 
-    // Init + test
-    setActiveZone('');
-    renderImg();
+    // ---- Init + test
+    setActiveZone(''); renderImg();
     if(location.search.includes('test')){
-      try{
-        setActiveZone('bras_gauche'); lesionSelect.value='fracture_humerus'; state.lesion='fracture_humerus'; renderImg();
-        console.log('%c[Tests img] OK','color:#22c55e');
-      }catch(e){ console.error('[Tests img] FAIL', e); }
+      try{ setActiveZone('bras_gauche'); lesionSelect.value='fracture_humerus'; state.lesion='fracture_humerus'; renderImg(); console.log('%c[Tests img] OK','color:#22c55e'); }catch(e){ console.error('[Tests img] FAIL', e); }
     }
   });
   </script>
