@@ -81,6 +81,10 @@
     .field{display:flex; flex-direction:column; gap:6px; margin-bottom:10px}
     .controls{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px}
     .label{font-size:12px; color:#9ca3af}
+      .choice{align-items:center; text-align:center}
+    .choice .btn{margin-top:8px}
+    .choice-figure{width:64px; height:64px; display:grid; place-items:center; border-radius:14px; border:1px solid var(--ring); background:#071423; color:var(--primary)}
+    .icon{width:36px; height:36px}
   </style>
 </head>
 <body>
@@ -96,11 +100,28 @@
         </div>
       </div>
       <div class="choice-grid">
-        <div class="choice">
-          <div>
-            <h3>🧮 Calcul des coûts d’intervention</h3>
-            <p>Catalogue d’actes (USD), quantités, TVA, total.</p>
+        <div class="choice" data-open="calc">
+          <div class="choice-figure" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="3" ry="3" opacity="0.2"/><rect x="7" y="7" width="10" height="4" rx="1"/><rect x="7" y="13" width="3" height="3" rx="1"/><rect x="11" y="13" width="3" height="3" rx="1"/><rect x="15" y="13" width="3" height="3" rx="1"/></svg>
           </div>
+          <h3>Calcul des coûts</h3>
+          <button class="btn btn-primary" data-open="calc">Ouvrir</button>
+        </div>
+        <div class="choice" data-open="cert">
+          <div class="choice-figure" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="3" width="14" height="18" rx="2" ry="2" opacity="0.2"/><rect x="7" y="7" width="10" height="2" rx="1"/><rect x="7" y="11" width="10" height="2" rx="1"/><rect x="7" y="15" width="7" height="2" rx="1"/></svg>
+          </div>
+          <h3>Certificats</h3>
+          <button class="btn btn-primary" data-open="cert">Ouvrir</button>
+        </div>
+        <div class="choice" data-open="imagerie">
+          <div class="choice-figure" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="4" width="18" height="16" rx="2" ry="2" opacity="0.2"/><path d="M7 8h10M8 12c2 0 4 3 4 3s2-3 4-3" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+          </div>
+          <h3>Imagerie</h3>
+          <button class="btn btn-primary" data-open="imagerie">Ouvrir</button>
+        </div>
+      </div>
           <div class="actions">
             <span class="muted">Administratif · Transport · Hôpital · Site</span>
             <button class="btn btn-primary" data-open="calc">Ouvrir</button>
@@ -292,9 +313,9 @@
   const sections = { home: document.getElementById('home'), calc: document.getElementById('calc'), cert: document.getElementById('cert'), imagerie: document.getElementById('imagerie') };
   function showHome(){ for(const k in sections){ sections[k].style.display = (k==='home') ? 'block':'none'; } }
   function showModule(key){ for(const k in sections){ sections[k].style.display = (k===key) ? 'block':'none'; } window.scrollTo({top:0, behavior:'smooth'}); }
-  document.querySelectorAll('[data-open]').forEach(btn=> btn.addEventListener('click', ()=> showModule(btn.dataset.open)));
-  document.querySelectorAll('[data-home]').forEach(btn=> btn.addEventListener('click', showHome));
-  showHome();
+  document.addEventListener('click', (e)=>{ const t=e.target.closest('[data-open]'); if(t){ e.preventDefault(); showModule(t.dataset.open); }});
+document.addEventListener('click', (e)=>{ const t=e.target.closest('[data-home]'); if(t){ e.preventDefault(); showHome(); }});
+showHome();
 
   /* ====== Discord webhooks ====== */
   const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1417874223115931789/fa_Ar35jK1b8i2Z3itgqpg79Q0ZN0VnFaIF63R10QouiIJ8JTIMAihW8k_2gNflYJPn3'; // Certificats (existant)
