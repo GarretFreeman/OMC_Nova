@@ -1,62 +1,168 @@
 <!doctype html>
-zonesSvg.forEach(el=> el.addEventListener('click', ()=> setActiveZone(el.dataset.zone)));
-zoneSelect.addEventListener('change', e=> setActiveZone(e.target.value));
-lesionSelect.addEventListener('change', e=>{ state.lesion=e.target.value; renderImg(); });
-patientId.addEventListener('input', e=> state.patient = e.target.value);
-comments.addEventListener('input', e=> state.comments = e.target.value);
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OMC — Imagerie</title>
+  <link rel="icon" href="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" type="image/png">
+  <style>
+    :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; }
+    *{box-sizing:border-box} body{background:var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial; margin:0}
+    .wrap{max-width:1200px;margin:40px auto; padding:0 16px}
+    .block{background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--ring); border-radius:var(--radius)}
+    .header{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:16px 20px; border-bottom:1px solid var(--ring)}
+    .header .brand{display:flex; align-items:center; gap:10px}
+    .header a, button{appearance:none; border:1px solid var(--ring); border-radius:12px; padding:10px 12px; background:#0b1223; color:#e5e7eb; cursor:pointer; text-decoration:none}
+    .panel{background:#0b1223; border:1px solid var(--ring); border-radius:var(--radius); padding:14px; margin:16px}
+    .bodymap{display:flex; align-items:center; justify-content:center; height:520px}
+    .zone{cursor:pointer; transition: all .15s ease}
+    .zone:hover{fill:#1f2937}
+    .zone.active{fill:#253149; stroke:#60a5fa; stroke-width:2}
+    .preview{background:#030712; border:1px solid var(--ring); border-radius:12px; padding:10px; display:flex; align-items:center; justify-content:center; min-height:380px; margin-top:12px}
+    .preview canvas{max-width:100%; max-height:100%; border-radius:10px}
+    .history{background:#030712; border:1px solid var(--ring); border-radius:12px; padding:10px; max-height:220px; overflow:auto; font-size:12px; color:#9ca3af; margin-top:12px}
+    .field{display:flex; flex-direction:column; gap:6px; margin-bottom:10px}
+    .controls{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px}
+    .label{font-size:12px; color:#9ca3af}
+  </style>
+</head>
+<body>
+  <div class="wrap block">
+    <div class="header">
+      <div class="brand"><a href="index.html">← Accueil</a><h1 style="margin:0">Imagerie médicale</h1></div>
+      <button id="btnImgDiscord">Envoyer sur Discord</button>
+    </div>
 
+    <div class="panel">
+      <h3 style="margin:0 0 6px; color:#9ca3af">Zones du corps</h3>
+      <div class="bodymap" id="bodymap">
+        <svg viewBox="0 0 220 520" width="100%" xmlns="http://www.w3.org/2000/svg" aria-label="Carte du corps humain">
+          <path class="zone" data-zone="bras_gauche" fill="#0e1629" stroke="#1f2937" d="M61 105c-10 2-18 9-22 18-5 11-7 28-6 41 1 10 9 17 19 16s18-10 17-20c-1 12 0 25 4 36 2 6-3 12-12 19z"/>
+          <path class="zone" data-zone="bras_droit"  fill="#0e1629" stroke="#1f2937" d="M159 105c10 2 18 9 22 18 5 11 7 28 6 41-1 10-9 17-19 16s-18-10-17-20c1-12 0-25-4-36-2-6 3-12 12-19z"/>
+          <path class="zone" data-zone="jambe_gauche" fill="#0e1629" stroke="#1f2937" d="M88 245c-8 2-14 9-15 17-4 29-10 86-10 114 0 9 7 16 16 16h6c9 0 16-7 16-16 0-28 2-84 4-109 1-9-7-23-17-22z"/>
+          <path class="zone" data-zone="jambe_droite" fill="#0e1629" stroke="#1f2937" d="M132 245c8 2 14 9 15 17 4 29 10 86 10 114 0 9-7 16-16 16h-6c-9 0-16-7-16-16 0-28 2-84 4-109-1-9 7-23 17-22z"/>
+          <path class="zone" data-zone="thorax" fill="#0e1629" stroke="#1f2937" d="M85 112c-6 4-10 11-10 19v34c0 9 5 18 13 22 14 8 30 8 44 0 8-4 13-13 13-22v-34c0-8-4-15-10-19-15 10-35 10-50 0z"/>
+          <circle class="zone" data-zone="tete" cx="110" cy="18" r="13" fill="#0e1629" stroke="#1f2937"/>
+        </svg>
+      </div>
+    </div>
 
-document.getElementById('btnImgRender').addEventListener('click', renderImg);
-document.getElementById('btnImgPrint').addEventListener('click', ()=> window.print());
-document.getElementById('btnImgDiscord').addEventListener('click', ()=>{
-imgCanvas.toBlob(async (blob)=>{
-const content=`Zone: ${zLabel(state.zone)} | Lésion: ${lLabel(state.zone, state.lesion)} | Patient: ${state.patient || '-' }
-${state.comments || ''}`;
-const form=new FormData(); form.append('payload_json', JSON.stringify({content}));
-form.append('file', blob, `omc-imagerie-${Date.now()}.png`);
-const res=await fetch(WEBHOOK_URL+'?wait=true', {method:'POST', body:form});
-if(!res.ok) alert('Envoi Discord échoué'); else alert('Image envoyée sur Discord');
-}, 'image/png');
-});
+    <div class="panel">
+      <div class="controls">
+        <div class="field"><label class="label">Zone</label>
+          <select id="zoneSelect"><option value="" selected>— Choisir —</option><option value="tete">Tête</option><option value="thorax">Thorax</option><option value="bras_gauche">Bras gauche</option><option value="bras_droit">Bras droit</option><option value="jambe_gauche">Jambe gauche</option><option value="jambe_droite">Jambe droite</option></select>
+        </div>
+        <div class="field"><label class="label">Lésion</label>
+          <select id="lesionSelect"><option value="">— Sélectionnez une zone d'abord —</option></select>
+        </div>
+      </div>
+      <div class="preview"><canvas id="imgCanvas" width="640" height="400" aria-label="Aperçu radiographique"></canvas></div>
+      <div style="display:flex; gap:8px; margin-top:10px">
+        <button id="btnImgRender">Régénérer</button>
+        <button id="btnImgPrint">Imprimer</button>
+      </div>
+    </div>
 
+    <div class="panel">
+      <div class="field"><label class="label">Nom / ID patient (optionnel)</label><input id="patientId" type="text" placeholder="Ex: John Doe #SS-204"></div>
+      <div class="field"><label class="label">Commentaires (optionnel)</label><textarea id="comments" placeholder="Notes pour le dossier…"></textarea></div>
+      <div class="history" id="history"></div>
+    </div>
+  </div>
 
-function bone(x1,y1,x2,y2){ ictx.save(); ictx.strokeStyle='#dbeafe'; ictx.lineWidth=10; ictx.lineCap='round'; ictx.beginPath(); ictx.moveTo(x1,y1); ictx.lineTo(x2,y2); ictx.stroke(); ictx.restore(); }
-function drawArm(x,y){ bone(x-60, y, x-10, y+120); bone(x-20, y+120, x, y+240); bone(x-40, y+120, x-20, y+240); }
-function drawLeg(x,y){ bone(x-20, y-10, x+10, y+110); bone(x-10, y+110, x, y+240); bone(x+15, y+110, x+20, y+240); }
-function drawRibcage(){ bone(320,120,320,300); ictx.lineWidth=5; ictx.strokeStyle='#dbeafe'; for(let i=0;i<6;i++){ ictx.beginPath(); ictx.moveTo(260,150+i*20); ictx.bezierCurveTo(300,140+i*20,340,140+i*20,380,150+i*20); ictx.stroke(); } }
-function drawSkull(){ ictx.fillStyle='#dbeafe'; ictx.globalAlpha=.9; ictx.beginPath(); ictx.arc(320,140,45,0,Math.PI*2); ictx.fill(); ictx.globalAlpha=1; ictx.fillStyle='#0a1424'; ictx.beginPath(); ictx.arc(305,130,6,0,Math.PI*2); ictx.fill(); ictx.beginPath(); ictx.arc(335,130,6,0,Math.PI*2); ictx.fill(); ictx.fillRect(305,150,30,8); }
-function drawCrack(cx,cy,len=40){ ictx.save(); ictx.strokeStyle='#fda4af'; ictx.lineWidth=3; ictx.beginPath(); ictx.moveTo(cx-len/2,cy); ictx.lineTo(cx-len/4,cy-8); ictx.lineTo(cx,cy+4); ictx.lineTo(cx+len/4,cy-10); ictx.lineTo(cx+len/2,cy); ictx.stroke(); ictx.restore(); }
-function marker(x,y,txt){ ictx.save(); ictx.fillStyle='#fde68a'; ictx.strokeStyle='#f59e0b'; ictx.beginPath(); ictx.arc(x,y,10,0,Math.PI*2); ictx.fill(); ictx.stroke(); ictx.fillStyle='#ffffff'; ictx.font='12px ui-sans-serif'; ictx.fillText(txt, x+14, y+4); ictx.restore(); }
-function halo(x,y,r){ const g=ictx.createRadialGradient(x,y,2,x,y,r); g.addColorStop(0,'rgba(147,197,253,0.8)'); g.addColorStop(1,'rgba(147,197,253,0.05)'); ictx.fillStyle=g; ictx.beginPath(); ictx.arc(x,y,r,0,Math.PI*2); ictx.fill(); }
-function drawLesion(zone,les){ if(zone==='bras_gauche'){ if(les==='fracture_humerus') drawCrack(210,200,60); if(les==='luxation_coude') marker(210,260,'Luxation'); } if(zone==='bras_droit'){ if(les==='fracture_radius_ulna') drawCrack(460,300,60); if(les==='entorse_poignet') marker(470,350,'Entorse'); } if(zone==='jambe_gauche'){ if(les==='fracture_tibia') drawCrack(230,360,60); if(les==='entorse_cheville') marker(230,420,'Entorse'); } if(zone==='jambe_droite'){ if(les==='fracture_femur') drawCrack(420,300,60); if(les==='entorse_genou') marker(420,340,'Entorse'); } if(zone==='thorax'){ if(les==='cote_fracture') drawCrack(320,210,60); if(les==='pneumonie') halo(330,220,40); } if(zone==='tete'){ if(les==='crane_fracture') drawCrack(320,140,50); if(les==='sinusite') halo(320,160,30); } }
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const WEBHOOK_URL = 'https://discord.com/api/webhooks/1418132282199375934/89dXmvPn7XeQLb0mEPr-320ICJafq0nlThgjEKQPXUDp9FEBnGPg5unhi06NSoHbD9b0';
+    const zoneSelect=document.getElementById('zoneSelect');
+    const lesionSelect=document.getElementById('lesionSelect');
+    const imgCanvas=document.getElementById('imgCanvas');
+    const ictx=imgCanvas.getContext('2d');
+    const historyBox=document.getElementById('history');
+    const zonesSvg=[...document.querySelectorAll('.zone')];
+    const patientId=document.getElementById('patientId');
+    const comments=document.getElementById('comments');
 
+    const LESIONS={ tete:[{value:'crane_fracture',label:'Fracture crânienne'},{value:'sinusite',label:'Sinusite (radio de sinus)'}], thorax:[{value:'cote_fracture',label:'Fracture côte'},{value:'pneumonie',label:'Infiltrat pulmonaire'}], bras_gauche:[{value:'fracture_humerus',label:'Fracture humérus'},{value:'luxation_coude',label:'Luxation du coude'}], bras_droit:[{value:'fracture_radius_ulna',label:'Fracture radius/ulna'},{value:'entorse_poignet',label:'Entorse poignet'}], jambe_gauche:[{value:'fracture_tibia',label:'Fracture tibia'},{value:'entorse_cheville',label:'Entorse cheville'}], jambe_droite:[{value:'fracture_femur',label:'Fracture fémur'},{value:'entorse_genou',label:'Entorse genou'}] };
 
-function renderImg(){
-const w=imgCanvas.width,h=imgCanvas.height; const g=ictx.createLinearGradient(0,0,0,h);
-g.addColorStop(0,'#01060d'); g.addColorStop(1,'#0a1424');
-ictx.fillStyle=g; ictx.fillRect(0,0,w,h);
-ictx.save(); ictx.globalAlpha=.08; ictx.strokeStyle='#8ab4f8'; ictx.lineWidth=1;
-for(let x=0;x<w;x+=32){ ictx.beginPath(); ictx.moveTo(x,0); ictx.lineTo(x,h); ictx.stroke(); }
-for(let y=0;y<h;y+=32){ ictx.beginPath(); ictx.moveTo(0,y); ictx.lineTo(w,y); ictx.stroke(); }
-ictx.restore();
-ictx.fillStyle='#cfe6ff'; ictx.font='14px ui-sans-serif';
-ictx.fillText(`Zone: ${zLabel(state.zone)}`,16,24);
-ictx.fillText(`Lésion: ${lLabel(state.zone,state.lesion)}`,16,44);
-if(state.patient){ ictx.fillText(`Patient: ${state.patient}`,16,64); }
-ictx.strokeStyle='#dbeafe'; ictx.lineWidth=8; ictx.lineCap='round';
-switch(state.zone){ case 'bras_gauche': drawArm(180,140); break; case 'bras_droit': drawArm(460,140); break; case 'jambe_gauche': drawLeg(220,280); break; case 'jambe_droite': drawLeg(420,280); break; case 'thorax': drawRibcage(); break; case 'tete': drawSkull(); break; default: ictx.globalAlpha=.25; ictx.fillStyle='#93c5fd'; ictx.beginPath(); ictx.ellipse(w/2,h/2,120,180,0,0,Math.PI*2); ictx.fill(); ictx.globalAlpha=1; }
-if(state.lesion){ drawLesion(state.zone,state.lesion); }
-logH('Rendu mis à jour', `${zLabel(state.zone)} • ${lLabel(state.zone,state.lesion)}`);
-}
+    const state={ zone:'', lesion:'', patient:'', comments:'' };
+    const zLabel=k=>({tete:'Tête', thorax:'Thorax', bras_gauche:'Bras gauche', bras_droit:'Bras droit', jambe_gauche:'Jambe gauche', jambe_droite:'Jambe droite'})[k]||k||'—';
+    function lLabel(z,val){ const arr=LESIONS[z]||[]; const f=arr.find(x=>x.value===val); return (f? f.label:val)||'—'; }
+    function logH(action,details){ const t=new Date().toLocaleString(); const line=document.createElement('div'); line.innerHTML = `<b>[${t}] ${action}</b>${details? ' — '+String(details) : ''}`; historyBox.prepend(line); }
 
+    function setActiveZone(zoneKey){
+      zonesSvg.forEach(z=>z.classList.toggle('active', z.dataset.zone===zoneKey));
+      if(zoneSelect.value!==zoneKey){ zoneSelect.value=zoneKey||''; }
+      lesionSelect.innerHTML=''; const opt=document.createElement('option'); opt.value=''; opt.textContent=zoneKey? '— Choisir une lésion —' : '— Sélectionnez une zone d\'abord —'; lesionSelect.appendChild(opt);
+      if(zoneKey && LESIONS[zoneKey]){ LESIONS[zoneKey].forEach(l=>{ const o=document.createElement('option'); o.value=l.value; o.textContent=l.label; lesionSelect.appendChild(o); }); }
+      state.zone=zoneKey||''; state.lesion=''; renderImg();
+    }
+    zonesSvg.forEach(el=> el.addEventListener('click', ()=> setActiveZone(el.dataset.zone)));
+    zoneSelect.addEventListener('change', e=> setActiveZone(e.target.value));
+    lesionSelect.addEventListener('change', e=>{ state.lesion=e.target.value; renderImg(); });
+    patientId.addEventListener('input', e=> state.patient = e.target.value);
+    comments.addEventListener('input', e=> state.comments = e.target.value);
 
-setActiveZone(''); renderImg();
+    document.getElementById('btnImgRender').addEventListener('click', renderImg);
+    document.getElementById('btnImgPrint').addEventListener('click', ()=> window.print());
+    document.getElementById('btnImgDiscord').addEventListener('click', ()=>{
+      imgCanvas.toBlob(async (blob)=>{
+        const content=`Zone: ${zLabel(state.zone)} | Lésion: ${lLabel(state.zone, state.lesion)} | Patient: ${state.patient || '-' }\n${state.comments || ''}`;
+        const form=new FormData(); form.append('payload_json', JSON.stringify({content}));
+        form.append('file', blob, `omc-imagerie-${Date.now()}.png`);
+        const res=await fetch(WEBHOOK_URL+'?wait=true', {method:'POST', body:form});
+        if(!res.ok) alert('Envoi Discord échoué'); else alert('Image envoyée sur Discord');
+      }, 'image/png');
+    });
 
+    function bone(x1,y1,x2,y2){ ictx.save(); ictx.strokeStyle='#dbeafe'; ictx.lineWidth=10; ictx.lineCap='round'; ictx.beginPath(); ictx.moveTo(x1,y1); ictx.lineTo(x2,y2); ictx.stroke(); ictx.restore(); }
+    function drawArm(x,y){ bone(x-60, y, x-10, y+120); bone(x-20, y+120, x, y+240); bone(x-40, y+120, x-20, y+240); }
+    function drawLeg(x,y){ bone(x-20, y-10, x+10, y+110); bone(x-10, y+110, x, y+240); bone(x+15, y+110, x+20, y+240); }
+    function drawRibcage(){ bone(320,120,320,300); ictx.lineWidth=5; ictx.strokeStyle='#dbeafe'; for(let i=0;i<6;i++){ ictx.beginPath(); ictx.moveTo(260,150+i*20); ictx.bezierCurveTo(300,140+i*20,340,140+i*20,380,150+i*20); ictx.stroke(); } }
+    function drawSkull(){ ictx.fillStyle='#dbeafe'; ictx.globalAlpha=.9; ictx.beginPath(); ictx.arc(320,140,45,0,Math.PI*2); ictx.fill(); ictx.globalAlpha=1; ictx.fillStyle='#0a1424'; ictx.beginPath(); ictx.arc(305,130,6,0,Math.PI*2); ictx.fill(); ictx.beginPath(); ictx.arc(335,130,6,0,Math.PI*2); ictx.fill(); ictx.fillRect(305,150,30,8); }
+    function drawCrack(cx,cy,len=40){ ictx.save(); ictx.strokeStyle='#fda4af'; ictx.lineWidth=3; ictx.beginPath(); ictx.moveTo(cx-len/2,cy); ictx.lineTo(cx-len/4,cy-8); ictx.lineTo(cx,cy+4); ictx.lineTo(cx+len/4,cy-10); ictx.lineTo(cx+len/2,cy); ictx.stroke(); ictx.restore(); }
+    function marker(x,y,txt){ ictx.save(); ictx.fillStyle='#fde68a'; ictx.strokeStyle='#f59e0b'; ictx.beginPath(); ictx.arc(x,y,10,0,Math.PI*2); ictx.fill(); ictx.stroke(); ictx.fillStyle='#ffffff'; ictx.font='12px ui-sans-serif'; ictx.fillText(txt, x+14, y+4); ictx.restore(); }
+    function halo(x,y,r){ const g=ictx.createRadialGradient(x,y,2,x,y,r); g.addColorStop(0,'rgba(147,197,253,0.8)'); g.addColorStop(1,'rgba(147,197,253,0.05)'); ictx.fillStyle=g; ictx.beginPath(); ictx.arc(x,y,r,0,Math.PI*2); ictx.fill(); }
+    function drawLesion(zone,les){
+      if(zone==='bras_gauche'){ if(les==='fracture_humerus') drawCrack(210,200,60); if(les==='luxation_coude') marker(210,260,'Luxation'); }
+      if(zone==='bras_droit'){ if(les==='fracture_radius_ulna') drawCrack(460,300,60); if(les==='entorse_poignet') marker(470,350,'Entorse'); }
+      if(zone==='jambe_gauche'){ if(les==='fracture_tibia') drawCrack(230,360,60); if(les==='entorse_cheville') marker(230,420,'Entorse'); }
+      if(zone==='jambe_droite'){ if(les==='fracture_femur') drawCrack(420,300,60); if(les==='entorse_genou') marker(420,340,'Entorse'); }
+      if(zone==='thorax'){ if(les==='cote_fracture') drawCrack(320,210,60); if(les==='pneumonie') halo(330,220,40); }
+      if(zone==='tete'){ if(les==='crane_fracture') drawCrack(320,140,50); if(les==='sinusite') halo(320,160,30); }
+    }
 
-if(location.search.includes('test')){
-try{ setActiveZone('bras_gauche'); lesionSelect.value='fracture_humerus'; state.lesion='fracture_humerus'; renderImg(); console.log('%c[Tests img] OK','color:#22c55e'); }catch(e){ console.error('[Tests img] FAIL', e); }
-}
-});
-</script>
+    function renderImg(){
+      const w=imgCanvas.width,h=imgCanvas.height; const g=ictx.createLinearGradient(0,0,0,h);
+      g.addColorStop(0,'#01060d'); g.addColorStop(1,'#0a1424');
+      ictx.fillStyle=g; ictx.fillRect(0,0,w,h);
+      ictx.save(); ictx.globalAlpha=.08; ictx.strokeStyle='#8ab4f8'; ictx.lineWidth=1;
+      for(let x=0;x<w;x+=32){ ictx.beginPath(); ictx.moveTo(x,0); ictx.lineTo(x,h); ictx.stroke(); }
+      for(let y=0;y<h;y+=32){ ictx.beginPath(); ictx.moveTo(0,y); ictx.lineTo(w,y); ictx.stroke(); }
+      ictx.restore();
+      ictx.fillStyle='#cfe6ff'; ictx.font='14px ui-sans-serif';
+      ictx.fillText(`Zone: ${zLabel(state.zone)}`,16,24);
+      ictx.fillText(`Lésion: ${lLabel(state.zone,state.lesion)}`,16,44);
+      if(state.patient){ ictx.fillText(`Patient: ${state.patient}`,16,64); }
+      ictx.strokeStyle='#dbeafe'; ictx.lineWidth=8; ictx.lineCap='round';
+      switch(state.zone){
+        case 'bras_gauche': drawArm(180,140); break;
+        case 'bras_droit':  drawArm(460,140); break;
+        case 'jambe_gauche':drawLeg(220,280); break;
+        case 'jambe_droite':drawLeg(420,280); break;
+        case 'thorax':      drawRibcage();    break;
+        case 'tete':        drawSkull();      break;
+        default: ictx.globalAlpha=.25; ictx.fillStyle='#93c5fd'; ictx.beginPath(); ictx.ellipse(w/2,h/2,120,180,0,0,Math.PI*2); ictx.fill(); ictx.globalAlpha=1;
+      }
+      if(state.lesion){ drawLesion(state.zone,state.lesion); }
+      logH('Rendu mis à jour', `${zLabel(state.zone)} • ${lLabel(state.zone,state.lesion)}`);
+    }
+
+    // Init + tests
+    setActiveZone(''); renderImg();
+    if(location.search.includes('test')){
+      try{ setActiveZone('bras_gauche'); lesionSelect.value='fracture_humerus'; state.lesion='fracture_humerus'; renderImg(); console.log('%c[Tests img] OK','color:#22c55e'); }catch(e){ console.error('[Tests img] FAIL', e); }
+    }
+  });
+  </script>
 </body>
 </html>
