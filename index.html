@@ -3,87 +3,47 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OMC Nord — Certificats, Calcul Interventions & Imagerie</title>
+  <title>OMC Nord — Accueil • Calcul • Certificats • Imagerie</title>
   <link rel="icon" href="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" type="image/png">
   <style>
     :root{
-      --bg:#0f172a;          /* slate-900 */
-      --panel:#111827;       /* gray-900 */
-      --panel-2:#0b1223;     /* darker */
-      --text:#e5e7eb;        /* gray-200 */
-      --muted:#9ca3af;       /* gray-400 */
-      --primary:#38bdf8;     /* sky-400 */
-      --accent:#22c55e;      /* green-500 */
-      --danger:#ef4444;      /* red-500 */
-      --ring:#1f2937;        /* gray-800 */
-      --card:#0b1223;
+      --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af;
+      --primary:#38bdf8; --accent:#22c55e; --danger:#ef4444; --ring:#1f2937; --card:#0b1223;
       --shadow: 0 10px 25px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.02);
-      --radius: 16px;
+      --radius:16px;
     }
-
     *{box-sizing:border-box}
     body{background:var(--bg); color:var(--text); font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial; margin:0;}
-
-    .wrap{max-width:1200px;margin:40px auto; padding:0 16px;}
-    .block{background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--ring); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:40px;}
+    .wrap{max-width:1200px;margin:40px auto; padding:0 16px}
+    .block{background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--ring); border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:40px}
     .header{display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid var(--ring)}
-    .header h2{margin:0; font-size:20px; letter-spacing:.2px}
+    .header h2{margin:0; font-size:20px}
     .header small{color:var(--muted)}
-
+    .panel{background:var(--card); border:1px solid var(--ring); border-radius:var(--radius); padding:14px}
+    .panel h3{margin:0 0 10px 0; font-size:14px; color:var(--muted); font-weight:600}
     .footer{padding:14px 16px; border-top:1px solid var(--ring); display:flex; gap:10px; justify-content:flex-end}
-
-    .panel{background:var(--card); border:1px solid var(--ring); border-radius:var(--radius); padding:14px;}
-    .panel h3{margin:0 0 10px 0; font-size:14px; color:var(--muted); font-weight:600;}
-
     select, button, input, textarea{background:#0b1223; color:var(--text); border:1px solid var(--ring); border-radius:12px; padding:10px 12px; font-size:14px}
-    input[type=number]{width:100%}
     button{cursor:pointer}
     .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px}
     .btn-primary{background:linear-gradient(180deg, #0b192a, #0f2743); border-color:#1e3a5f}
     .btn-accent{background:linear-gradient(180deg, #0d2416, #10321d); border-color:#14532d}
     .btn-danger{background:linear-gradient(180deg, #2a0f12, #431018); border-color:#5f1e2a}
 
-    .grid{display:grid; gap:16px; padding:16px}
+    /* === Accueil === */
+    .hero{display:grid; grid-template-columns: 1fr; gap:16px; padding:20px}
+    .hero-head{display:flex; align-items:center; gap:14px}
+    .hero-head img{height:48px; width:48px; border-radius:10px; border:1px solid var(--ring); background:#071423; padding:4px}
+    .choice-grid{display:grid; grid-template-columns: repeat(3, 1fr); gap:16px}
+    @media (max-width:960px){ .choice-grid{grid-template-columns:1fr} }
+    .choice{display:flex; flex-direction:column; gap:10px; padding:18px; border:1px solid var(--ring); border-radius:16px; background:linear-gradient(180deg,#0b1223,#0a101d); box-shadow:var(--shadow)}
+    .choice h3{margin:0; font-size:18px}
+    .choice p{margin:0; color:#cbd5e1; font-size:14px}
+    .choice .actions{display:flex; justify-content:space-between; align-items:center}
 
-    /* NAV */
-    .nav{position:sticky; top:0; z-index:10; background:rgba(15,23,42,.75); backdrop-filter: blur(6px); border-bottom:1px solid var(--ring)}
-    .nav-inner{max-width:1200px; margin:0 auto; padding:10px 16px; display:flex; gap:10px; align-items:center}
-    .nav a{color:var(--text); text-decoration:none; padding:8px 12px; border:1px solid var(--ring); border-radius:10px}
-    .nav a:hover{background:#0b1223}
-
-    /* === CALCULATRICE INTERVENTIONS === */
-    #calc .grid{grid-template-columns: 1.2fr 1fr}
-    .row{display:grid; grid-template-columns: 1fr 120px; gap:10px; align-items:center}
-    .rows{display:grid; gap:8px}
-    .totals{display:grid; gap:8px}
-    .total-line{display:flex; align-items:center; justify-content:space-between; background:#030712; border:1px solid var(--ring); border-radius:10px; padding:8px 10px}
-
-    table{width:100%; border-collapse:collapse;}
-    th,td{padding:8px 10px; border-bottom:1px solid var(--ring); font-size:14px}
-    th{color:var(--muted); font-weight:600; text-align:left}
-
-    /* === CERTIFICATS === */
-    #cert .grid{grid-template-columns: 1.1fr 1fr}
-    .cert-preview{background:#030712; border:1px solid var(--ring); border-radius:12px; padding:16px; min-height:420px}
-    .cert-canvas{width:100%; max-width:100%; border-radius:10px}
-
-    /* === IMAGERIE === */
-    #imagerie .grid{grid-template-columns: 340px 1fr 360px;}
-    .bodymap{display:flex; align-items:center; justify-content:center; height:520px}
-    .zone{cursor:pointer; transition: all .15s ease;}
-    .zone:hover{fill:#1f2937}
-    .zone.active{fill:#253149; stroke:#60a5fa; stroke-width:2}
-    .preview{background:#030712; border:1px solid var(--ring); border-radius:12px; padding:10px; display:flex; align-items:center; justify-content:center; min-height:380px; margin-top:12px}
-    .preview canvas{max-width:100%; max-height:100%; border-radius:10px}
-    .history{background:#030712; border:1px solid var(--ring); border-radius:12px; padding:10px; max-height:220px; overflow:auto; font-size:12px; color:var(--muted); margin-top:12px}
-    .history b{color:var(--text)}
-    .field{display:flex; flex-direction:column; gap:6px; margin-bottom:10px}
-    .controls{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px}
-    .label{font-size:12px; color:var(--muted)}
-  
-    /* ===== Calculator styles from source script ===== */
+    /* === CALCULATRICE (issu de ton script) === */
+    #calc .grid{display:grid; gap:16px; grid-template-columns:1.2fr .8fr; padding:16px}
     .tabs{display:flex; gap:12px; flex-wrap:wrap; margin:14px 0 20px; justify-content:center; padding:10px; background:rgba(15,23,42,.5); border:1px solid var(--ring); border-radius:16px; backdrop-filter:saturate(1.2) blur(6px); box-shadow:0 8px 24px rgba(0,0,0,.3)}
-    .tab{appearance:none; border:1px solid var(--ring); background:#0b1223; color:var(--text); padding:8px 12px; border-radius:14px; cursor:pointer; display:grid; place-items:center; gap:6px}
+    .tab{appearance:none; border:1px solid var(--ring); background:#0b1223; color:var(--text); padding:8px 12px; border-radius:14px; cursor:pointer}
     .tab[aria-selected="true"]{background:linear-gradient(180deg, #0ea5e9, #0284c7); color:#001019; border-color:#0369a1; box-shadow:0 6px 16px rgb(2 132 199 / .45)}
     .tab .tab-caption{font-size:12px; color:#9ca3af}
     .list{max-height:520px; overflow:auto; padding:6px}
@@ -95,27 +55,90 @@
     .qty input{width:56px; padding:8px 10px; border-radius:10px; border:1px solid var(--ring); background:#0b1223; color:#fff; text-align:center}
     .summary{white-space:pre-wrap; background:#0b1223; border:1px solid var(--ring); border-radius:12px; padding:12px; min-height:120px}
     .total{font-size:28px; font-weight:800}
+
+    /* === CERTIFICAT === */
+    #cert .grid{display:grid; gap:16px; grid-template-columns: 1.1fr 1fr; padding:16px}
+    .certificate{background:white;color:#0b2130;border-radius:12px;padding:28px;border:1px solid #e2e8f0;}
+    .certificate header{display:flex;gap:14px;align-items:center}
+    .certificate header img{height:54px;width:54px;border-radius:10px;border:1px solid #d1e0e8;background:#eef7fb}
+    .certificate h2{margin:4px 0 0;font-size:20px}
+    .cert-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+    .cert-field{padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
+    .cert-label{font-size:12px;color:#64748b;margin-bottom:4px}
+    .cert-value{font-weight:600}
+    .cert-footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:18px}
+    .signature{margin-top:34px;border-top:1px solid #e2e8f0;padding-top:6px;font-size:12px;color:#64748b}
+
+    /* === IMAGERIE === */
+    #imagerie .grid{display:grid; gap:16px; grid-template-columns: 340px 1fr 360px; padding:16px}
+    .bodymap{display:flex; align-items:center; justify-content:center; height:520px}
+    .zone{cursor:pointer; transition: all .15s ease}
+    .zone:hover{fill:#1f2937}
+    .zone.active{fill:#253149; stroke:#60a5fa; stroke-width:2}
+    .preview{background:#030712; border:1px solid var(--ring); border-radius:12px; padding:10px; display:flex; align-items:center; justify-content:center; min-height:380px; margin-top:12px}
+    .preview canvas{max-width:100%; max-height:100%; border-radius:10px}
+    .history{background:#030712; border:1px solid var(--ring); border-radius:12px; padding:10px; max-height:220px; overflow:auto; font-size:12px; color:#9ca3af; margin-top:12px}
+    .field{display:flex; flex-direction:column; gap:6px; margin-bottom:10px}
+    .controls{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px}
+    .label{font-size:12px; color:#9ca3af}
   </style>
 </head>
 <body>
 
-  <!-- NAV -->
-  <div class="nav">
-    <div class="nav-inner">
-      <img src="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" alt="OMC" style="height:28px; border-radius:6px; border:1px solid var(--ring); background:#030712; padding:2px">
-      <a href="#calc">Calcul interventions</a>
-      <a href="#cert">Certificats</a>
-      <a href="#imagerie">Imagerie</a>
+  <!-- ===== Accueil ===== -->
+  <div class="wrap block" id="home">
+    <div class="hero">
+      <div class="hero-head">
+        <img src="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" alt="OMC" />
+        <div>
+          <h2 style="margin:0">Ocean Medical Center — Intranet</h2>
+          <small class="muted">Choisissez un module ci-dessous.</small>
+        </div>
+      </div>
+      <div class="choice-grid">
+        <div class="choice">
+          <div>
+            <h3>🧮 Calcul des coûts d’intervention</h3>
+            <p>Catalogue d’actes (USD), quantités, TVA, total.</p>
+          </div>
+          <div class="actions">
+            <span class="muted">Administratif · Transport · Hôpital · Site</span>
+            <button class="btn btn-primary" data-open="calc">Ouvrir</button>
+          </div>
+        </div>
+        <div class="choice">
+          <div>
+            <h3>📝 Certificats</h3>
+            <p>PRO, PPA, Divers — aperçu et envoi Discord.</p>
+          </div>
+          <div class="actions">
+            <span class="muted">Canvas imprimable</span>
+            <button class="btn btn-primary" data-open="cert">Ouvrir</button>
+          </div>
+        </div>
+        <div class="choice">
+          <div>
+            <h3>🖼️ Imagerie médicale</h3>
+            <p>Corps cliquable → lésion → rendu X‑ray → Discord.</p>
+          </div>
+          <div class="actions">
+            <span class="muted">Tête, thorax, membres</span>
+            <button class="btn btn-primary" data-open="imagerie">Ouvrir</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- ================== CALCULATRICE D’INTERVENTION ================== -->
-  <div class="wrap block" id="calc">
+  <!-- ===== Calculatrice ===== -->
+  <div class="wrap block" id="calc" style="display:none">
     <div class="header">
       <h2>Calcul des coûts d’intervention (USD)</h2>
-      <small>Catalogue d’actes, quantités, TVA, total.</small>
+      <div style="display:flex; gap:8px">
+        <button class="btn" data-home>← Accueil</button>
+      </div>
     </div>
-    <div class="grid" style="grid-template-columns:1.2fr .8fr">
+    <div class="grid">
       <!-- Catalogue -->
       <section class="panel">
         <h3>Catalogue</h3>
@@ -135,9 +158,9 @@
           <button class="btn" id="reset">Réinitialiser</button>
         </div>
         <div id="summary" class="summary">— Aucun soin sélectionné —</div>
-        <div class="totals">
-          <div class="row"><span>Sous-total</span><strong id="subtotal">$0</strong></div>
-          <div class="row" style="gap:10px; align-items:center">
+        <div class="totals" style="padding:18px; border-top:1px solid var(--ring); display:grid; gap:10px">
+          <div style="display:flex; justify-content:space-between; align-items:center"><span>Sous-total</span><strong id="subtotal">$0</strong></div>
+          <div style="display:flex; gap:10px; align-items:center">
             <span class="muted">TVA</span>
             <span>
               <label style="display:inline-flex; align-items:center; gap:6px">
@@ -146,76 +169,87 @@
               <input type="number" id="taxRate" value="0" min="0" max="100" step="0.5" style="width:80px; margin-left:8px; padding:6px 8px; border-radius:8px; border:1px solid var(--ring); background:#0b1223; color:#fff"> %
             </span>
           </div>
-          <div class="row"><span>Total</span><span class="total" id="total">$0</span></div>
+          <div style="display:flex; justify-content:space-between; align-items:center"><span>Total</span><span class="total" id="total">$0</span></div>
         </div>
       </section>
     </div>
   </div>
 
-  <!-- ================== CERTIFICATS ================== -->
-  <div class="wrap block" id="cert">
+  <!-- ===== Certificats ===== -->
+  <div class="wrap block" id="cert" style="display:none">
     <div class="header">
-      <h2>Certificats — OMC Nord</h2>
-      <small>Générez un certificat (emploi, aptitude port d'arme, sport…).</small>
+      <h2>Générateur de certificat</h2>
+      <div style="display:flex; gap:8px">
+        <button class="btn" data-home>← Accueil</button>
+        <button class="btn btn-danger" id="sendDiscord">Envoyer vers Discord</button>
+      </div>
     </div>
     <div class="grid">
       <!-- Formulaire -->
       <div class="panel">
         <h3>Formulaire</h3>
-        <div class="grid" style="grid-template-columns:1fr 1fr; padding:0">
-          <div class="field"><label>Type</label>
+        <div class="grid" style="grid-template-columns:1fr 1fr; gap:12px; padding:0">
+          <div class="field"><label>Type de certificat</label>
             <select id="certType">
-              <option value="embauche">Visite médicale d'embauche</option>
-              <option value="port_arme">Aptitude — Permis de port d'arme</option>
-              <option value="sport">Certificat sport</option>
-              <option value="aptitude_generale">Aptitude générale</option>
+              <option value="pro">Certificat médical d’aptitude professionnelle</option>
+              <option value="ppa">Certificat de capacité à passer l’examen du PPA</option>
+              <option value="divers">Certificat — Divers</option>
             </select>
           </div>
-          <div class="field"><label>Date</label>
-            <input type="date" id="certDate" />
+          <div class="field"><label>Date</label><input type="date" id="certDate" /></div>
+          <div class="field"><label>Nom & Prénom du patient</label><input id="patient" placeholder="Ex : John DOE" /></div>
+          <div class="field"><label>Date de naissance</label><input id="dob" placeholder="Ex : 01/01/1995" /></div>
+          <div class="field" id="companyWrap"><label>Entreprise</label><input id="company" placeholder="Ex : Gruppe Sechs, LTD" /></div>
+          <div class="field" id="conclusionWrap" style="grid-column:1/3"><label>Conclusion</label>
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+              <label><input type="radio" name="concl" value="ok" checked> Examen clinique sans anomalie. Aucune contre‑indication.</label>
+              <label><input type="radio" name="concl" value="reserve"> Apte avec réserve</label>
+            </div>
           </div>
-          <div class="field"><label>Patient — Nom & Prénom</label>
-            <input type="text" id="certPatient" placeholder="Ex: John DOE" />
-          </div>
-          <div class="field"><label>Identifiant (optionnel)</label>
-            <input type="text" id="certID" placeholder="Ex: SS-204" />
-          </div>
-          <div class="field" style="grid-column:1/3"><label>Observations</label>
-            <textarea id="certObs" placeholder="Notes et limitations éventuelles…"></textarea>
-          </div>
-          <div class="field"><label>Médecin</label>
-            <input type="text" id="certMedecin" placeholder="Dr. Smith" />
-          </div>
-          <div class="field"><label>Lieu</label>
-            <input type="text" id="certLieu" placeholder="OMC Sandy Shores" />
-          </div>
+          <div class="field" id="reserveWrap" style="display:none; grid-column:1/3"><label>Réserves</label><textarea id="reserveText" rows="3" placeholder="Préciser les réserves…"></textarea></div>
+          <div class="field" id="notesWrap" style="display:none; grid-column:1/3"><label>Texte du certificat</label><textarea id="notes" rows="5" placeholder="Saisir le contenu du certificat…"></textarea></div>
+          <div class="field"><label>Médecin / Intervenant</label><input id="doctor" placeholder="Dr. Jane SMITH" /></div>
         </div>
       </div>
 
-      <!-- Aperçu / Canvas -->
+      <!-- Aperçu -->
       <div class="panel">
         <h3>Aperçu</h3>
-        <div class="cert-preview">
-          <canvas id="certCanvas" width="820" height="520" class="cert-canvas"></canvas>
-        </div>
-        <div class="footer" style="justify-content:flex-start">
-          <button class="btn btn-primary" id="certRender">Régénérer</button>
-          <button class="btn btn-accent" id="certPrint">Imprimer</button>
-          <button class="btn btn-danger" id="certDiscord">Envoyer sur Discord</button>
+        <div class="certificate" id="certPreview">
+          <header>
+            <img src="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" alt="OMC" />
+            <div>
+              <div class="tag" id="certTag" style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #1e3a4a;background:#0b2230;color:#9ed9ff;font-size:12px">OCEAN MEDICAL CENTER</div>
+              <h2 id="certTitle">Certificat</h2>
+            </div>
+          </header>
+          <div class="cert-grid">
+            <div class="cert-field"><div class="cert-label">Patient</div><div class="cert-value" id="pvPatient">—</div></div>
+            <div class="cert-field"><div class="cert-label">Date de naissance</div><div class="cert-value" id="pvDob">—</div></div>
+            <div class="cert-field"><div class="cert-label">Date</div><div class="cert-value" id="pvDate">—</div></div>
+            <div class="cert-field"><div class="cert-label">Référence (JJMMHHMM)</div><div class="cert-value" id="pvRef">—</div></div>
+            <div class="cert-field" id="pvCompanyWrap" style="display:none"><div class="cert-label">Entreprise</div><div class="cert-value" id="pvCompany">—</div></div>
+          </div>
+          <div class="cert-field" style="margin-top:14px"><div class="cert-label">Objet / Conclusion</div><div class="cert-value" id="pvNotes">—</div></div>
+          <div class="cert-footer">
+            <div><div class="cert-label">Établi par</div><div class="cert-value" id="pvDoctor">—</div><div class="signature">Signature et cachet</div></div>
+            <div style="text-align:right"><div class="cert-label">Mention</div><div class="cert-value">Usage interne OMC</div></div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ================== IMAGERIE ================== -->
-  <div class="wrap block" id="imagerie">
+  <!-- ===== Imagerie ===== -->
+  <div class="wrap block" id="imagerie" style="display:none">
     <div class="header">
       <h2>Imagerie médicale — Générateur d'aperçu</h2>
-      <small>Sélectionnez une zone du corps, une lésion, prévisualisez l'image et envoyez sur Discord.</small>
+      <div style="display:flex; gap:8px">
+        <button class="btn" data-home>← Accueil</button>
+        <button class="btn btn-danger" id="btnImgDiscord">Envoyer sur Discord</button>
+      </div>
     </div>
-
     <div class="grid">
-      <!-- Col 1: Carte corps humain -->
       <div class="panel">
         <h3>Zones du corps</h3>
         <div class="bodymap" id="bodymap">
@@ -223,377 +257,126 @@
             <path id="zone-bras-g" class="zone" data-zone="bras_gauche" fill="#0e1629" stroke="#1f2937" d="M61 105c-10 2-18 9-22 18-5 11-7 28-6 41 1 10 9 17 19 16s18-10 17-20c-1-12 0-25 4-36 2-6-3-12-12-19z"/>
             <path id="zone-bras-d" class="zone" data-zone="bras_droit" fill="#0e1629" stroke="#1f2937" d="M159 105c10 2 18 9 22 18 5 11 7 28 6 41-1 10-9 17-19 16s-18-10-17-20c1-12 0-25-4-36-2-6 3-12 12-19z"/>
             <path id="zone-jambe-g" class="zone" data-zone="jambe_gauche" fill="#0e1629" stroke="#1f2937" d="M88 245c-8 2-14 9-15 17-4 29-10 86-10 114 0 9 7 16 16 16h6c9 0 16-7 16-16 0-28 2-84 4-109 1-9-7-23-17-22z"/>
-            <path id="zone-jambe-d" class="zone" data-zone="jambe_droite" fill="#0e1629" stroke="#1f2937" d="M132 245c8 2 14 9 15 17 4 29 10 86 10 114 0 9-7 16-16 16h-6c-9 0-16-7  -16-16 0-28-2-84-4-109-1-9 7-23 17-22z"/>
+            <path id="zone-jambe-d" class="zone" data-zone="jambe_droite" fill="#0e1629" stroke="#1f2937" d="M132 245c8 2 14 9 15 17 4 29 10 86 10 114 0 9-7 16-16 16h-6c-9 0-16-7-16-16 0-28-2-84-4-109-1-9 7-23 17-22z"/>
             <path id="zone-thorax" class="zone" data-zone="thorax" fill="#0e1629" stroke="#1f2937" d="M85 112c-6 4-10 11-10 19v34c0 9 5 18 13 22 14 8 30 8 44 0 8-4 13-13 13-22v-34c0-8-4-15-10-19-15 10-35 10-50 0z"/>
             <circle id="zone-tete" class="zone" data-zone="tete" cx="110" cy="18" r="13" fill="#0e1629" stroke="#1f2937"/>
           </svg>
         </div>
       </div>
-
-      <!-- Col 2: Choix et Preview -->
       <div class="panel">
         <div class="controls">
-          <div class="field">
-            <label class="label">Zone sélectionnée</label>
-            <select id="zoneSelect">
-              <option value="" selected>— Choisir sur la carte —</option>
-              <option value="tete">Tête</option>
-              <option value="thorax">Thorax</option>
-              <option value="bras_gauche">Bras gauche</option>
-              <option value="bras_droit">Bras droit</option>
-              <option value="jambe_gauche">Jambe gauche</option>
-              <option value="jambe_droite">Jambe droite</option>
-            </select>
+          <div class="field"><label class="label">Zone sélectionnée</label>
+            <select id="zoneSelect"><option value="" selected>— Choisir sur la carte —</option><option value="tete">Tête</option><option value="thorax">Thorax</option><option value="bras_gauche">Bras gauche</option><option value="bras_droit">Bras droit</option><option value="jambe_gauche">Jambe gauche</option><option value="jambe_droite">Jambe droite</option></select>
           </div>
-          <div class="field">
-            <label class="label">Lésion</label>
-            <select id="lesionSelect">
-              <option value="">— Sélectionnez une zone d'abord —</option>
-            </select>
+          <div class="field"><label class="label">Lésion</label>
+            <select id="lesionSelect"><option value="">— Sélectionnez une zone d'abord —</option></select>
           </div>
         </div>
         <div class="preview"><canvas id="imgCanvas" width="640" height="400" aria-label="Aperçu radiographique"></canvas></div>
+        <div class="footer" style="justify-content:flex-start">
+          <button class="btn btn-primary" id="btnImgRender">Régénérer</button>
+          <button class="btn btn-accent" id="btnImgPrint">Imprimer</button>
+        </div>
       </div>
-
-      <!-- Col 3: Infos -->
       <div class="panel">
-        <div class="field">
-          <label class="label">Nom / ID patient (optionnel)</label>
-          <input id="patient" type="text" placeholder="Ex: John Doe #SS-204" />
-        </div>
-        <div class="field">
-          <label class="label">Commentaires (optionnel)</label>
-          <textarea id="comments" placeholder="Notes pour le dossier…"></textarea>
-        </div>
+        <div class="field"><label class="label">Nom / ID patient (optionnel)</label><input id="patientId" type="text" placeholder="Ex: John Doe #SS-204" /></div>
+        <div class="field"><label class="label">Commentaires (optionnel)</label><textarea id="comments" placeholder="Notes pour le dossier…"></textarea></div>
         <div class="history" id="history"></div>
       </div>
     </div>
-
-    <div class="footer">
-      <button class="btn btn-primary" id="btnImgRender">Régénérer l'image</button>
-      <button class="btn btn-accent" id="btnImgPrint">Imprimer</button>
-      <button class="btn btn-danger" id="btnImgDiscord">Envoyer sur Discord</button>
-    </div>
   </div>
 
-<script>
-/* ====== CONFIG ====== */
-const WEBHOOK_URL = 'https://discord.com/api/webhooks/1418132282199375934/89dXmvPn7XeQLb0mEPr-320ICJafq0nlThgjEKQPXUDp9FEBnGPg5unhi06NSoHbD9b0';
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script>
+  /* ====== Accueil / Navigation SPA ====== */
+  const sections = { home: document.getElementById('home'), calc: document.getElementById('calc'), cert: document.getElementById('cert'), imagerie: document.getElementById('imagerie') };
+  function showHome(){ for(const k in sections){ sections[k].style.display = (k==='home') ? 'block':'none'; } }
+  function showModule(key){ for(const k in sections){ sections[k].style.display = (k===key) ? 'block':'none'; } window.scrollTo({top:0, behavior:'smooth'}); }
+  document.querySelectorAll('[data-open]').forEach(btn=> btn.addEventListener('click', ()=> showModule(btn.dataset.open)));
+  document.querySelectorAll('[data-home]').forEach(btn=> btn.addEventListener('click', showHome));
+  showHome();
 
-/* ====== CALCULATRICE (basée sur ton script) ====== */
-const CATALOG = [
-  // Administratif
-  { id:'CERT_TRAVAIL', name:'Certificat aptitude travail', priceUSD:450,  category:'Administratif' },
-  { id:'CERT_PPA',     name:'Certificat aptitude PPA',     priceUSD:6500, category:'Administratif' },
-  // Transport
-  { id:'AMBUL_LOCAL',  name:'Transport ambulance locale',  priceUSD:200,  category:'Transport' },
-  // Soins Hôpital
-  { id:'HOP_SOIN',     name:'Soins',                       priceUSD:450,  category:'Soins Hôpital' },
-  { id:'HOP_REA',      name:'Réanimation',                 priceUSD:800,  category:'Soins Hôpital' },
-  { id:'HOP_RADIO',    name:'Radio de contrôle',           priceUSD:480,  category:'Soins Hôpital' },
-  { id:'HOP_SUTURE',   name:'Points de suture',            priceUSD:500,  category:'Soins Hôpital' },
-  { id:'HOP_ATTELLE',  name:"Fourniture et pose d'une attelle", priceUSD:950, category:'Soins Hôpital' },
-  { id:'HOP_PLATRE',   name:"Fourniture et pose d'un plâtre",   priceUSD:1100, category:'Soins Hôpital' },
-  // Soins sur site
-  { id:'SITE_SOIN',    name:'Soins',                       priceUSD:450,  category:'Soins sur site' },
-  { id:'SITE_REA',     name:'Réanimation',                 priceUSD:800,  category:'Soins sur site' },
-];
+  /* ====== Discord webhooks ====== */
+  const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1417874223115931789/fa_Ar35jK1b8i2Z3itgqpg79Q0ZN0VnFaIF63R10QouiIJ8JTIMAihW8k_2gNflYJPn3'; // Certificats (existant)
+  const WEBHOOK_URL = 'https://discord.com/api/webhooks/1418132282199375934/89dXmvPn7XeQLb0mEPr-320ICJafq0nlThgjEKQPXUDp9FEBnGPg5unhi06NSoHbD9b0'; // Imagerie (fourni)
 
-const stateCalc = new Map(); // id -> qty
-let activeCategory = 'Administratif';
+  /* ====== CALCULATRICE (catalogue du script) ====== */
+  const CATALOG = [
+    { id:'CERT_TRAVAIL', name:'Certificat aptitude travail', priceUSD:450,  category:'Administratif' },
+    { id:'CERT_PPA',     name:'Certificat aptitude PPA',     priceUSD:6500, category:'Administratif' },
+    { id:'AMBUL_LOCAL',  name:'Transport ambulance locale',  priceUSD:200,  category:'Transport' },
+    { id:'HOP_SOIN',     name:'Soins',                       priceUSD:450,  category:'Soins Hôpital' },
+    { id:'HOP_REA',      name:'Réanimation',                 priceUSD:800,  category:'Soins Hôpital' },
+    { id:'HOP_RADIO',    name:'Radio de contrôle',           priceUSD:480,  category:'Soins Hôpital' },
+    { id:'HOP_SUTURE',   name:'Points de suture',            priceUSD:500,  category:'Soins Hôpital' },
+    { id:'HOP_ATTELLE',  name:"Fourniture et pose d'une attelle", priceUSD:950, category:'Soins Hôpital' },
+    { id:'HOP_PLATRE',   name:"Fourniture et pose d'un plâtre",   priceUSD:1100, category:'Soins Hôpital' },
+    { id:'SITE_SOIN',    name:'Soins',                       priceUSD:450,  category:'Soins sur site' },
+    { id:'SITE_REA',     name:'Réanimation',                 priceUSD:800,  category:'Soins sur site' },
+  ];
+  const stateCalc = new Map();
+  let activeCategory = 'Administratif';
+  const elsCalc = { list: document.getElementById('list'), tabs: document.getElementById('tabs'), summary: document.getElementById('summary'), subtotal: document.getElementById('subtotal'), total: document.getElementById('total'), taxEnable: document.getElementById('taxEnable'), taxRate: document.getElementById('taxRate'), reset: document.getElementById('reset') };
+  const fmtUSD = (n) => new Intl.NumberFormat('en-US', { style:'currency', currency: 'USD' }).format(n);
+  function syncTabs(){ for (const btn of elsCalc.tabs.querySelectorAll('.tab')) { btn.setAttribute('aria-selected', String(btn.dataset.cat === activeCategory)); } }
+  function renderList(){ elsCalc.list.innerHTML=''; CATALOG.filter(x => x.category === activeCategory).forEach(item => { const row = document.createElement('div'); row.className = 'item'; const left = document.createElement('div'); left.innerHTML = `<div style="font-weight:600">${item.name}</div><div class="muted" style="font-size:13px">${item.id} · <span class="pill">${item.category}</span></div>`; const price = document.createElement('div'); price.className='muted'; price.textContent = fmtUSD(item.priceUSD); const qty = document.createElement('div'); qty.className='qty'; const minus=document.createElement('button'); minus.className='btn'; minus.textContent='−'; const input=document.createElement('input'); input.type='number'; input.min='0'; input.step='1'; input.value= stateCalc.get(item.id) ?? 0; const plus=document.createElement('button'); plus.className='btn'; plus.textContent='+'; minus.onclick=()=>{ const v=Math.max(0,(stateCalc.get(item.id)||0)-1); stateCalc.set(item.id,v); input.value=v; updateSummary(); }; plus.onclick=()=>{ const v=(stateCalc.get(item.id)||0)+1; stateCalc.set(item.id,v); input.value=v; updateSummary(); }; input.oninput=()=>{ const v=Math.max(0, parseInt(input.value||'0',10)); stateCalc.set(item.id,v); input.value=v; updateSummary(); }; qty.append(minus,input,plus); row.append(left,price,qty); elsCalc.list.appendChild(row); }); }
+  function compute(){ let lines=[]; let subtotal=0; for(const item of CATALOG){ const q=stateCalc.get(item.id)||0; if(!q) continue; const unit=item.priceUSD; const line=unit*q; subtotal+=line; lines.push(`• ${item.name} × ${q} — ${fmtUSD(line)} (${fmtUSD(unit)}/u)`); } const taxEnabled=elsCalc.taxEnable.checked; const taxRate=Math.max(0, Number(elsCalc.taxRate.value||0)); const taxValue=taxEnabled ? (subtotal*taxRate/100) : 0; const total=subtotal+taxValue; return {lines, subtotal, taxEnabled, taxRate, taxValue, total}; }
+  function updateSummary(){ const {lines, subtotal, total} = compute(); elsCalc.summary.textContent = lines.length ? lines.join('
+') : '— Aucun soin sélectionné —'; elsCalc.subtotal.textContent = fmtUSD(subtotal); elsCalc.total.textContent = fmtUSD(total); elsCalc.taxRate.disabled = !elsCalc.taxEnable.checked; elsCalc.taxRate.style.opacity = elsCalc.taxEnable.checked ? 1 : .6; }
+  elsCalc.tabs.addEventListener('click', (e)=>{ const btn=e.target.closest('.tab'); if(!btn) return; activeCategory=btn.dataset.cat; syncTabs(); renderList(); updateSummary(); });
+  elsCalc.taxEnable.addEventListener('change', updateSummary);
+  elsCalc.taxRate.addEventListener('input', updateSummary);
+  elsCalc.reset.addEventListener('click', ()=>{ stateCalc.clear(); updateSummary(); renderList(); });
+  // init calc
+  syncTabs(); renderList(); updateSummary();
 
-const elsCalc = {
-  list: document.getElementById('list'),
-  tabs: document.getElementById('tabs'),
-  summary: document.getElementById('summary'),
-  subtotal: document.getElementById('subtotal'),
-  total: document.getElementById('total'),
-  taxEnable: document.getElementById('taxEnable'),
-  taxRate: document.getElementById('taxRate'),
-  reset: document.getElementById('reset'),
-};
-const fmtUSD = (n) => new Intl.NumberFormat('en-US', { style:'currency', currency: 'USD' }).format(n);
+  /* ====== CERTIFICAT ====== */
+  const el = id=>document.getElementById(id);
+  const certType = el('certType'), certDate=el('certDate'), patient=el('patient'), dob=el('dob'), companyWrap=el('companyWrap'), company=el('company'), conclusionWrap=el('conclusionWrap'), reserveWrap=el('reserveWrap'), reserveText=el('reserveText'), notesWrap=el('notesWrap'), notes=el('notes'), doctor=el('doctor');
+  const pvTitle=el('certTitle'), pvTag=el('certTag'), pvPatient=el('pvPatient'), pvDob=el('pvDob'), pvDate=el('pvDate'), pvRef=el('pvRef'), pvCompanyWrap=el('pvCompanyWrap'), pvCompany=el('pvCompany'), pvNotes=el('pvNotes'), pvDoctor=el('pvDoctor');
+  certDate.valueAsNumber = Date.now() - (new Date()).getTimezoneOffset()*60000;
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function refJJMMHHMM(d=new Date()){ return `${pad2(d.getDate())}${pad2(d.getMonth()+1)}${pad2(d.getHours())}${pad2(d.getMinutes())}`; }
+  function updateVisibility(){ const type=certType.value; if(type==='pro'){ companyWrap.style.display=''; conclusionWrap.style.display=''; notesWrap.style.display='none'; } if(type==='ppa'){ companyWrap.style.display='none'; conclusionWrap.style.display=''; notesWrap.style.display='none'; } if(type==='divers'){ companyWrap.style.display='none'; conclusionWrap.style.display='none'; reserveWrap.style.display='none'; notesWrap.style.display=''; } }
+  function currentConclusion(){ const type=certType.value; if(type==='divers'){ return (notes.value||'—'); } const choice=(document.querySelector('input[name="concl"]:checked')||{}).value||'ok'; if(choice==='ok'){ return "Examen clinique sans anomalie. Aucune contre‑indication relevée par rapport à l’objet du certificat."; } else { const r=(reserveText.value||'').trim(); return 'Apte avec réserve' + (r? ' — '+r : ''); } }
+  function refreshCert(){ if(certType.value==='pro'){ pvTitle.textContent = 'Certificat médical d’aptitude professionnelle'; pvTag.textContent='OCEAN MEDICAL CENTER — APTITUDE PRO'; } else if(certType.value==='ppa'){ pvTitle.textContent='Certificat de capacité à passer l’examen du PPA'; pvTag.textContent='OCEAN MEDICAL CENTER — PPA'; } else { pvTitle.textContent='Certificat — Divers'; pvTag.textContent='OCEAN MEDICAL CENTER'; }
+    pvPatient.textContent = patient.value || '—'; pvDob.textContent = dob.value || '—'; pvDate.textContent = certDate.value || '—'; pvRef.textContent = refJJMMHHMM(new Date());
+    if(certType.value==='pro'){ pvCompanyWrap.style.display=''; pvCompany.textContent = company.value||'—'; } else { pvCompanyWrap.style.display='none'; pvCompany.textContent='—'; }
+    pvNotes.textContent = currentConclusion(); pvDoctor.textContent = doctor.value || '—'; }
+  ;['change','keyup','input'].forEach(evt=>{ [certType,certDate,patient,dob,company,notes,doctor,reserveText].forEach(c=> c.addEventListener(evt, ()=>{ updateVisibility(); refreshCert(); })); });
+  document.querySelectorAll('input[name="concl"]').forEach(r=> r.addEventListener('change', ()=>{ reserveWrap.style.display = (r.value==='reserve' && r.checked && certType.value!=='divers') ? '' : 'none'; refreshCert(); }));
+  updateVisibility(); refreshCert();
+  async function sendCertToDiscord(){ const btn=document.getElementById('sendDiscord'); btn.disabled=true; btn.textContent='Envoi…'; try{ const node=document.getElementById('certPreview'); const canvas=await html2canvas(node,{scale:2, backgroundColor:'#ffffff'}); const blob=await new Promise(res=> canvas.toBlob(res,'image/png')); const content=`Certificat OMC — à l’attention de ${patient.value||'—'}`; const form=new FormData(); form.append('payload_json', JSON.stringify({content})); form.append('file', blob, `certificat_${refJJMMHHMM(new Date())}.png`); const resp=await fetch(DISCORD_WEBHOOK+'?wait=true',{method:'POST', body:form}); if(!resp.ok){ throw new Error('Discord '+resp.status); } alert('✅ Certificat envoyé sur Discord'); } catch(e){ alert('Erreur: '+e.message); } finally{ btn.disabled=false; btn.textContent='Envoyer vers Discord'; } }
+  document.getElementById('sendDiscord').addEventListener('click', sendCertToDiscord);
 
-function syncTabs(){
-  for (const btn of elsCalc.tabs.querySelectorAll('.tab')) {
-    btn.setAttribute('aria-selected', String(btn.dataset.cat === activeCategory));
-  }
-}
-function renderList(){
-  elsCalc.list.innerHTML='';
-  CATALOG.filter(x => x.category === activeCategory).forEach(item => {
-    const row = document.createElement('div');
-    row.className = 'item';
-
-    const left = document.createElement('div');
-    left.innerHTML = `<div style="font-weight:600">${item.name}</div>
-                      <div class="muted" style="font-size:13px">${item.id} · <span class="pill">${item.category}</span></div>`;
-
-    const price = document.createElement('div');
-    price.className = 'muted';
-    price.textContent = fmtUSD(item.priceUSD);
-
-    const qty = document.createElement('div');
-    qty.className = 'qty';
-    const minus = document.createElement('button'); minus.className='btn'; minus.textContent='−';
-    const input = document.createElement('input'); input.type='number'; input.min='0'; input.step='1';
-    input.value = stateCalc.get(item.id) ?? 0;
-    const plus = document.createElement('button'); plus.className='btn'; plus.textContent='+';
-
-    minus.onclick = () => { const v=Math.max(0, (stateCalc.get(item.id)||0)-1); stateCalc.set(item.id, v); input.value=v; updateSummary(); };
-    plus.onclick  = () => { const v=(stateCalc.get(item.id)||0)+1; stateCalc.set(item.id, v); input.value=v; updateSummary(); };
-    input.oninput = () => { const v=Math.max(0, parseInt(input.value||'0',10)); stateCalc.set(item.id, v); input.value=v; updateSummary(); };
-
-    qty.append(minus, input, plus);
-    row.append(left, price, qty);
-    elsCalc.list.appendChild(row);
-  });
-}
-function compute(){
-  let lines = [];
-  let subtotal = 0;
-  for(const item of CATALOG){
-    const q = stateCalc.get(item.id)||0;
-    if(!q) continue;
-    const unit = item.priceUSD;
-    const line = unit * q;
-    subtotal += line;
-    lines.push(`• ${item.name} × ${q} — ${fmtUSD(line)} (${fmtUSD(unit)}/u)`);
-  }
-  const taxEnabled = elsCalc.taxEnable.checked;
-  const taxRate = Math.max(0, Number(elsCalc.taxRate.value||0));
-  const taxValue = taxEnabled ? (subtotal * taxRate/100) : 0;
-  const total = subtotal + taxValue;
-  return { lines, subtotal, taxEnabled, taxRate, taxValue, total };
-}
-function updateSummary(){
-  const {lines, subtotal, taxEnabled, taxRate, taxValue, total} = compute();
-  elsCalc.summary.textContent = lines.length ? lines.join('\n') : '— Aucun soin sélectionné —';
-  elsCalc.subtotal.textContent = fmtUSD(subtotal);
-  elsCalc.total.textContent = fmtUSD(total);
-  elsCalc.taxRate.disabled = !taxEnabled;
-  elsCalc.taxRate.style.opacity = taxEnabled ? 1 : .6;
-}
-
-elsCalc.tabs.addEventListener('click', (e) => {
-  const btn = e.target.closest('.tab');
-  if (!btn) return;
-  activeCategory = btn.dataset.cat;
-  syncTabs();
-  renderList();
-  updateSummary();
-});
-elsCalc.taxEnable.addEventListener('change', updateSummary);
-elsCalc.taxRate.addEventListener('input', updateSummary);
-elsCalc.reset.addEventListener('click', ()=>{ stateCalc.clear(); updateSummary(); renderList(); });
-
-// Init calc
-syncTabs();
-renderList();
-updateSummary();
-
-/* ====== CERTIFICAT (Canvas) ====== */
-const certCanvas = document.getElementById('certCanvas');
-const cctx = certCanvas.getContext('2d');
-
-function drawCert(){
-  const w=certCanvas.width, h=certCanvas.height;
-  // fond
-  const g=cctx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#0b1223'); g.addColorStop(1,'#07101d');
-  cctx.fillStyle=g; cctx.fillRect(0,0,w,h);
-  cctx.fillStyle='#9ca3af'; cctx.fillRect(20,20,w-40,h-40);
-  cctx.fillStyle='#0b1223'; cctx.fillRect(28,28,w-56,h-56);
-
-  // en-tête
-  cctx.fillStyle='#38bdf8'; cctx.font='bold 22px ui-sans-serif';
-  cctx.fillText('Ocean Medical Center — OMC Nord', 40, 70);
-  cctx.fillStyle='#e5e7eb'; cctx.font='bold 20px ui-sans-serif';
-  const type = document.getElementById('certType').value;
-  const titleMap={embauche:"CERTIFICAT DE VISITE D'EMBAUCHE", port_arme:'CERTIFICAT D’APTITUDE — PORT D’ARME', sport:'CERTIFICAT MÉDICAL — SPORT', aptitude_generale:'CERTIFICAT D’APTITUDE GÉNÉRALE'};
-  cctx.fillText(titleMap[type]||'CERTIFICAT', 40, 110);
-
-  // infos
-  cctx.fillStyle='#cfe6ff'; cctx.font='16px ui-sans-serif';
-  const d = (document.getElementById('certDate').value||'').trim();
-  const p = (document.getElementById('certPatient').value||'-').trim();
-  const id = (document.getElementById('certID').value||'-').trim();
-  const med = (document.getElementById('certMedecin').value||'-').trim();
-  const lieu = (document.getElementById('certLieu').value||'-').trim();
-  const obs = (document.getElementById('certObs').value||'').trim();
-
-  cctx.fillText('Patient : ' + p + '  —  ID : ' + id, 40, 160);
-  cctx.fillText('Date : ' + (d||new Date().toLocaleDateString()), 40, 188);
-  cctx.fillText('Lieu : ' + lieu, 40, 216);
-
-  // cadre observations
-  cctx.strokeStyle='#334155'; cctx.lineWidth=2; cctx.strokeRect(40,240,w-80,200);
-  cctx.fillStyle='#9ca3af'; cctx.font='14px ui-sans-serif'; cctx.fillText('Observations :', 48, 260);
-  cctx.fillStyle='#e5e7eb'; cctx.font='15px ui-sans-serif';
-  wrapText(cctx, obs || 'R.A.S.', 48, 284, w-96, 22);
-
-  // signature
-  cctx.fillStyle='#9ca3af'; cctx.font='14px ui-sans-serif'; cctx.fillText('Médecin : ' + med, 40, 468);
-  cctx.fillStyle='#22c55e'; cctx.font='bold 18px ui-sans-serif'; cctx.fillText('Apte', w-120, 468);
-}
-
-function wrapText(ctx, text, x, y, maxWidth, lineHeight){
-  const words = text.split(' '); let line='';
-  for(let n=0;n<words.length;n++){
-    const test = line + words[n] + ' ';
-    if(ctx.measureText(test).width > maxWidth){ ctx.fillText(line, x, y); line=words[n]+' '; y += lineHeight; }
-    else line=test;
-  }
-  ctx.fillText(line, x, y);
-}
-
-document.getElementById('certRender').addEventListener('click', drawCert);
-document.getElementById('certPrint').addEventListener('click', ()=> window.print());
-document.getElementById('certDiscord').addEventListener('click', ()=>{
-  certCanvas.toBlob(async (blob)=>{
-    const form = new FormData();
-    form.append('payload_json', JSON.stringify({ content: 'Certificat OMC' }));
-    form.append('file', blob, 'omc-certificat.png');
-    const res = await fetch(WEBHOOK_URL+'?wait=true', { method:'POST', body: form });
-    if(!res.ok) alert('Envoi Discord échoué'); else alert('Certificat envoyé sur Discord');
-  }, 'image/png');
-});
-
-drawCert();
-
-/* ====== IMAGERIE (Canvas) ====== */
-const LESIONS = {
-  tete: [
-    { value: 'crane_fracture', label: 'Fracture crânienne' },
-    { value: 'sinusite', label: 'Sinusite (radio de sinus)' }
-  ],
-  thorax: [
-    { value: 'cote_fracture', label: 'Fracture côte' },
-    { value: 'pneumonie', label: 'Infiltrat pulmonaire' }
-  ],
-  bras_gauche: [
-    { value: 'fracture_humerus', label: 'Fracture humérus' },
-    { value: 'luxation_coude', label: 'Luxation du coude' }
-  ],
-  bras_droit: [
-    { value: 'fracture_radius_ulna', label: 'Fracture radius/ulna' },
-    { value: 'entorse_poignet', label: 'Entorse poignet' }
-  ],
-  jambe_gauche: [
-    { value: 'fracture_tibia', label: 'Fracture tibia' },
-    { value: 'entorse_cheville', label: 'Entorse cheville' }
-  ],
-  jambe_droite: [
-    { value: 'fracture_femur', label: 'Fracture fémur' },
-    { value: 'entorse_genou', label: 'Entorse genou' }
-  ]
-};
-
-const state = { zone: '', lesion: '', patient: '', comments: '' };
-const zoneSelect = document.getElementById('zoneSelect');
-const lesionSelect = document.getElementById('lesionSelect');
-const imgCanvas = document.getElementById('imgCanvas');
-const ictx = imgCanvas.getContext('2d');
-const history = document.getElementById('history');
-const zonesSvg = Array.from(document.querySelectorAll('.zone'));
-
-function zLabel(key){ const m={tete:'Tête', thorax:'Thorax', bras_gauche:'Bras gauche', bras_droit:'Bras droit', jambe_gauche:'Jambe gauche', jambe_droite:'Jambe droite'}; return m[key]||key||'—'; }
-function lLabel(zone, val){ const arr=LESIONS[zone]||[]; const f=arr.find(x=>x.value===val); return (f? f.label:val)||'—'; }
-function logH(action, details){ const t=new Date().toLocaleString(); const line=document.createElement('div'); line.innerHTML = `<b>[${t}] ${action}</b>${details? ' — '+String(details) : ''}`; history.prepend(line); }
-
-function setActiveZone(zoneKey){
-  zonesSvg.forEach(z=>z.classList.toggle('active', z.dataset.zone===zoneKey));
-  if(zoneSelect.value!==zoneKey){ zoneSelect.value = zoneKey || ''; }
-  lesionSelect.innerHTML = '';
-  const optDefault = document.createElement('option');
-  optDefault.value=''; optDefault.textContent = zoneKey? '— Choisir une lésion —' : '— Sélectionnez une zone d\'abord —';
-  lesionSelect.appendChild(optDefault);
-  if(zoneKey && LESIONS[zoneKey]){
-    LESIONS[zoneKey].forEach(l => {
-      const o = document.createElement('option'); o.value = l.value; o.textContent = l.label; lesionSelect.appendChild(o);
-    });
-  }
-  state.zone = zoneKey || '';
-  state.lesion = '';
-  renderImg();
-}
-
-zonesSvg.forEach(el=> el.addEventListener('click', ()=> setActiveZone(el.dataset.zone)));
-zoneSelect.addEventListener('change', e=> setActiveZone(e.target.value));
-lesionSelect.addEventListener('change', e=> { state.lesion = e.target.value; renderImg(); });
-document.getElementById('patient').addEventListener('input', e=> { state.patient = e.target.value; });
-document.getElementById('comments').addEventListener('input', e=> { state.comments = e.target.value; });
-
-document.getElementById('btnImgRender').addEventListener('click', renderImg);
-document.getElementById('btnImgPrint').addEventListener('click', ()=> window.print());
-document.getElementById('btnImgDiscord').addEventListener('click', ()=>{
-  imgCanvas.toBlob(async (blob)=>{
-    const content = `Zone: ${zLabel(state.zone)} | Lésion: ${lLabel(state.zone, state.lesion)} | Patient: ${state.patient || '-' }
-${state.comments || ''}`;
-    const form = new FormData();
-    form.append('payload_json', JSON.stringify({ content }));
-    form.append('file', blob, `omc-imagerie-${Date.now()}.png`);
-    const res = await fetch(WEBHOOK_URL+'?wait=true', { method:'POST', body: form });
-    if(!res.ok) alert('Envoi Discord échoué'); else alert('Image envoyée sur Discord');
-  }, 'image/png');
-});
-
-function renderImg(){
-  const w=imgCanvas.width, h=imgCanvas.height;
-  // fond
-  const g=ictx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#01060d'); g.addColorStop(1,'#0a1424');
-  ictx.fillStyle=g; ictx.fillRect(0,0,w,h);
-  // grille
-  ictx.save(); ictx.globalAlpha=.08; ictx.strokeStyle='#8ab4f8'; ictx.lineWidth=1;
-  for(let x=0;x<w;x+=32){ ictx.beginPath(); ictx.moveTo(x,0); ictx.lineTo(x,h); ictx.stroke(); }
-  for(let y=0;y<h;y+=32){ ictx.beginPath(); ictx.moveTo(0,y); ictx.lineTo(w,y); ictx.stroke(); }
-  ictx.restore();
-  // légendes
-  ictx.fillStyle='#cfe6ff'; ictx.font='14px ui-sans-serif';
-  ictx.fillText(`Zone: ${zLabel(state.zone)}`, 16, 24);
-  ictx.fillText(`Lésion: ${lLabel(state.zone, state.lesion)}`, 16, 44);
-  if(state.patient){ ictx.fillText(`Patient: ${state.patient}`, 16, 64); }
-
-  // os
-  ictx.strokeStyle='#dbeafe'; ictx.lineWidth=8; ictx.lineCap='round';
-  switch(state.zone){
-    case 'bras_gauche': drawArm(180, 140, true); break;
-    case 'bras_droit': drawArm(460, 140, false); break;
-    case 'jambe_gauche': drawLeg(220, 280, true); break;
-    case 'jambe_droite': drawLeg(420, 280, false); break;
-    case 'thorax': drawRibcage(); break;
-    case 'tete': drawSkull(); break;
-    default:
-      ictx.globalAlpha=.25; ictx.fillStyle='#93c5fd'; ictx.beginPath(); ictx.ellipse(w/2, h/2, 120, 180, 0, 0, Math.PI*2); ictx.fill(); ictx.globalAlpha=1;
-  }
-
-  // lésions
-  if(state.lesion){ drawLesion(state.zone, state.lesion); }
-  logH('Rendu mis à jour', `${zLabel(state.zone)} • ${lLabel(state.zone, state.lesion)}`);
-}
-
-function bone(x1,y1,x2,y2){ ictx.save(); ictx.strokeStyle='#dbeafe'; ictx.lineWidth=10; ictx.lineCap='round'; ictx.beginPath(); ictx.moveTo(x1,y1); ictx.lineTo(x2,y2); ictx.stroke(); ictx.restore(); }
-function drawArm(x,y,isLeft){ bone(x-60, y, x-10, y+120); bone(x-20, y+120, x, y+240); bone(x-40, y+120, x-20, y+240); }
-function drawLeg(x,y,isLeft){ bone(x-20, y-10, x+10, y+110); bone(x-10, y+110, x, y+240); bone(x+15, y+110, x+20, y+240); }
-function drawRibcage(){ bone(320, 120, 320, 300); ictx.lineWidth=5; ictx.strokeStyle='#dbeafe'; for(let i=0;i<6;i++){ ictx.beginPath(); ictx.moveTo(260, 150 + i*20); ictx.bezierCurveTo(300, 140+i*20, 340, 140+i*20, 380, 150+i*20); ictx.stroke(); } }
-function drawSkull(){ ictx.fillStyle='#dbeafe'; ictx.globalAlpha=.9; ictx.beginPath(); ictx.arc(320, 140, 45, 0, Math.PI*2); ictx.fill(); ictx.globalAlpha=1; ictx.fillStyle='#0a1424'; ictx.beginPath(); ictx.arc(305, 130, 6, 0, Math.PI*2); ictx.fill(); ictx.beginPath(); ictx.arc(335, 130, 6, 0, Math.PI*2); ictx.fill(); ictx.fillRect(305, 150, 30, 8); }
-function drawCrack(cx,cy,len=40){ ictx.save(); ictx.strokeStyle='#fda4af'; ictx.lineWidth=3; ictx.beginPath(); ictx.moveTo(cx-len/2, cy); ictx.lineTo(cx-len/4, cy-8); ictx.lineTo(cx, cy+4); ictx.lineTo(cx+len/4, cy-10); ictx.lineTo(cx+len/2, cy); ictx.stroke(); ictx.restore(); }
-function marker(x,y,txt){ ictx.save(); ictx.fillStyle='#fde68a'; ictx.strokeStyle='#f59e0b'; ictx.beginPath(); ictx.arc(x,y,10,0,Math.PI*2); ictx.fill(); ictx.stroke(); ictx.fillStyle='#ffffff'; ictx.font='12px ui-sans-serif'; ictx.fillText(txt, x+14, y+4); ictx.restore(); }
-function halo(x,y,r){ const g=ictx.createRadialGradient(x,y,2,x,y,r); g.addColorStop(0,'rgba(147,197,253,0.8)'); g.addColorStop(1,'rgba(147,197,253,0.05)'); ictx.fillStyle=g; ictx.beginPath(); ictx.arc(x,y,r,0,Math.PI*2); ictx.fill(); }
-function drawLesion(zone, lesion){
-  switch(zone){
-    case 'bras_gauche': if(lesion==='fracture_humerus') drawCrack(210, 200, 60); if(lesion==='luxation_coude') marker(210, 260, 'Luxation'); break;
-    case 'bras_droit': if(lesion==='fracture_radius_ulna') drawCrack(460, 300, 60); if(lesion==='entorse_poignet') marker(470, 350, 'Entorse'); break;
-    case 'jambe_gauche': if(lesion==='fracture_tibia') drawCrack(230, 360, 60); if(lesion==='entorse_cheville') marker(230, 420, 'Entorse'); break;
-    case 'jambe_droite': if(lesion==='fracture_femur') drawCrack(420, 300, 60); if(lesion==='entorse_genou') marker(420, 340, 'Entorse'); break;
-    case 'thorax': if(lesion==='cote_fracture') drawCrack(320, 210, 60); if(lesion==='pneumonie') halo(330, 220, 40); break;
-    case 'tete': if(lesion==='crane_fracture') drawCrack(320, 140, 50); if(lesion==='sinusite') halo(320, 160, 30); break;
-  }
-}
-
-// Triggers init
-setActiveZone('');
-renderImg();
-</script>
-
+  /* ====== IMAGERIE ====== */
+  const LESIONS = { tete:[{value:'crane_fracture',label:'Fracture crânienne'},{value:'sinusite',label:'Sinusite (radio de sinus)'}], thorax:[{value:'cote_fracture',label:'Fracture côte'},{value:'pneumonie',label:'Infiltrat pulmonaire'}], bras_gauche:[{value:'fracture_humerus',label:'Fracture humérus'},{value:'luxation_coude',label:'Luxation du coude'}], bras_droit:[{value:'fracture_radius_ulna',label:'Fracture radius/ulna'},{value:'entorse_poignet',label:'Entorse poignet'}], jambe_gauche:[{value:'fracture_tibia',label:'Fracture tibia'},{value:'entorse_cheville',label:'Entorse cheville'}], jambe_droite:[{value:'fracture_femur',label:'Fracture fémur'},{value:'entorse_genou',label:'Entorse genou'}] };
+  const zoneSelect=document.getElementById('zoneSelect'); const lesionSelect=document.getElementById('lesionSelect'); const imgCanvas=document.getElementById('imgCanvas'); const ictx=imgCanvas.getContext('2d'); const historyBox=document.getElementById('history'); const zonesSvg=[...document.querySelectorAll('.zone')]; const patientId=document.getElementById('patientId'); const comments=document.getElementById('comments');
+  const stateImg={ zone:'', lesion:'', patient:'', comments:'' };
+  function zLabel(k){ const m={tete:'Tête', thorax:'Thorax', bras_gauche:'Bras gauche', bras_droit:'Bras droit', jambe_gauche:'Jambe gauche', jambe_droite:'Jambe droite'}; return m[k]||k||'—'; }
+  function lLabel(z,val){ const arr=LESIONS[z]||[]; const f=arr.find(x=>x.value===val); return (f? f.label:val)||'—'; }
+  function logH(action,details){ const t=new Date().toLocaleString(); const line=document.createElement('div'); line.innerHTML = `<b>[${t}] ${action}</b>${details? ' — '+String(details) : ''}`; historyBox.prepend(line); }
+  function setActiveZone(zoneKey){ zonesSvg.forEach(z=>z.classList.toggle('active', z.dataset.zone===zoneKey)); if(zoneSelect.value!==zoneKey){ zoneSelect.value=zoneKey||''; } lesionSelect.innerHTML=''; const opt=document.createElement('option'); opt.value=''; opt.textContent=zoneKey? '— Choisir une lésion —' : '— Sélectionnez une zone d\'abord —'; lesionSelect.appendChild(opt); if(zoneKey && LESIONS[zoneKey]){ LESIONS[zoneKey].forEach(l=>{ const o=document.createElement('option'); o.value=l.value; o.textContent=l.label; lesionSelect.appendChild(o); }); } stateImg.zone=zoneKey||''; stateImg.lesion=''; renderImg(); }
+  zonesSvg.forEach(el=> el.addEventListener('click', ()=> setActiveZone(el.dataset.zone)));
+  zoneSelect.addEventListener('change', e=> setActiveZone(e.target.value));
+  lesionSelect.addEventListener('change', e=>{ stateImg.lesion=e.target.value; renderImg(); });
+  patientId.addEventListener('input', e=> stateImg.patient = e.target.value);
+  comments.addEventListener('input', e=> stateImg.comments = e.target.value);
+  document.getElementById('btnImgRender').addEventListener('click', renderImg);
+  document.getElementById('btnImgPrint').addEventListener('click', ()=> window.print());
+  document.getElementById('btnImgDiscord').addEventListener('click', ()=>{ imgCanvas.toBlob(async (blob)=>{ const content=`Zone: ${zLabel(stateImg.zone)} | Lésion: ${lLabel(stateImg.zone, stateImg.lesion)} | Patient: ${stateImg.patient || '-' }
+${stateImg.comments || ''}`; const form=new FormData(); form.append('payload_json', JSON.stringify({content})); form.append('file', blob, `omc-imagerie-${Date.now()}.png`); const res=await fetch(WEBHOOK_URL+'?wait=true', {method:'POST', body:form}); if(!res.ok) alert('Envoi Discord échoué'); else alert('Image envoyée sur Discord'); }, 'image/png'); });
+  function bone(x1,y1,x2,y2){ ictx.save(); ictx.strokeStyle='#dbeafe'; ictx.lineWidth=10; ictx.lineCap='round'; ictx.beginPath(); ictx.moveTo(x1,y1); ictx.lineTo(x2,y2); ictx.stroke(); ictx.restore(); }
+  function drawArm(x,y){ bone(x-60, y, x-10, y+120); bone(x-20, y+120, x, y+240); bone(x-40, y+120, x-20, y+240); }
+  function drawLeg(x,y){ bone(x-20, y-10, x+10, y+110); bone(x-10, y+110, x, y+240); bone(x+15, y+110, x+20, y+240); }
+  function drawRibcage(){ bone(320,120,320,300); ictx.lineWidth=5; ictx.strokeStyle='#dbeafe'; for(let i=0;i<6;i++){ ictx.beginPath(); ictx.moveTo(260,150+i*20); ictx.bezierCurveTo(300,140+i*20,340,140+i*20,380,150+i*20); ictx.stroke(); } }
+  function drawSkull(){ ictx.fillStyle='#dbeafe'; ictx.globalAlpha=.9; ictx.beginPath(); ictx.arc(320,140,45,0,Math.PI*2); ictx.fill(); ictx.globalAlpha=1; ictx.fillStyle='#0a1424'; ictx.beginPath(); ictx.arc(305,130,6,0,Math.PI*2); ictx.fill(); ictx.beginPath(); ictx.arc(335,130,6,0,Math.PI*2); ictx.fill(); ictx.fillRect(305,150,30,8); }
+  function drawCrack(cx,cy,len=40){ ictx.save(); ictx.strokeStyle='#fda4af'; ictx.lineWidth=3; ictx.beginPath(); ictx.moveTo(cx-len/2,cy); ictx.lineTo(cx-len/4,cy-8); ictx.lineTo(cx,cy+4); ictx.lineTo(cx+len/4,cy-10); ictx.lineTo(cx+len/2,cy); ictx.stroke(); ictx.restore(); }
+  function marker(x,y,txt){ ictx.save(); ictx.fillStyle='#fde68a'; ictx.strokeStyle='#f59e0b'; ictx.beginPath(); ictx.arc(x,y,10,0,Math.PI*2); ictx.fill(); ictx.stroke(); ictx.fillStyle='#ffffff'; ictx.font='12px ui-sans-serif'; ictx.fillText(txt, x+14, y+4); ictx.restore(); }
+  function halo(x,y,r){ const g=ictx.createRadialGradient(x,y,2,x,y,r); g.addColorStop(0,'rgba(147,197,253,0.8)'); g.addColorStop(1,'rgba(147,197,253,0.05)'); ictx.fillStyle=g; ictx.beginPath(); ictx.arc(x,y,r,0,Math.PI*2); ictx.fill(); }
+  function drawLesion(zone,les){ if(zone==='bras_gauche'){ if(les==='fracture_humerus') drawCrack(210,200,60); if(les==='luxation_coude') marker(210,260,'Luxation'); } if(zone==='bras_droit'){ if(les==='fracture_radius_ulna') drawCrack(460,300,60); if(les==='entorse_poignet') marker(470,350,'Entorse'); } if(zone==='jambe_gauche'){ if(les==='fracture_tibia') drawCrack(230,360,60); if(les==='entorse_cheville') marker(230,420,'Entorse'); } if(zone==='jambe_droite'){ if(les==='fracture_femur') drawCrack(420,300,60); if(les==='entorse_genou') marker(420,340,'Entorse'); } if(zone==='thorax'){ if(les==='cote_fracture') drawCrack(320,210,60); if(les==='pneumonie') halo(330,220,40); } if(zone==='tete'){ if(les==='crane_fracture') drawCrack(320,140,50); if(les==='sinusite') halo(320,160,30); } }
+  function renderImg(){ const w=imgCanvas.width,h=imgCanvas.height; const g=ictx.createLinearGradient(0,0,0,h); g.addColorStop(0,'#01060d'); g.addColorStop(1,'#0a1424'); ictx.fillStyle=g; ictx.fillRect(0,0,w,h); ictx.save(); ictx.globalAlpha=.08; ictx.strokeStyle='#8ab4f8'; ictx.lineWidth=1; for(let x=0;x<w;x+=32){ ictx.beginPath(); ictx.moveTo(x,0); ictx.lineTo(x,h); ictx.stroke(); } for(let y=0;y<h;y+=32){ ictx.beginPath(); ictx.moveTo(0,y); ictx.lineTo(w,y); ictx.stroke(); } ictx.restore(); ictx.fillStyle='#cfe6ff'; ictx.font='14px ui-sans-serif'; ictx.fillText(`Zone: ${zLabel(stateImg.zone)}`,16,24); ictx.fillText(`Lésion: ${lLabel(stateImg.zone,stateImg.lesion)}`,16,44); if(stateImg.patient){ ictx.fillText(`Patient: ${stateImg.patient}`,16,64); } ictx.strokeStyle='#dbeafe'; ictx.lineWidth=8; ictx.lineCap='round'; switch(stateImg.zone){ case 'bras_gauche': drawArm(180,140); break; case 'bras_droit': drawArm(460,140); break; case 'jambe_gauche': drawLeg(220,280); break; case 'jambe_droite': drawLeg(420,280); break; case 'thorax': drawRibcage(); break; case 'tete': drawSkull(); break; default: ictx.globalAlpha=.25; ictx.fillStyle='#93c5fd'; ictx.beginPath(); ictx.ellipse(w/2,h/2,120,180,0,0,Math.PI*2); ictx.fill(); ictx.globalAlpha=1; } if(stateImg.lesion){ drawLesion(stateImg.zone,stateImg.lesion); } logH('Rendu mis à jour', `${zLabel(stateImg.zone)} • ${lLabel(stateImg.zone,stateImg.lesion)}`); }
+  setActiveZone(''); renderImg();
+  </script>
 </body>
 </html>
