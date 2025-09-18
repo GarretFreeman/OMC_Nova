@@ -1,1 +1,47 @@
+<!doctype html>
+const form=new FormData(); form.append('payload_json', JSON.stringify({content}));
+form.append('file', blob, `omc-imagerie-${Date.now()}.png`);
+const res=await fetch(WEBHOOK_URL+'?wait=true', {method:'POST', body:form});
+if(!res.ok) alert('Envoi Discord échoué'); else alert('Image envoyée sur Discord');
+}, 'image/png');
+});
 
+
+function bone(x1,y1,x2,y2){ ictx.save(); ictx.strokeStyle='#dbeafe'; ictx.lineWidth=10; ictx.lineCap='round'; ictx.beginPath(); ictx.moveTo(x1,y1); ictx.lineTo(x2,y2); ictx.stroke(); ictx.restore(); }
+function drawArm(x,y){ bone(x-60, y, x-10, y+120); bone(x-20, y+120, x, y+240); bone(x-40, y+120, x-20, y+240); }
+function drawLeg(x,y){ bone(x-20, y-10, x+10, y+110); bone(x-10, y+110, x, y+240); bone(x+15, y+110, x+20, y+240); }
+function drawRibcage(){ bone(320,120,320,300); ictx.lineWidth=5; ictx.strokeStyle='#dbeafe'; for(let i=0;i<6;i++){ ictx.beginPath(); ictx.moveTo(260,150+i*20); ictx.bezierCurveTo(300,140+i*20,340,140+i*20,380,150+i*20); ictx.stroke(); } }
+function drawSkull(){ ictx.fillStyle='#dbeafe'; ictx.globalAlpha=.9; ictx.beginPath(); ictx.arc(320,140,45,0,Math.PI*2); ictx.fill(); ictx.globalAlpha=1; ictx.fillStyle='#0a1424'; ictx.beginPath(); ictx.arc(305,130,6,0,Math.PI*2); ictx.fill(); ictx.beginPath(); ictx.arc(335,130,6,0,Math.PI*2); ictx.fill(); ictx.fillRect(305,150,30,8); }
+function drawCrack(cx,cy,len=40){ ictx.save(); ictx.strokeStyle='#fda4af'; ictx.lineWidth=3; ictx.beginPath(); ictx.moveTo(cx-len/2,cy); ictx.lineTo(cx-len/4,cy-8); ictx.lineTo(cx,cy+4); ictx.lineTo(cx+len/4,cy-10); ictx.lineTo(cx+len/2,cy); ictx.stroke(); ictx.restore(); }
+function marker(x,y,txt){ ictx.save(); ictx.fillStyle='#fde68a'; ictx.strokeStyle='#f59e0b'; ictx.beginPath(); ictx.arc(x,y,10,0,Math.PI*2); ictx.fill(); ictx.stroke(); ictx.fillStyle='#ffffff'; ictx.font='12px ui-sans-serif'; ictx.fillText(txt, x+14, y+4); ictx.restore(); }
+function halo(x,y,r){ const g=ictx.createRadialGradient(x,y,2,x,y,r); g.addColorStop(0,'rgba(147,197,253,0.8)'); g.addColorStop(1,'rgba(147,197,253,0.05)'); ictx.fillStyle=g; ictx.beginPath(); ictx.arc(x,y,r,0,Math.PI*2); ictx.fill(); }
+function drawLesion(zone,les){ if(zone==='bras_gauche'){ if(les==='fracture_humerus') drawCrack(210,200,60); if(les==='luxation_coude') marker(210,260,'Luxation'); } if(zone==='bras_droit'){ if(les==='fracture_radius_ulna') drawCrack(460,300,60); if(les==='entorse_poignet') marker(470,350,'Entorse'); } if(zone==='jambe_gauche'){ if(les==='fracture_tibia') drawCrack(230,360,60); if(les==='entorse_cheville') marker(230,420,'Entorse'); } if(zone==='jambe_droite'){ if(les==='fracture_femur') drawCrack(420,300,60); if(les==='entorse_genou') marker(420,340,'Entorse'); } if(zone==='thorax'){ if(les==='cote_fracture') drawCrack(320,210,60); if(les==='pneumonie') halo(330,220,40); } if(zone==='tete'){ if(les==='crane_fracture') drawCrack(320,140,50); if(les==='sinusite') halo(320,160,30); } }
+
+
+function renderImg(){
+const w=imgCanvas.width,h=imgCanvas.height; const g=ictx.createLinearGradient(0,0,0,h);
+g.addColorStop(0,'#01060d'); g.addColorStop(1,'#0a1424');
+ictx.fillStyle=g; ictx.fillRect(0,0,w,h);
+ictx.save(); ictx.globalAlpha=.08; ictx.strokeStyle='#8ab4f8'; ictx.lineWidth=1;
+for(let x=0;x<w;x+=32){ ictx.beginPath(); ictx.moveTo(x,0); ictx.lineTo(x,h); ictx.stroke(); }
+for(let y=0;y<h;y+=32){ ictx.beginPath(); ictx.moveTo(0,y); ictx.lineTo(w,y); ictx.stroke(); }
+ictx.restore();
+ictx.fillStyle='#cfe6ff'; ictx.font='14px ui-sans-serif';
+ictx.fillText(`Zone: ${zLabel(state.zone)}`,16,24);
+ictx.fillText(`Lésion: ${lLabel(state.zone,state.lesion)}`,16,44);
+if(state.patient){ ictx.fillText(`Patient: ${state.patient}`,16,64); }
+ictx.strokeStyle='#dbeafe'; ictx.lineWidth=8; ictx.lineCap='round';
+switch(state.zone){ case 'bras_gauche': drawArm(180,140); break; case 'bras_droit': drawArm(460,140); break; case 'jambe_gauche': drawLeg(220,280); break; case 'jambe_droite': drawLeg(420,280); break; case 'thorax': drawRibcage(); break; case 'tete': drawSkull(); break; default: ictx.globalAlpha=.25; ictx.fillStyle='#93c5fd'; ictx.beginPath(); ictx.ellipse(w/2,h/2,120,180,0,0,Math.PI*2); ictx.fill(); ictx.globalAlpha=1; }
+if(state.lesion){ drawLesion(state.zone,state.lesion); }
+logH('Rendu mis à jour', `${zLabel(state.zone)} • ${lLabel(state.zone,state.lesion)}`);
+}
+
+
+// Init + Tests
+setActiveZone(''); renderImg();
+if(location.search.includes('test')){
+try{ setActiveZone('bras_gauche'); lesionSelect.value='fracture_humerus'; state.lesion='fracture_humerus'; renderImg(); console.log('%c[Tests img] OK','color:#22c55e'); }catch(e){ console.error('[Tests img] FAIL', e); }
+}
+</script>
+</body>
+</html>
