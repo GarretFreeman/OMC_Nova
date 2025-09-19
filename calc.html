@@ -54,7 +54,7 @@
     .summary .col-qty{width:64px; text-align:center}
     .summary .col-total{width:110px; text-align:right; color:#e5e7eb; font-variant-numeric:tabular-nums}
     .empty{color:#9ca3af; padding:10px}
-    .total{font-size:28px; font-weight:800}
+    .total{font-size:28px; font-weight:800; text-align:right}
   </style>
 </head>
 <body>
@@ -80,7 +80,6 @@
 
       <!-- Colonne droite : récap fixé -->
       <aside class="sidebar" aria-label="Récapitulatif">
-        <div class="row-spread"><span>Sous-total</span><strong id="subtotal">$0</strong></div>
         <div class="row" style="gap:10px">
           <span class="muted">TVA</span>
           <label style="display:inline-flex; align-items:center; gap:6px"><input type="checkbox" id="taxEnable"> Activer</label>
@@ -104,16 +103,14 @@
           </table>
         </div>
 
-        <div class="row-spread"><span>Total</span><span class="total" id="total">$0</span></div>
+        <div class="total" id="total">$0</div>
       </aside>
     </div>
   </div>
 
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    // ====== Données catalogue ======
     const CATALOG = [
-      // --- Consultation ---
       { id:'CONS_TRAVAIL',  name:'Certificat aptitude Travail',     priceUSD:450,  category:'Consultation' },
       { id:'CONS_PPA',      name:'Certificat aptitude PPA',         priceUSD:6500, category:'Consultation' },
       { id:'CONS_PSY',      name:'Psychologue',                     priceUSD:275,  category:'Consultation' },
@@ -121,13 +118,9 @@
       { id:'CONS_MED',      name:'Médecine générale',               priceUSD:225,  category:'Consultation' },
       { id:'CONS_GYNECO',   name:'Gynécologie',                     priceUSD:200,  category:'Consultation' },
       { id:'CONS_INFECTIO', name:'Infectiologue et laboratoire',    priceUSD:350,  category:'Consultation' },
-
-      // --- Transport ---
       { id:'AMBUL_LOCAL',   name:'Transport ambulance locale',      priceUSD:200,  category:'Transport' },
       { id:'TRANS_BAT',     name:'Intervention maritime',           priceUSD:1900, category:'Transport' },
       { id:'TRANS_HEL',     name:'Intervention Hélicoptère',        priceUSD:2900, category:'Transport' },
-
-      // --- Soins Hôpital ---
       { id:'HOP_SOIN',      name:'Soins',                           priceUSD:450,  category:'Soins Hôpital' },
       { id:'HOP_REA',       name:'Réanimation',                     priceUSD:800,  category:'Soins Hôpital' },
       { id:'HOP_CHIR',      name:'Chirurgie',                       priceUSD:3200, category:'Soins Hôpital' },
@@ -135,34 +128,27 @@
       { id:'HOP_ATTELLE',   name:"Fourniture et pose d'une attelle",priceUSD:950,  category:'Soins Hôpital' },
       { id:'HOP_PLATRE',    name:"Fourniture et pose d'un plâtre",  priceUSD:1100, category:'Soins Hôpital' },
       { id:'HOP_PROT',      name:"Fourniture et pose d'une prothèse", priceUSD:6500, category:'Soins Hôpital' },
-
-      // --- Imagerie ---
       { id:'IMG_RADIO',     name:'Radio de contrôle',               priceUSD:480,  category:'Imagerie' },
       { id:'IMG_SCAN',      name:'Scanner de contrôle',             priceUSD:412,  category:'Imagerie' },
       { id:'IMG_IRM',       name:'IRM',                             priceUSD:1119, category:'Imagerie' },
       { id:'IMG_ECHO',      name:'Échographie',                     priceUSD:733,  category:'Imagerie' },
-
-      // --- Soins sur site ---
       { id:'SITE_SOIN',     name:'Soins',                           priceUSD:450,  category:'Soins sur site' },
       { id:'SITE_REA',      name:'Réanimation',                     priceUSD:800,  category:'Soins sur site' },
     ];
 
-    // ====== Références DOM ======
     const els = {
       grid: document.getElementById('grid'),
       tabs: document.getElementById('tabs'),
       summaryBody: document.getElementById('summaryBody'),
-      subtotal: document.getElementById('subtotal'),
       total: document.getElementById('total'),
       taxEnable: document.getElementById('taxEnable'),
       taxRate: document.getElementById('taxRate'),
       reset: document.getElementById('reset'),
     };
 
-    // ====== État & helpers ======
     const fmtUSD = (n) => new Intl.NumberFormat('en-US', { style:'currency', currency: 'USD' }).format(n);
     const state = new Map();
-    let activeCategory = 'Consultation'; // par défaut
+    let activeCategory = 'Consultation';
 
     function syncTabs(){
       for (const btn of els.tabs.querySelectorAll('.tab')) {
@@ -175,114 +161,63 @@
       CATALOG.filter(x => x.category === activeCategory).forEach(item => {
         const card = document.createElement('div');
         card.className = 'card';
-
         const head = document.createElement('div');
-        head.innerHTML = `
-          <div class="title">${item.name}</div>
-          <div class="meta">${item.id} · <span class="pill">${item.category}</span></div>
-        `;
-
+        head.innerHTML = `<div class="title">${item.name}</div><div class="meta">${item.id} · <span class="pill">${item.category}</span></div>`;
         const price = document.createElement('div');
-        price.className = 'price';
-        price.textContent = fmtUSD(item.priceUSD);
-
-        const controls = document.createElement('div');
-        controls.className = 'row';
-
-        const qty = document.createElement('div');
-        qty.className = 'qty';
-        const minus = document.createElement('button'); minus.textContent='−'; minus.className='btn'; minus.setAttribute('aria-label','Diminuer');
+        price.className = 'price'; price.textContent = fmtUSD(item.priceUSD);
+        const controls = document.createElement('div'); controls.className = 'row';
+        const qty = document.createElement('div'); qty.className = 'qty';
+        const minus = document.createElement('button'); minus.textContent='−'; minus.className='btn';
         const input = document.createElement('input'); input.type='number'; input.min='0'; input.step='1'; input.value = state.get(item.id) ?? 0;
-        const plus  = document.createElement('button'); plus.textContent='+'; plus.className='btn'; plus.setAttribute('aria-label','Augmenter');
-
-        minus.onclick = () => { const v=Math.max(0, (state.get(item.id)||0)-1); state.set(item.id, v); input.value=v; updateSummary(); };
-        plus.onclick  = () => { const v=(state.get(item.id)||0)+1; state.set(item.id, v); input.value=v; updateSummary(); };
-        input.oninput = () => { const v=Math.max(0, parseInt(input.value||'0',10)); state.set(item.id, v); input.value=v; updateSummary(); };
-
-        qty.append(minus, input, plus);
-        controls.append(price, qty);
-
-        card.append(head, controls);
-        els.grid.appendChild(card);
+        const plus  = document.createElement('button'); plus.textContent='+'; plus.className='btn';
+        minus.onclick = () => { const v=Math.max(0,(state.get(item.id)||0)-1); state.set(item.id,v); input.value=v; updateSummary(); };
+        plus.onclick  = () => { const v=(state.get(item.id)||0)+1; state.set(item.id,v); input.value=v; updateSummary(); };
+        input.oninput = () => { const v=Math.max(0, parseInt(input.value||'0',10)); state.set(item.id,v); input.value=v; updateSummary(); };
+        qty.append(minus,input,plus); controls.append(price,qty);
+        card.append(head,controls); els.grid.appendChild(card);
       });
     }
 
     function compute(){
-      // Renvoie la liste détaillée pour le tableau
-      const rows = [];
-      let subtotal = 0;
+      const rows = []; let subtotal=0;
       for(const item of CATALOG){
         const q = state.get(item.id)||0; if(!q) continue;
-        const unit = item.priceUSD;
-        const line = unit * q;
-        rows.push({ id:item.id, name:item.name, qty:q, unit, line });
-        subtotal += line;
+        const line = item.priceUSD*q; subtotal+=line;
+        rows.push({name:item.name, qty:q, line});
       }
       const taxEnabled = els.taxEnable.checked;
       const taxRate = Math.max(0, Number(els.taxRate.value||0));
-      const taxValue = taxEnabled ? (subtotal * taxRate/100) : 0;
-      const total = subtotal + taxValue;
-      return { rows, subtotal, taxEnabled, taxRate, taxValue, total };
+      const taxValue = taxEnabled ? subtotal*taxRate/100 : 0;
+      return { rows, total: subtotal+taxValue };
     }
 
     function updateSummary(){
-      const {rows, subtotal, total} = compute();
-
-      // Table body
-      els.summaryBody.innerHTML = '';
-      if(rows.length === 0){
-        const tr = document.createElement('tr');
-        tr.className = 'empty-row';
-        const td = document.createElement('td');
-        td.colSpan = 3; td.className = 'empty';
-        td.textContent = '— Aucun soin sélectionné —';
-        tr.appendChild(td);
-        els.summaryBody.appendChild(tr);
+      const {rows, total} = compute();
+      els.summaryBody.innerHTML='';
+      if(rows.length===0){
+        const tr=document.createElement('tr'); tr.className='empty-row';
+        const td=document.createElement('td'); td.colSpan=3; td.className='empty'; td.textContent='— Aucun soin sélectionné —';
+        tr.appendChild(td); els.summaryBody.appendChild(tr);
       } else {
         for(const r of rows){
-          const tr = document.createElement('tr');
-          const cName = document.createElement('td'); cName.textContent = r.name;
-          const cQty  = document.createElement('td'); cQty.className='col-qty'; cQty.textContent = String(r.qty);
-          const cTot  = document.createElement('td'); cTot.className='col-total'; cTot.textContent = fmtUSD(r.line);
-          tr.append(cName, cQty, cTot);
-          els.summaryBody.appendChild(tr);
+          const tr=document.createElement('tr');
+          const cName=document.createElement('td'); cName.textContent=r.name;
+          const cQty=document.createElement('td'); cQty.className='col-qty'; cQty.textContent=r.qty;
+          const cTot=document.createElement('td'); cTot.className='col-total'; cTot.textContent=fmtUSD(r.line);
+          tr.append(cName,cQty,cTot); els.summaryBody.appendChild(tr);
         }
       }
-
-      // Totaux
-      document.getElementById('subtotal').textContent = fmtUSD(subtotal);
-      document.getElementById('total').textContent = fmtUSD(total);
-
-      // UI TVA
-      els.taxRate.disabled = !els.taxEnable.checked;
-      els.taxRate.style.opacity = els.taxEnable.checked ? 1 : .6;
+      els.total.textContent=fmtUSD(total);
+      els.taxRate.disabled=!els.taxEnable.checked;
+      els.taxRate.style.opacity=els.taxEnable.checked?1:.6;
     }
 
-    // ====== Événements ======
-    els.tabs.addEventListener('click', (e) => {
-      const btn = e.target.closest('.tab'); if (!btn) return;
-      activeCategory = btn.dataset.cat; syncTabs(); renderList(); updateSummary();
-    });
+    els.tabs.addEventListener('click',(e)=>{const btn=e.target.closest('.tab');if(!btn)return;activeCategory=btn.dataset.cat;syncTabs();renderList();updateSummary();});
     els.taxEnable.addEventListener('change', updateSummary);
     els.taxRate.addEventListener('input', updateSummary);
-    els.reset.addEventListener('click', ()=>{ state.clear(); updateSummary(); renderList(); });
+    els.reset.addEventListener('click', ()=>{state.clear();updateSummary();renderList();});
 
-    // ====== Init ======
     syncTabs(); renderList(); updateSummary();
-
-    // Test optionnel: ?test dans l’URL
-    if(location.search.includes('test')){
-      try{
-        state.clear();
-        state.set('CONS_TRAVAIL',2);   // 2 × 450 = 900
-        state.set('HOP_PLATRE',1);     // + 1100 = 2000
-        const { subtotal } = compute(); console.assert(subtotal===2000, 'Sous-total attendu 2000, obtenu: '+subtotal);
-        els.taxEnable.checked = true; els.taxRate.value = 10;
-        const t2 = compute(); console.assert(t2.total===2200, 'Total attendu 2200, obtenu: '+t2.total);
-        console.log('%c[Tests calc] OK','color:#22c55e');
-        updateSummary();
-      }catch(e){ console.error('[Tests calc] FAIL', e); }
-    }
   });
   </script>
 </body>
