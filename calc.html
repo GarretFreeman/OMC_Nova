@@ -58,18 +58,41 @@
   <script>
   document.addEventListener('DOMContentLoaded', () => {
     const CATALOG = [
-      { id:'CERT_TRAVAIL', name:'Certificat aptitude travail', priceUSD:450,  category:'Administratif' },
-      { id:'CERT_PPA',     name:'Certificat aptitude PPA',     priceUSD:6500, category:'Administratif' },
-      { id:'AMBUL_LOCAL',  name:'Transport ambulance locale',  priceUSD:200,  category:'Transport' },
-      { id:'HOP_SOIN',     name:'Soins',                       priceUSD:450,  category:'Soins Hôpital' },
-      { id:'HOP_REA',      name:'Réanimation',                 priceUSD:800,  category:'Soins Hôpital' },
-      { id:'HOP_RADIO',    name:'Radio de contrôle',           priceUSD:480,  category:'Soins Hôpital' },
-      { id:'HOP_SUTURE',   name:'Points de suture',            priceUSD:500,  category:'Soins Hôpital' },
-      { id:'HOP_ATTELLE',  name:"Fourniture et pose d'un plâtre",   priceUSD:1100, category:'Soins Hôpital' },
-      { id:'HOP_PLATRE',   name:"Fourniture et pose d'une attelle", priceUSD:950,  category:'Soins Hôpital' },
-      { id:'SITE_SOIN',    name:'Soins',                       priceUSD:450,  category:'Soins sur site' },
-      { id:'SITE_REA',     name:'Réanimation',                 priceUSD:800,  category:'Soins sur site' },
+      // --- Consultation ---
+      { id:'CONS_TRAVAIL',  name:'Certificat aptitude Travail',     priceUSD:450,  category:'Consultation' },
+      { id:'CONS_PPA',      name:'Certificat aptitude PPA',         priceUSD:6500, category:'Consultation' },
+      { id:'CONS_PSY',      name:'Psychologue',                     priceUSD:275,  category:'Consultation' },
+      { id:'CONS_KINE',     name:'Kinésithérapeute',                priceUSD:300,  category:'Consultation' },
+      { id:'CONS_MED',      name:'Médecine générale',               priceUSD:225,  category:'Consultation' },
+      { id:'CONS_GYNECO',   name:'Gynécologie',                     priceUSD:200,  category:'Consultation' },
+      { id:'CONS_INFECTIO', name:'Infectiologue et laboratoire',    priceUSD:350,  category:'Consultation' },
+
+      // --- Transport ---
+      { id:'AMBUL_LOCAL',   name:'Transport ambulance locale',      priceUSD:200,  category:'Transport' },
+      { id:'TRANS_BAT',     name:'Intervention maritime',           priceUSD:1900, category:'Transport' },
+      { id:'TRANS_HEL',     name:'Intervention Hélicoptère',        priceUSD:2900, category:'Transport' },
+
+      // --- Soins Hôpital ---
+      { id:'HOP_SOIN',      name:'Soins',                           priceUSD:450,  category:'Soins Hôpital' },
+      { id:'HOP_REA',       name:'Réanimation',                     priceUSD:800,  category:'Soins Hôpital' },
+      { id:'HOP_CHIR',      name:'Chirurgie',                       priceUSD:3200, category:'Soins Hôpital' },
+      { id:'HOP_SUTURE',    name:'Points de suture',                priceUSD:500,  category:'Soins Hôpital' },
+      { id:'HOP_ATTELLE',   name:"Fourniture et pose d'une attelle",priceUSD:950,  category:'Soins Hôpital' },
+      { id:'HOP_PLATRE',    name:"Fourniture et pose d'un plâtre",  priceUSD:1100, category:'Soins Hôpital' },
+      { id:'HOP_PROT',      name:"Fourniture et pose d'une prothèse", priceUSD:6500, category:'Soins Hôpital' },
+
+      // --- Imagerie ---
+      { id:'IMG_RADIO',     name:'Radio de contrôle',               priceUSD:480,  category:'Imagerie' },
+      { id:'IMG_SCAN',      name:'Scanner de contrôle',             priceUSD:412,  category:'Imagerie' },
+      { id:'IMG_IRM',       name:'IRM',                             priceUSD:1119, category:'Imagerie' },
+      { id:'IMG_ECHO',      name:'Échographie',                     priceUSD:733,  category:'Imagerie' },
+
+      // --- Soins sur site ---
+      { id:'SITE_SOIN',     name:'Soins',                           priceUSD:450,  category:'Soins sur site' },
+      { id:'SITE_REA',      name:'Réanimation',                     priceUSD:800,  category:'Soins sur site' },
     ];
+});
+
 
     const els = {
       list: document.getElementById('list'),
