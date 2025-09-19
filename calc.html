@@ -6,9 +6,7 @@
   <title>OMC — Calcul des coûts</title>
   <link rel="icon" href="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" type="image/png">
   <style>
-    :root{
-      --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px;
-    }
+    :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; }
     *{box-sizing:border-box}
     body{background:var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial; margin:0}
     .wrap{max-width:1200px;margin:40px auto; padding:0 16px}
@@ -17,14 +15,8 @@
     .header a{appearance:none; border:1px solid var(--ring); border-radius:12px; padding:8px 10px; background:#0b1223; color:var(--text); text-decoration:none}
 
     /* Disposition 2 colonnes */
-    .layout{
-      display:grid; gap:16px; padding:16px;
-      grid-template-columns: 1fr 340px;
-    }
-    @media (max-width: 960px){
-      .layout{ grid-template-columns: 1fr; }
-      .sidebar{ position:static; top:auto; }
-    }
+    .layout{ display:grid; gap:16px; padding:16px; grid-template-columns: 1fr 380px; }
+    @media (max-width: 960px){ .layout{ grid-template-columns: 1fr; } .sidebar{ position:static; top:auto; } }
 
     /* Colonne gauche (contenu) */
     .panel{background:#0b1223; border:1px solid var(--ring); border-radius:var(--radius); padding:14px;}
@@ -32,21 +24,12 @@
     .tab{appearance:none; border:1px solid var(--ring); background:#0b1223; color:#e5e7eb; padding:8px 12px; border-radius:14px; cursor:pointer}
     .tab[aria-selected="true"]{background:linear-gradient(180deg,#0ea5e9,#0284c7); color:#001019; border-color:#0369a1}
 
-    /* Liste en cartes */
-    .list{padding:6px}
-    .grid{
-      display:grid; gap:12px;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      align-items:stretch;
-    }
-    .card{
-      background:#0b1223; border:1px solid var(--ring); border-radius:14px; padding:12px;
-      display:flex; flex-direction:column; gap:10px; min-height:150px;
-      transition:transform .08s ease, border-color .12s ease, background .12s ease;
-    }
+    /* Cartes produits */
+    .grid{ display:grid; gap:12px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); align-items:stretch; padding:6px; }
+    .card{ background:#0b1223; border:1px solid var(--ring); border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:10px; min-height:150px; transition:transform .08s ease, border-color .12s ease, background .12s ease; }
     .card:hover{ transform:translateY(-2px); border-color:#1e2a44; background:#0c1529; }
-    .card .title{font-weight:700; line-height:1.25}
-    .card .meta{color:#9ca3af; font-size:13px; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    .title{font-weight:700; line-height:1.25}
+    .meta{color:#9ca3af; font-size:13px; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
     .pill{font-size:12px; padding:4px 8px; border:1px solid var(--ring); border-radius:999px; color:#cbd5e1}
     .price{color:#cbd5e1; font-weight:600}
     .row{display:flex; justify-content:space-between; align-items:center; gap:10px}
@@ -54,16 +37,24 @@
     .qty input{width:56px; padding:8px 10px; border-radius:10px; border:1px solid var(--ring); background:#0b1223; color:#fff; text-align:center}
     .btn{appearance:none;border:1px solid var(--ring);border-radius:10px;padding:6px 10px;background:#0b1223;color:#e5e7eb;cursor:pointer}
 
-    /* Colonne droite (sidebar fixe) */
+    /* Sidebar */
     .sidebar{
-      position:sticky; top:16px;
-      background:#0b1223; border:1px solid var(--ring); border-radius:var(--radius); padding:14px;
-      display:flex; flex-direction:column; gap:12px; height:fit-content;
+      position:sticky; top:16px; background:#0b1223; border:1px solid var(--ring);
+      border-radius:var(--radius); padding:14px; display:flex; flex-direction:column; gap:12px; height:fit-content;
     }
-    .summary{white-space:pre-wrap; background:#0b1223; border:1px solid var(--ring); border-radius:12px; padding:12px; min-height:140px}
-    .total{font-size:28px; font-weight:800}
     .muted{color:#9ca3af}
     .row-spread{display:flex; justify-content:space-between; align-items:center}
+
+    /* Tableau récap */
+    .summary-wrap{border:1px solid var(--ring); border-radius:12px; overflow:hidden}
+    table.summary{width:100%; border-collapse:collapse; font-size:14px; background:#0b1223}
+    .summary thead th{background:#0c1529; color:#cbd5e1; text-align:left; padding:8px 10px; border-bottom:1px solid var(--ring)}
+    .summary tbody td{padding:8px 10px; border-bottom:1px dashed #1e2a44; vertical-align:top}
+    .summary tbody tr:last-child td{border-bottom:none}
+    .summary .col-qty{width:64px; text-align:center}
+    .summary .col-total{width:110px; text-align:right; color:#e5e7eb; font-variant-numeric:tabular-nums}
+    .empty{color:#9ca3af; padding:10px}
+    .total{font-size:28px; font-weight:800}
   </style>
 </head>
 <body>
@@ -83,9 +74,8 @@
           <button class="tab" role="tab" aria-selected="false" data-cat="Imagerie">Imagerie</button>
           <button class="tab" role="tab" aria-selected="false" data-cat="Soins sur site">Soins sur site</button>
         </div>
-        <div id="list" class="list" aria-live="polite">
-          <div class="grid" id="grid"></div>
-        </div>
+
+        <div class="grid" id="grid"></div>
       </div>
 
       <!-- Colonne droite : récap fixé -->
@@ -97,8 +87,24 @@
           <input type="number" id="taxRate" value="0" min="0" max="100" step="0.5" style="width:80px"> %
           <button id="reset" class="btn" style="margin-left:auto">Réinitialiser</button>
         </div>
+
+        <div class="summary-wrap">
+          <table class="summary" aria-describedby="summaryCaption">
+            <caption id="summaryCaption" class="visually-hidden" style="position:absolute;left:-9999px">Récapitulatif des éléments sélectionnés</caption>
+            <thead>
+              <tr>
+                <th>Désignation</th>
+                <th class="col-qty">Qté</th>
+                <th class="col-total">Total</th>
+              </tr>
+            </thead>
+            <tbody id="summaryBody">
+              <tr class="empty-row"><td class="empty" colspan="3">— Aucun soin sélectionné —</td></tr>
+            </tbody>
+          </table>
+        </div>
+
         <div class="row-spread"><span>Total</span><span class="total" id="total">$0</span></div>
-        <div class="summary" id="summary">— Aucun soin sélectionné —</div>
       </aside>
     </div>
   </div>
@@ -145,7 +151,7 @@
     const els = {
       grid: document.getElementById('grid'),
       tabs: document.getElementById('tabs'),
-      summary: document.getElementById('summary'),
+      summaryBody: document.getElementById('summaryBody'),
       subtotal: document.getElementById('subtotal'),
       total: document.getElementById('total'),
       taxEnable: document.getElementById('taxEnable'),
@@ -202,24 +208,52 @@
     }
 
     function compute(){
-      let lines = []; let subtotal = 0;
+      // Renvoie la liste détaillée pour le tableau
+      const rows = [];
+      let subtotal = 0;
       for(const item of CATALOG){
         const q = state.get(item.id)||0; if(!q) continue;
-        const unit = item.priceUSD; const line = unit * q; subtotal += line;
-        lines.push(`• ${item.name} × ${q} — ${fmtUSD(line)} (${fmtUSD(unit)}/u)`);
+        const unit = item.priceUSD;
+        const line = unit * q;
+        rows.push({ id:item.id, name:item.name, qty:q, unit, line });
+        subtotal += line;
       }
       const taxEnabled = els.taxEnable.checked;
       const taxRate = Math.max(0, Number(els.taxRate.value||0));
       const taxValue = taxEnabled ? (subtotal * taxRate/100) : 0;
       const total = subtotal + taxValue;
-      return { lines, subtotal, taxEnabled, taxRate, taxValue, total };
+      return { rows, subtotal, taxEnabled, taxRate, taxValue, total };
     }
 
     function updateSummary(){
-      const {lines, subtotal, total} = compute();
-      els.summary.textContent = lines.length ? lines.join('\n') : '— Aucun soin sélectionné —';
-      els.subtotal.textContent = fmtUSD(subtotal);
-      els.total.textContent = fmtUSD(total);
+      const {rows, subtotal, total} = compute();
+
+      // Table body
+      els.summaryBody.innerHTML = '';
+      if(rows.length === 0){
+        const tr = document.createElement('tr');
+        tr.className = 'empty-row';
+        const td = document.createElement('td');
+        td.colSpan = 3; td.className = 'empty';
+        td.textContent = '— Aucun soin sélectionné —';
+        tr.appendChild(td);
+        els.summaryBody.appendChild(tr);
+      } else {
+        for(const r of rows){
+          const tr = document.createElement('tr');
+          const cName = document.createElement('td'); cName.textContent = r.name;
+          const cQty  = document.createElement('td'); cQty.className='col-qty'; cQty.textContent = String(r.qty);
+          const cTot  = document.createElement('td'); cTot.className='col-total'; cTot.textContent = fmtUSD(r.line);
+          tr.append(cName, cQty, cTot);
+          els.summaryBody.appendChild(tr);
+        }
+      }
+
+      // Totaux
+      document.getElementById('subtotal').textContent = fmtUSD(subtotal);
+      document.getElementById('total').textContent = fmtUSD(total);
+
+      // UI TVA
       els.taxRate.disabled = !els.taxEnable.checked;
       els.taxRate.style.opacity = els.taxEnable.checked ? 1 : .6;
     }
@@ -242,9 +276,9 @@
         state.clear();
         state.set('CONS_TRAVAIL',2);   // 2 × 450 = 900
         state.set('HOP_PLATRE',1);     // + 1100 = 2000
-        const r1 = compute(); console.assert(r1.subtotal===2000, 'Sous-total attendu 2000, obtenu: '+r1.subtotal);
+        const { subtotal } = compute(); console.assert(subtotal===2000, 'Sous-total attendu 2000, obtenu: '+subtotal);
         els.taxEnable.checked = true; els.taxRate.value = 10;
-        const r2 = compute(); console.assert(r2.total===2200, 'Total attendu 2200, obtenu: '+r2.total);
+        const t2 = compute(); console.assert(t2.total===2200, 'Total attendu 2200, obtenu: '+t2.total);
         console.log('%c[Tests calc] OK','color:#22c55e');
         updateSummary();
       }catch(e){ console.error('[Tests calc] FAIL', e); }
