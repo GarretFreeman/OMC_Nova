@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OMC — Imagerie (envoi Discord seulement)</title>
+  <title>OMC — Imagerie (Discord uniquement)</title>
   <link rel="icon" href="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" type="image/png">
   <style>
     :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; }
@@ -52,14 +52,12 @@
     .report .badge{display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border:1px solid var(--ring); border-radius:999px; font-size:12px; margin-right:6px}
     .report .badge .bdot{width:10px; height:10px; border-radius:50%}
 
-    /* Marqueurs */
     .marker{cursor:grab}
     .marker:active{cursor:grabbing}
     .marker text{font:600 10px ui-sans-serif,system-ui; fill:#0b1223}
 
     .history{background:#030712; border:1px solid var(--ring); border-radius:12px; padding:10px; max-height:220px; overflow:auto; font-size:12px; color:#9ca3af; margin-top:12px}
 
-    /* petits contrôles header */
     .h-ctrls{display:flex; gap:12px; align-items:center}
   </style>
 </head>
@@ -78,7 +76,7 @@
 
     <div class="panel">
       <div class="main-grid">
-        <!-- Colonne gauche : image + overlay + légende des types -->
+        <!-- Colonne gauche -->
         <section>
           <h3 style="margin:0 0 10px; color:#9ca3af">Localiser les lésions</h3>
           <div class="bodymap">
@@ -88,23 +86,22 @@
                 <g id="markersLayer"></g>
                 <g id="zonesDebugLayer" class="debug" style="display:none"></g>
               </svg>
-              <!-- Info-bulle de localisation -->
               <div id="cursorTip" class="cursor-tip" role="tooltip" aria-hidden="true"></div>
             </div>
           </div>
           <div class="legend" id="legend"></div>
         </section>
 
-        <!-- Colonne droite : infos + palette + constat -->
+        <!-- Colonne droite -->
         <section>
           <div class="controls">
             <div class="field">
               <label class="label">Nom / ID patient</label>
-              <input id="patientId" type="text" placeholder="Ex: John Doe #SS-204">
+              <input id="patientId" type="text" placeholder="Ex: Garret Freeman #SS-204">
             </div>
             <div class="field">
               <label class="label">Nom du médecin</label>
-              <input id="doctorName" type="text" placeholder="Ex: Martin Dupont">
+              <input id="doctorName" type="text" placeholder="Ex: Bill Hanson">
             </div>
             <div class="field">
               <label class="label">Commentaires</label>
@@ -125,7 +122,7 @@
 
           <div class="report" id="reportBox">
             <h4>Constat lésionnel</h4>
-            <small id="reportMeta">Patient : — • Date : —</small>
+            <small id="reportMeta">Patient : — • Médecin : — • Date : —</small>
             <ol id="reportList"></ol>
             <div id="reportSummary" style="margin-top:10px"></div>
           </div>
@@ -139,14 +136,12 @@
   <script>
   document.addEventListener('DOMContentLoaded', () => {
     /* ========= CONFIG DISCORD ========= */
-    // Webhook du canal Forum "imagerie" (obligatoire)
-    const WEBHOOK_FORUM_URL = "https://discord.com/api/webhooks/1421780761731928194/ZFSpiLTHfytIGT02QBf5SBOIEDzWMaf_PMHtDB9sd-GmF5chHnQqQic-9YpLnYHJIRPo"; // ex: "https://discord.com/api/webhooks/xxx/yyy"
+    const WEBHOOK_FORUM_URL = ""; // <— colle l’URL du webhook du FORUM “imagerie”
     const FORUM_THREAD_PREFIX = "Imagerie";
-    // Logo local recommandé
     const LOGO_PATH = "assets/logo-omc.png";
     const LOGO_FALLBACK = "https://i.ibb.co/LzwcCLfN/logo-omc-nord.png";
 
-    /* ========== Types de lésions (RP) ========== */
+    /* ========= Types de lésions ========= */
     const LESIONS = [
       {key:'fracture',      label:'Fracture',               color:'#ef4444', code:'FX'},
       {key:'entorse',       label:'Entorse',                color:'#f59e0b', code:'EN'},
@@ -158,7 +153,7 @@
     ];
     const LMAP = Object.fromEntries(LESIONS.map(l => [l.key, l]));
 
-    /* ========== REGIONS (polygones calibrés) ========== */
+    /* ========= Zones calibrées (polygones) ========= */
     const REGIONS_RAW = [
       {"id":"tete","label":"Téte","type":"poly","points":[[215,20],[235,30],[245,45],[250,60],[250,75],[255,80],[255,95],[245,105],[240,120],[185,120],[180,105],[175,95],[170,80],[174,60],[175,45],[190,30],[200,20],[215,20],[215,20]]},
       {"id":"cou","label":"Cou","type":"poly","points":[[185,125],[240,123],[240,146],[185,145],[185,125]]},
@@ -187,7 +182,7 @@
     function polyArea(pts){ let a=0; for(let i=0,j=pts.length-1;i<pts.length;j=i++) a += (pts[j][0]*pts[i][1] - pts[i][0]*pts[j][1]); return Math.abs(a/2); }
     const REGIONS = REGIONS_RAW.slice().sort((a,b)=> polyArea(a.points) - polyArea(b.points));
 
-    /* ========== DOM ========== */
+    /* ========= DOM ========= */
     const overlay = document.getElementById('overlay');
     const markersLayer = document.getElementById('markersLayer');
     const zonesDebugLayer = document.getElementById('zonesDebugLayer');
@@ -211,14 +206,14 @@
     const reportList = document.getElementById('reportList');
     const reportSummary = document.getElementById('reportSummary');
 
-    /* ========== ÉTAT ========== */
+    /* ========= ÉTAT ========= */
     let activeType = LESIONS[0].key;
     let showNumbers = true;
     const markers = []; // {id,type,x,y}
     let drag = {on:false, id:null, dx:0, dy:0};
     let debugOn = false;
 
-    /* ========== Utils ========== */
+    /* ========= Utils ========= */
     function logH(msg){ const t=new Date().toLocaleString(); const d=document.createElement('div'); d.innerHTML=`<b>[${t}]</b> ${msg}`; historyBox.prepend(d); }
     function svgPoint(evt){
       const pt = overlay.createSVGPoint();
@@ -237,7 +232,7 @@
     }
     function regionFrom(x,y){ for(const r of REGIONS){ if(inPoly(x,y,r.points)) return r.label; } return null; }
 
-    /* ========== Jargon RP ========== */
+    /* ========= Jargon RP ========= */
     const JARGON = {
       fracture: (z)=>`Trait de fracture ${rand(['transversal','oblique','comminutif'])} ${rand(['sans','avec discret'])} déplacement. Sensibilité osseuse ${site(z)}.`,
       entorse:  (z)=>`Atteinte ligamentaire ${rand(['suspectée','probable'])} (${rand(['stade I','stade II'])}). Œdème ${site(z)}, douleur à la mise en charge.`,
@@ -251,7 +246,7 @@
     function site(z){ return z?`au niveau ${z.startsWith('de')||z.startsWith('du')?z:'de ' + z.toLowerCase()}`:'sur zone non précisée'; }
     function jargonFor(type, zone){ const f=JARGON[type]; return f? f(zone||'') : 'Lésion décrite cliniquement.'; }
 
-    /* ========== Report (UI) ========== */
+    /* ========= Report (UI) ========= */
     function updateReport(){
       const now = new Date().toLocaleString();
       reportMeta.textContent = `Patient : ${patientId.value || '—'} • Médecin : ${doctorName.value || '—'} • Date : ${now}${comments.value ? ' • Notes : ' + comments.value : ''}`;
@@ -275,7 +270,7 @@
       reportSummary.innerHTML = summary || '<small>Aucune lésion renseignée.</small>';
     }
 
-    /* ========== Marqueurs ========== */
+    /* ========= Marqueurs ========= */
     function rebuildNumbers(){
       const perType = {};
       markers.forEach(m => {
@@ -338,13 +333,12 @@
       logH(`Ajout ${LMAP[type].label} @ x:${Math.round(pt.x)} y:${Math.round(pt.y)}`);
     }
 
-    /* ========== Palette & Légende ========== */
+    /* ========= Palette + Légende ========= */
     function buildPalette(){
       lesionsGrid.innerHTML='';
       LESIONS.forEach(l=>{
         const chip = document.createElement('div');
         chip.className='chip' + (l.key===activeType?' active':'');
-        chip.setAttribute('data-key', l.key);
         chip.innerHTML = `<span class="dot" style="background:${l.color}"></span><span>${l.label}</span>`;
         chip.addEventListener('click', ()=>{
           [...lesionsGrid.children].forEach(c=>c.classList.remove('active'));
@@ -368,7 +362,7 @@
       });
     }
 
-    /* ========== Zones Debug Overlay ========== */
+    /* ========= Zones debug ========= */
     function drawZonesDebug(){
       zonesDebugLayer.innerHTML = '';
       if(!debugOn) return;
@@ -386,7 +380,7 @@
       });
     }
 
-    /* ========== Info-bulle curseur ========== */
+    /* ========= Tooltip localisation ========= */
     function moveCursorTip(evt){
       const rect = frame.getBoundingClientRect();
       const p = svgPoint(evt);
@@ -416,7 +410,7 @@
       cursorTip.setAttribute('aria-hidden','true');
     });
 
-    /* ========== Helpers dessin ========== */
+    /* ========= Helpers dessin ========= */
     function roundRect(ctx, x, y, w, h, r){
       const rr = Math.min(r, w/2, h/2);
       ctx.beginPath();
@@ -436,27 +430,115 @@
         img.src = src;
       });
     }
+    function wrapHeight(context, text, maxWidth, lineHeight){
+      const words = String(text).split(/\s+/);
+      let line = '', used = lineHeight;
+      for(let n=0;n<words.length;n++){
+        const test = line + (line? ' ':'') + words[n];
+        const w = context.measureText(test).width;
+        if(w > maxWidth && n>0){ line = words[n]; used += lineHeight; }
+        else { line = test; }
+      }
+      return used;
+    }
+    function wrapText(context, text, x, y, maxWidth, fontSize, lineHeight){
+      const words = String(text).split(/\s+/);
+      let line = '', cy=y;
+      for(let n=0;n<words.length;n++){
+        const test = line + (line? ' ':'') + words[n];
+        const w = context.measureText(test).width;
+        if(w > maxWidth && n>0){ context.fillText(line, x, cy); line = words[n]; cy += lineHeight; }
+        else { line = test; }
+      }
+      context.fillText(line, x, cy);
+      return cy - y + lineHeight;
+    }
 
-    /* ========== Export CANEVAS PNG (silhouette + fiche) ========== */
+    /* ========= MESURE mise en page (auto-hauteur) ========= */
+    function measureRightCardHeight(scale, rightW){
+      const paddingX = 16*scale;
+      const headerH = 72*scale;
+      const line14 = 18*scale, line13 = 16*scale, line12 = 16*scale;
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      let y = headerH + 16*scale; // après header + marge
+
+      // meta (3 lignes)
+      ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
+      y += line14 * 3;
+
+      // notes
+      if(comments.value){
+        ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
+        y += wrapHeight(ctx, `Notes : ${comments.value}`, rightW - paddingX*2, 18*scale) + 6*scale;
+      }
+
+      // badges résumé (flow)
+      const counts = {}; markers.forEach(m=>counts[m.type]=(counts[m.type]||0)+1);
+      let bx = paddingX, by = y + 12*scale;
+      ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
+      LESIONS.forEach(l=>{
+        const txt = `${l.label} : ${counts[l.key]||0}`;
+        const w = ctx.measureText(txt).width + 24*scale + 20*scale;
+        if(bx + w > rightW - paddingX){ bx = paddingX; by += 30*scale; }
+        bx += w + 8*scale;
+      });
+      y = by + 24*scale;
+
+      // titre section
+      y += 16*scale;
+
+      // liste constatations
+      const perTypeIndex = {};
+      if(!markers.length){
+        y += line13 + 10*scale;
+      } else {
+        markers.forEach(m=>{
+          perTypeIndex[m.type]=(perTypeIndex[m.type]||0)+1;
+          const zone = regionFrom(m.x,m.y) || 'Zone non définie';
+          y += line13 + 12*scale; // ligne titre + espace
+          ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
+          const ch = jargonFor(m.type, zone);
+          y += wrapHeight(ctx, ch, rightW - (paddingX*2 + 50*scale), line12) + 10*scale;
+        });
+      }
+
+      // marge basse
+      y += 24*scale;
+      return y; // hauteur totale de carte
+    }
+
+    /* ========= Export CANEVAS PNG (auto-hauteur, fiche large) ========= */
     async function exportReportPNG(scale=2){
-      const H = 940*scale;
+      // largeur fiche augmentée pour lisibilité
+      const rightW = 640*scale;
       const sideGap = 20*scale;
       const figPad = 20*scale;
-      const rightW = 520*scale;
-      const W = (418*scale) + sideGap + rightW;
 
-      const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;
+      // passe de mesure pour hauteur nécessaire
+      const measuredCardH = measureRightCardHeight(scale, rightW);
+      const Hmin = 940*scale;
+      const H = Math.max(Hmin, figPad*2 + measuredCardH);
+
+      const canvas = document.createElement('canvas');
+      // largeur = silhouette (418*scale * facteur s) + gap + fiche
+      // On calcule d'abord l'échelle de silhouette (surface utile = H - 2*figPad)
+      const figH = H - figPad*2;
+      const s = figH / 940;
+      const figW = 418 * s;
+      const W = Math.round(figPad + figW + sideGap + rightW + figPad);
+
+      canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
 
       // fond
       ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,W,H);
 
-      // silhouette
+      // ===== silhouette =====
       const bgSrc = document.querySelector('.body-bg').src;
       const bgImg = await loadImage(bgSrc);
-      const figH = H - figPad*2;
-      const s = figH / 940;
-      const figW = 418*s;
       const figX = figPad;
       const figY = figPad;
       ctx.drawImage(bgImg, figX, figY, figW, figH);
@@ -482,12 +564,13 @@
         }
       });
 
-      // fiche à droite
-      const rightX = figX + figW + sideGap;
-      const cardY = figPad;
-      const cardW = rightW;
-      const cardH = H - figPad*2;
+      // ===== fiche =====
+      const rightX = Math.round(figX + figW + sideGap);
+      const cardY  = figPad;
+      const cardW  = rightW;
+      const cardH  = measureRightCardHeight(scale, rightW); // (re-mesure)
 
+      // carte + header
       roundRect(ctx, rightX, cardY, cardW, cardH, 16*scale);
       ctx.fillStyle = '#f8fafc'; ctx.fill();
       ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1*scale; ctx.stroke();
@@ -512,7 +595,7 @@
       ctx.textAlign='left'; ctx.textBaseline='middle';
       ctx.fillText('Constat lésionnel — OMC', rightX+72*scale, cardY+headerH/2);
 
-      // meta patient/médecin/date
+      // meta
       const metaY = cardY + headerH + 16*scale;
       const dateStr = new Date().toLocaleString();
       ctx.fillStyle = '#0f172a';
@@ -525,12 +608,12 @@
         wrapText(ctx, `Notes : ${comments.value}`, rightX+16*scale, metaY + 64*scale, cardW-32*scale, 14*scale, 18*scale);
       }
 
-      // badges résumé
+      // résumé badges
       const counts = {}; markers.forEach(m=>counts[m.type]=(counts[m.type]||0)+1);
       let badgeX = rightX+16*scale, badgeY = metaY + (comments.value? 114*scale : 90*scale);
+      ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
       LESIONS.forEach(l=>{
         const txt = `${l.label} : ${counts[l.key]||0}`;
-        ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
         const w = ctx.measureText(txt).width + 24*scale + 20*scale;
         if(badgeX + w > rightX + cardW - 16*scale){ badgeX = rightX+16*scale; badgeY += 30*scale; }
         roundRect(ctx, badgeX, badgeY, w, 24*scale, 999);
@@ -541,7 +624,7 @@
         badgeX += w + 8*scale;
       });
 
-      // liste constatations + charabia RP
+      // liste constatations
       let listTop = badgeY + 36*scale;
       ctx.fillStyle = '#0f172a';
       ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
@@ -556,7 +639,7 @@
       }else{
         markers.forEach(m=>{
           perTypeIndex[m.type]=(perTypeIndex[m.type]||0)+1;
-          const idx = perTypeIndex[m.type];
+          const idx  = perTypeIndex[m.type];
           const zone = regionFrom(m.x,m.y) || 'Zone non définie';
 
           ctx.beginPath();
@@ -571,19 +654,11 @@
           ctx.fillStyle = '#475569';
           ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
           const ch = jargonFor(m.type, zone);
-          listTop += wrapText(ctx, ch, rightX+34*scale, listTop+28*scale, cardW-50*scale, 12*scale, 16*scale) + 10*scale;
+          listTop += wrapText(ctx, ch, rightX+34*scale, listTop+28*scale, cardW-50*scale, 12*scale, 16*scale) + 16*scale; // +16 pour aérer
         });
       }
 
-      // signature
-      const footerY = cardY + cardH - 54*scale;
-      roundRect(ctx, rightX+16*scale, footerY, cardW-32*scale, 38*scale, 10*scale);
-      ctx.fillStyle = '#ffffff'; ctx.fill();
-      ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1*scale; ctx.stroke();
-      ctx.fillStyle = '#0f172a'; ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
-      ctx.fillText(`Établi par : Dr ${doctorName.value || '—'} (OMC) • Signature : ____________`, rightX+24*scale, footerY+24*scale);
-
-      // watermark
+      // watermark discret
       ctx.save();
       ctx.globalAlpha = 0.06;
       ctx.translate(rightX + cardW - 120*scale, cardY + cardH - 80*scale);
@@ -593,29 +668,10 @@
       ctx.fillText('OMC', 0, 0);
       ctx.restore();
 
-      function wrapText(context, text, x, y, maxWidth, fontSize, lineHeight){
-        const words = String(text).split(/\s+/);
-        let line = '', cy=y, used=0;
-        for(let n=0;n<words.length;n++){
-          const test = line + (line? ' ':'') + words[n];
-          const w = context.measureText(test).width;
-          if(w > maxWidth && n>0){
-            context.fillText(line, x, cy);
-            line = words[n];
-            cy += lineHeight;
-            used += lineHeight;
-          } else {
-            line = test;
-          }
-        }
-        context.fillText(line, x, cy);
-        return used + lineHeight;
-      }
-
       return await new Promise(res=> canvas.toBlob(b=>res(b),'image/png'));
     }
 
-    /* ========== Discord : envoi PNG seul au forum ========== */
+    /* ========= Discord : image seule dans le forum ========= */
     async function sendToDiscordForum(){
       if(!WEBHOOK_FORUM_URL){
         alert('Webhook Discord du forum non configuré.');
@@ -626,7 +682,6 @@
         const threadName = `${FORUM_THREAD_PREFIX} — ${patientId.value || 'Sans nom'} — ${new Date().toLocaleDateString()}`;
 
         const fd = new FormData();
-        // Pas de "content": on n’envoie QUE l’image. On précise juste le nom du sujet.
         fd.append('payload_json', JSON.stringify({ thread_name: threadName }));
         fd.append('file', imgBlob, `imagerie-omc-${Date.now()}.png`);
 
@@ -639,79 +694,51 @@
         alert('Canevas envoyé sur le copieur imagerie (Discord).');
       }catch(e){
         console.error(e);
-        alert('Envoi Discord échoué. Vérifie le webhook du forum et le logo (CORS).');
+        alert('Envoi Discord échoué. Vérifie le webhook et le logo (CORS).');
       }
     }
 
-    /* ========== Interactions (corrigé) ========== */
-overlay.addEventListener('click', (e)=>{
-  addMarker(svgPoint(e), activeType);
-});
+    /* ========= Interactions ========= */
+    overlay.addEventListener('click', (e)=> addMarker(svgPoint(e), activeType));
 
-btnUndo.addEventListener('click', ()=>{
-  const last = markers.pop(); if(!last) return;
-  const node = markersLayer.querySelector(`g.marker[data-id="${last.id}"]`);
-  if(node) markersLayer.removeChild(node);
-  rebuildNumbers(); updateReport(); redrawLegend();
-  logH(`Annulé — ${last ? LMAP[last.type].label : ''}`);
-});
+    btnUndo.addEventListener('click', ()=>{
+      const last = markers.pop(); if(!last) return;
+      const node = markersLayer.querySelector(`g.marker[data-id="${last.id}"]`);
+      if(node) markersLayer.removeChild(node);
+      rebuildNumbers(); updateReport(); redrawLegend();
+      logH(`Annulé — ${last ? LMAP[last.type].label : ''}`);
+    });
 
-btnClear.addEventListener('click', ()=>{
-  if(!markers.length) return;
-  markers.splice(0, markers.length);
-  markersLayer.innerHTML='';
-  rebuildNumbers(); updateReport(); redrawLegend();
-  logH('Tous les marqueurs ont été effacés');
-});
+    btnClear.addEventListener('click', ()=>{
+      if(!markers.length) return;
+      markers.splice(0, markers.length);
+      markersLayer.innerHTML='';
+      rebuildNumbers(); updateReport(); redrawLegend();
+      logH('Tous les marqueurs ont été effacés');
+    });
 
-btnToggleNumbers.addEventListener('click', ()=>{
-  showNumbers = !showNumbers;
-  rebuildNumbers();
-  logH(`Numéros ${showNumbers?'affichés':'masqués'}`);
-});
+    btnToggleNumbers.addEventListener('click', ()=>{
+      showNumbers = !showNumbers;
+      rebuildNumbers();
+      logH(`Numéros ${showNumbers?'affichés':'masqués'}`);
+    });
 
-btnDebug.addEventListener('click', ()=>{
-  debugOn = !debugOn;
-  zonesDebugLayer.style.display = debugOn ? '' : 'none';
-  btnDebug.textContent = debugOn ? 'Zones (debug ON)' : 'Zones (debug)';
-  drawZonesDebug();
-});
+    btnDebug.addEventListener('click', ()=>{
+      debugOn = !debugOn;
+      zonesDebugLayer.style.display = debugOn ? '' : 'none';
+      btnDebug.textContent = debugOn ? 'Zones (debug ON)' : 'Zones (debug)';
+      drawZonesDebug();
+    });
 
-btnPrint.addEventListener('click', async ()=>{
-  // “Imprimer sur copieur imagerie” = envoi Discord uniquement
-  await sendToDiscordForum();
-});
-
+    btnPrint.addEventListener('click', async ()=>{
+      await sendToDiscordForum();
+    });
 
     [patientId, doctorName, comments].forEach(el => el.addEventListener('input', updateReport));
 
-    /* ========== Init ========== */
-    function buildPaletteInit(){
-      lesionsGrid.innerHTML='';
-      LESIONS.forEach(l=>{
-        const chip=document.createElement('div');
-        chip.className='chip'+(l.key===activeType?' active':'');
-        chip.innerHTML=`<span class="dot" style="background:${l.color}"></span><span>${l.label}</span>`;
-        chip.addEventListener('click', ()=>{
-          [...lesionsGrid.children].forEach(c=>c.classList.remove('active'));
-          chip.classList.add('active'); activeType=l.key; frame.style.cursor='crosshair';
-          logH(`Lésion sélectionnée — ${l.label}. Cliquez sur l'image pour placer.`);
-        });
-        lesionsGrid.appendChild(chip);
-      });
-    }
-    function redrawLegend(){
-      const counts = {}; markers.forEach(m => counts[m.type]=(counts[m.type]||0)+1);
-      legendBox.innerHTML='';
-      LESIONS.forEach(l=>{
-        const item=document.createElement('div');
-        item.className='item';
-        item.innerHTML=`<span class="dot" style="background:${l.color}"></span><span>${l.label}${counts[l.key]?' — '+counts[l.key]:''}</span>`;
-        legendBox.appendChild(item);
-      });
-    }
+    /* ========= Init ========= */
     function init(){
-      buildPaletteInit();
+      buildPalette();
       redrawLegend();
       updateReport();
       frame.style.cursor='crosshair';
