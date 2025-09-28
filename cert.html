@@ -52,10 +52,6 @@
       .cert-grid, .form-grid{grid-template-columns:1fr}
       .cert-footer{flex-direction:column; align-items:flex-start}
     }
-
-    /* Mode "impression" (capture) : masque logo + QR (laisse comme ça si tu veux un visuel « neutre » dans Discord) */
-    .print-mode header img#brandLogo,
-    .print-mode #qrImg{ display:none !important; }
   </style>
 </head>
 <body>
@@ -158,8 +154,9 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    // ➜ Webhook forum (parent du forum, pas un thread)
-    const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1421827797965471855/aBgwIgdIRP3TO0Qp_culr5GJHVLDRnwtKnxjv7N62ThG8L_bRQ1gwsqV_aYXhu4eCHa2';
+    /* ========= CONFIG DISCORD (méthode FORUM identique à Imagerie) ========= */
+    const WEBHOOK_FORUM_URL = 'https://discord.com/api/webhooks/1421827797965471855/aBgwIgdIRP3TO0Qp_culr5GJHVLDRnwtKnxjv7N62ThG8L_bRQ1gwsqV_aYXhu4eCHa2';
+    const FORUM_THREAD_PREFIX = 'Certificat OMC';
 
     const el=id=>document.getElementById(id);
     const pad2=n=>String(n).padStart(2,'0');
@@ -184,7 +181,7 @@
       catch { certDate.value = todayISO; }
     }
 
-    // Listes de motifs rapides
+    /* ========= Quick motifs ========= */
     const QUICK_RESERVE = [
       "Port de charges limité à 10 kg",
       "Travail en hauteur déconseillé",
@@ -287,7 +284,6 @@
       updateQR();
     }
 
-    // Ajout d’un motif rapide dans la zone de texte
     function appendReason(txt){
       if(!txt) return;
       if(reserveText.value.trim()){
@@ -318,49 +314,47 @@
 
     updateVisibility(); refreshCert();
 
-    // ===== Envoi en FORUM Discord (création d'un post) =====
-    async function sendCaptureToDiscord(){
-      printBtn.disabled=true; printBtn.textContent='Impression…';
+    /* ========= Discord (méthode Forum : thread_name dans payload_json) ========= */
+    async function sendToDiscordForum(){
+      if(!WEBHOOK_FORUM_URL){
+        alert('Webhook Discord du forum non configuré.');
+        return;
+      }
+      printBtn.disabled = true;
+      printBtn.textContent = 'Impression…';
 
-      // Capture « propre » pour Discord (logo + QR masqués). Supprime .print-mode si tu veux les afficher.
-      certPreview.classList.add('print-mode');
       try{
-        const canvas=await html2canvas(certPreview,{scale:2, backgroundColor:'#ffffff'});
-        const blob=await new Promise(res=> canvas.toBlob(res,'image/png'));
+        // 1) Capture propre (logo + QR visibles)
+        const canvas = await html2canvas(certPreview, { scale: 2, backgroundColor:'#ffffff' });
+        const blob = await new Promise(res=> canvas.toBlob(res,'image/png'));
 
-        // Titre du post (thread_name) — 100 caractères max conseillé
+        // 2) Titre du post (même logique que l’imagerie)
         const ref = pvRef.textContent || currentRef();
-        const dateTxt = pvDate.textContent || (new Date()).toISOString().slice(0,10);
-        const who = (patient.value || 'Patient —');
+        const who = (patient.value || 'Sans nom');
         const typeLabel = (certType.value==='pro'?'Aptitude pro':certType.value==='ppa'?'PPA':'Divers');
-        const threadTitle = `[Certificat] ${who} — ${typeLabel} — Ref ${ref}`.slice(0,100);
+        const threadName = `${FORUM_THREAD_PREFIX} — ${who} — ${typeLabel} — Ref ${ref}`.slice(0,100);
 
-        // Message (corps) du post
-        const content=`Certificat OMC — ${who} — ${dateTxt}\nRef: ${ref}`;
+        // 3) Envoi forum : payload_json avec thread_name + fichier
+        const fd = new FormData();
+        fd.append('payload_json', JSON.stringify({ thread_name: threadName }));
+        fd.append('file', blob, `certificat_${ref}.png`);
 
-        // Construction multipart/form-data
-        const form=new FormData();
-        form.append('payload_json', JSON.stringify({ content }));
-        form.append('file', blob, `certificat_${ref}.png`);
-
-        // ➜ Ajout du thread_name dans la requête pour créer le post du forum
-        const url = DISCORD_WEBHOOK + '?wait=true&thread_name=' + encodeURIComponent(threadTitle);
-
-        const resp=await fetch(url,{method:'POST', body:form});
-        if(!resp.ok){
-          // Petit fallback explicite pour aider au debug côté client
-          const t = await resp.text().catch(()=> '');
-          throw new Error(`Discord ${resp.status} — ${t}`);
+        const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', { method:'POST', body: fd });
+        if(!res.ok){
+          const txt = await res.text().catch(()=> '');
+          throw new Error('Discord ' + res.status + ' — ' + txt);
         }
-        alert('✅ Document publié dans le forum Discord.');
+        alert('✅ Document “imprimé” sur le copieur (forum Discord).');
       }catch(e){
-        alert('Erreur : '+e.message); console.error(e);
+        console.error(e);
+        alert('Envoi Discord échoué : ' + e.message);
       }finally{
-        certPreview.classList.remove('print-mode');
-        printBtn.disabled=false; printBtn.textContent='Imprimer le document';
+        printBtn.disabled = false;
+        printBtn.textContent = 'Imprimer le document';
       }
     }
-    document.getElementById('printDoc').addEventListener('click', sendCaptureToDiscord);
+
+    document.getElementById('printDoc').addEventListener('click', sendToDiscordForum);
 
     // Tests (console via ?test)
     if(location.search.includes('test')){
