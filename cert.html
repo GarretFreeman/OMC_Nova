@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>OMC — Certificats</title>
-  <link rel="icon" href="https://i.ibb.co/ddZ8mWP/Capture-d-cran-2025-09-17-095014.png" type="image/png">
+  <link rel="icon" href="assets/logo-omc.png" type="image/png">
   <style>
     :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; }
     *{box-sizing:border-box}
@@ -84,6 +84,7 @@
           <label><input type="radio" name="concl" value="inapte"> Inapte</label>
         </div>
 
+        <!-- Bouton à droite -->
         <div class="field" style="grid-column:2/3; display:flex; align-items:flex-end; justify-content:flex-end">
           <button id="printDoc">Imprimer le document</button>
         </div>
@@ -109,7 +110,8 @@
     <div class="panel">
       <div class="certificate" id="certPreview">
         <header>
-          <img id="brandLogo" src="https://i.ibb.co/ddZ8mWP/Capture-d-cran-2025-09-17-095014.png" alt="OMC">
+          <!-- ⚠️ Logo local + CORS -->
+          <img id="brandLogo" src="assets/logo-omc.png" alt="OMC" crossOrigin="anonymous">
           <div>
             <div id="certTag" style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #1e3a4a;background:#0b2230;color:#9ed9ff;font-size:12px">OCEAN MEDICAL CENTER</div>
             <h2 id="certTitle">Certificat</h2>
@@ -154,7 +156,7 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    /* ========= CONFIG DISCORD (méthode FORUM identique à Imagerie) ========= */
+    /* ========= CONFIG DISCORD (forum) ========= */
     const WEBHOOK_FORUM_URL = 'https://discord.com/api/webhooks/1421827797965471855/aBgwIgdIRP3TO0Qp_culr5GJHVLDRnwtKnxjv7N62ThG8L_bRQ1gwsqV_aYXhu4eCHa2';
     const FORUM_THREAD_PREFIX = 'Certificat OMC';
 
@@ -172,6 +174,7 @@
     const pvNotes=el('pvNotes'), pvDoctor=el('pvDoctor');
     const qrImg=el('qrImg'), stampInner=el('stampInner'), certPreview=el('certPreview');
     const printBtn=el('printDoc');
+    const brandLogo = el('brandLogo');
 
     // Date par défaut (timezone-safe)
     if (certDate) {
@@ -261,10 +264,13 @@
 
     function currentRef(){ return refJJMMHHMM(new Date()); }
 
+    // Génère un QR en mode image externe (CORS si possible)
     function updateQR(){
       const data = { patient: patient.value || '', date: certDate.value || '', ref: pvRef.textContent || '' };
       const txt = `OMC|Patient:${data.patient}|Date:${data.date}|Ref:${data.ref}`;
       const url = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(txt);
+      // tenter CORS
+      qrImg.crossOrigin = 'anonymous';
       qrImg.src = url;
       stampInner.textContent = data.ref || 'OMC';
     }
@@ -284,6 +290,7 @@
       updateQR();
     }
 
+    // Ajout motif rapide
     function appendReason(txt){
       if(!txt) return;
       if(reserveText.value.trim()){
@@ -314,7 +321,36 @@
 
     updateVisibility(); refreshCert();
 
-    /* ========= Discord (méthode Forum : thread_name dans payload_json) ========= */
+    /* ========= Assurer le chargement des images (Logo + QR) ========= */
+    function ensureImageLoaded(img, fallbackSrc=null){
+      return new Promise((resolve)=>{
+        if (img && img.complete && img.naturalWidth>0) return resolve();
+        if (!img) return resolve();
+        const done = ()=> resolve();
+        img.onload = done;
+        img.onerror = ()=>{
+          if (fallbackSrc && img.src !== fallbackSrc){
+            img.crossOrigin = 'anonymous';
+            img.src = fallbackSrc;
+            img.onload = done;
+            img.onerror = done;
+          } else {
+            done();
+          }
+        };
+      });
+    }
+    async function ensureAssetsLoaded(){
+      // fallback optionnel pour le logo si jamais le fichier local est manquant
+      const logoFallback = 'https://i.ibb.co/LzwcCLfN/logo-omc-nord.png';
+      await Promise.all([
+        ensureImageLoaded(brandLogo, logoFallback),
+        ensureImageLoaded(qrImg, null)
+      ]);
+      await new Promise(r=>setTimeout(r,50)); // laisser le temps au DOM de peindre
+    }
+
+    /* ========= Discord (forum) ========= */
     async function sendToDiscordForum(){
       if(!WEBHOOK_FORUM_URL){
         alert('Webhook Discord du forum non configuré.');
@@ -324,17 +360,23 @@
       printBtn.textContent = 'Impression…';
 
       try{
-        // 1) Capture propre (logo + QR visibles)
-        const canvas = await html2canvas(certPreview, { scale: 2, backgroundColor:'#ffffff' });
+        // S’assurer que logo + QR sont bien chargés/affichés
+        await ensureAssetsLoaded();
+
+        // Capture avec CORS
+        const canvas = await html2canvas(certPreview, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          imageTimeout: 10000
+        });
         const blob = await new Promise(res=> canvas.toBlob(res,'image/png'));
 
-        // 2) Titre du post (même logique que l’imagerie)
         const ref = pvRef.textContent || currentRef();
         const who = (patient.value || 'Sans nom');
         const typeLabel = (certType.value==='pro'?'Aptitude pro':certType.value==='ppa'?'PPA':'Divers');
         const threadName = `${FORUM_THREAD_PREFIX} — ${who} — ${typeLabel} — Ref ${ref}`.slice(0,100);
 
-        // 3) Envoi forum : payload_json avec thread_name + fichier
         const fd = new FormData();
         fd.append('payload_json', JSON.stringify({ thread_name: threadName }));
         fd.append('file', blob, `certificat_${ref}.png`);
