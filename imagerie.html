@@ -19,40 +19,47 @@
     .panel{background:#0b1223; border:1px solid var(--ring); border-radius:var(--radius); padding:16px; margin:16px}
 
     /* GRID principal */
-    .main-grid{display:grid; grid-template-columns:1fr 1.2fr; gap:16px; align-items:stretch}
+    .main-grid{display:grid; grid-template-columns:1fr 1.1fr; gap:16px; align-items:stretch}
     @media (max-width:1000px){ .main-grid{grid-template-columns:1fr} }
 
-    /* Carte du corps (image + overlay cliquable) */
-    .bodymap-pro{position:relative; width:100%; background:#0b1223; border:1px solid var(--ring); border-radius:12px; padding:12px; display:flex; align-items:center; justify-content:center}
+    /* Carte du corps (image + overlay editable) */
+    .bodymap{position:relative; width:100%; background:#0b1223; border:1px solid var(--ring); border-radius:12px; padding:12px; display:flex; align-items:center; justify-content:center}
     .bodyframe{position:relative; width:min(520px,100%); aspect-ratio:418/940;}
-    .body-bg{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:.9; filter:drop-shadow(0 8px 24px rgba(0,0,0,.45)); pointer-events:none}
-    .zones-svg{position:absolute; inset:0; width:100%; height:100%}
-    .zone{cursor:pointer; transition:.15s ease; fill:rgba(96,165,250,.12); stroke:rgba(148,163,184,.25); stroke-width:1}
-    .zone:hover{fill:rgba(96,165,250,.22); stroke:#60a5fa}
-    .zone.active{fill:rgba(96,165,250,.32); filter:drop-shadow(0 0 .6rem rgba(96,165,250,.55)); stroke:#60a5fa; stroke-width:2}
-    .zone-label{pointer-events:none; fill:#cfe6ff; font:600 10px ui-sans-serif,system-ui}
+    .body-bg{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:.95; filter:drop-shadow(0 8px 24px rgba(0,0,0,.45));}
+    svg.overlay{position:absolute; inset:0; width:100%; height:100%}
 
-    /* Contrôles + preview */
+    /* Panneau droit */
     .controls{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px}
     .field{display:flex; flex-direction:column; gap:6px}
     .label{font-size:12px; color:#9ca3af}
-    select,input,textarea{width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--ring); background:#0b1223; color:var(--text)}
+    input,textarea{width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--ring); background:#0b1223; color:var(--text)}
     textarea{min-height:80px; resize:vertical}
-    .actions{display:flex; gap:8px; flex-wrap:wrap; margin:4px 0 12px}
-    .preview{background:#030712; border:1px solid var(--ring); border-radius:12px; padding:10px; display:flex; align-items:center; justify-content:center; min-height:380px}
-    .preview canvas{max-width:100%; max-height:100%; border-radius:10px; display:block}
+    .lesions-grid{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px}
+    .chip{display:flex; align-items:center; gap:8px; padding:10px; border:1px solid var(--ring); border-radius:12px; background:#0b1223; cursor:pointer; user-select:none}
+    .chip.active{outline:2px solid #38bdf8}
+    .dot{width:14px; height:14px; border-radius:50%}
+    .actions{display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px}
 
-    /* Historique */
-    .history{background:#030712; border:1px solid var(--ring); border-radius:12px; padding:10px; max-height:220px; overflow:auto; font-size:12px; color:#9ca3af}
+    /* Légende / résumé */
+    .legend{display:flex; flex-wrap:wrap; gap:10px; font-size:12px; color:#cbd5e1}
+    .legend .item{display:flex; align-items:center; gap:6px; padding:6px 8px; border:1px solid var(--ring); border-radius:10px; background:#0b1223}
 
-    /* Impression : on sort uniquement le canvas */
+    /* Marqueurs */
+    .marker{cursor:grab}
+    .marker:active{cursor:grabbing}
+    .marker text{font:600 10px ui-sans-serif,system-ui; fill:#0b1223}
+
+    /* Impression : patient + image + légende seulement */
     @media print{
       body{background:#fff; color:#000}
       .header,.controls,.actions,.history,.panel:first-of-type{display:none !important}
       .panel{border:none; margin:0; padding:0}
-      .preview{border:none; padding:0}
-      #imgCanvas{width:100% !important; height:auto !important}
+      .legend{break-inside:avoid}
+      .print-header{display:block !important}
     }
+    .print-header{display:none; margin:0 16px 8px; color:#e5e7eb}
+    .print-header h2{margin:0 0 6px}
+    .muted{color:#94a3b8; font-size:12px}
   </style>
 </head>
 <body>
@@ -62,222 +69,242 @@
         <a class="btn" href="index.html">← Accueil</a>
         <h1 style="margin:0">Imagerie médicale</h1>
       </div>
-      <button id="btnImgDiscord" class="btn">Envoyer sur Discord</button>
+      <div style="display:flex; gap:8px">
+        <button id="btnPrint" class="btn">Imprimer</button>
+      </div>
+    </div>
+
+    <!-- En-tête dédiée impression -->
+    <div class="print-header" id="printHeader">
+      <h2>Imagerie — Localisation des lésions</h2>
+      <div class="muted" id="printMeta"></div>
     </div>
 
     <div class="panel">
       <div class="main-grid">
-        <!-- Colonne gauche : carte du corps -->
+        <!-- Colonne gauche : image + overlay -->
         <section>
-          <h3 style="margin:0 0 10px; color:#9ca3af">Zones du corps</h3>
-          <div class="bodymap-pro">
-            <div class="bodyframe">
-              <!-- Ton image (mets-la dans /assets/corps-humain.png) -->
+          <h3 style="margin:0 0 10px; color:#9ca3af">Localiser les lésions</h3>
+          <div class="bodymap">
+            <div class="bodyframe" id="frame">
               <img class="body-bg" src="assets/corps-humain.png" alt="Silhouette anatomique (face)">
-              <!-- Overlay cliquable aligné sur l'image (viewBox = pixels de l'image) -->
-              <svg class="zones-svg" viewBox="0 0 418 940" xmlns="http://www.w3.org/2000/svg" aria-label="Carte du corps humain">
-                <!-- Tête -->
-                <circle class="zone" data-zone="tete" cx="209" cy="110" r="80"/>
-                <text class="zone-label" x="209" y="115" text-anchor="middle">TÊTE</text>
-                <!-- Thorax -->
-                <rect class="zone" data-zone="thorax" x="120" y="230" width="180" height="210" rx="40" ry="40"/>
-                <text class="zone-label" x="210" y="335" text-anchor="middle">THORAX</text>
-                <!-- Bras gauche -->
-                <polygon class="zone" data-zone="bras_gauche"
-                  points="80,230 60,300 50,380 40,520 60,620 90,620 100,500 110,360 115,280" />
-                <text class="zone-label" x="70" y="360" text-anchor="middle">BRAS G.</text>
-                <!-- Bras droit -->
-                <polygon class="zone" data-zone="bras_droit"
-                  points="338,230 358,300 368,380 378,520 358,620 328,620 318,500 308,360 303,280" />
-                <text class="zone-label" x="348" y="360" text-anchor="middle">BRAS D.</text>
-                <!-- Jambe gauche -->
-                <polygon class="zone" data-zone="jambe_gauche"
-                  points="185,440 175,600 172,760 175,840 200,920 220,900 215,760 210,600 210,440" />
-                <text class="zone-label" x="190" y="700" text-anchor="middle">JAMBE G.</text>
-                <!-- Jambe droite -->
-                <polygon class="zone" data-zone="jambe_droite"
-                  points="233,440 243,600 246,760 243,840 218,920 198,900 203,760 208,600 208,440" />
-                <text class="zone-label" x="228" y="700" text-anchor="middle">JAMBE D.</text>
-              </svg>
+              <!-- On place les marqueurs dans cet SVG (coordonnées en viewBox pixels pour précision) -->
+              <svg class="overlay" id="overlay" viewBox="0 0 418 940" xmlns="http://www.w3.org/2000/svg" aria-label="Localisation des lésions"></svg>
             </div>
           </div>
+          <div class="legend" id="legend"></div>
         </section>
 
-        <!-- Colonne droite : contrôles + aperçu -->
+        <!-- Colonne droite : infos + palette -->
         <section>
           <div class="controls">
             <div class="field">
-              <label class="label">Zone</label>
-              <select id="zoneSelect">
-                <option value="" selected>— Choisir —</option>
-                <option value="tete">Tête</option>
-                <option value="thorax">Thorax</option>
-                <option value="bras_gauche">Bras gauche</option>
-                <option value="bras_droit">Bras droit</option>
-                <option value="jambe_gauche">Jambe gauche</option>
-                <option value="jambe_droite">Jambe droite</option>
-              </select>
-            </div>
-            <div class="field">
-              <label class="label">Lésion</label>
-              <select id="lesionSelect">
-                <option value="">— Sélectionnez une zone d’abord —</option>
-              </select>
-            </div>
-            <div class="field">
-              <label class="label">Nom / ID patient (optionnel)</label>
+              <label class="label">Nom / ID patient</label>
               <input id="patientId" type="text" placeholder="Ex: John Doe #SS-204">
             </div>
             <div class="field">
-              <label class="label">Commentaires (optionnel)</label>
+              <label class="label">Commentaires</label>
               <textarea id="comments" placeholder="Notes pour le dossier…"></textarea>
             </div>
           </div>
 
-          <div class="actions">
-            <button id="btnImgRender" class="btn">Régénérer</button>
-            <button id="btnImgPrint" class="btn">Imprimer</button>
-            <button id="btnImgDiscord2" class="btn primary">Envoyer sur Discord</button>
+          <div class="field" style="margin-bottom:8px">
+            <label class="label">Choisir un type de lésion puis cliquer sur l’image</label>
+            <div class="lesions-grid" id="lesionsGrid"></div>
           </div>
 
-          <div class="preview">
-            <canvas id="imgCanvas" width="640" height="400" aria-label="Aperçu radiographique"></canvas>
+          <div class="actions">
+            <button id="btnUndo" class="btn">Annuler le dernier point</button>
+            <button id="btnClear" class="btn">Effacer toutes les lésions</button>
+            <button id="btnToggleNumbers" class="btn">Afficher/Masquer numéros</button>
           </div>
+
+          <div class="history" id="history" style="background:#030712; border:1px solid var(--ring); border-radius:12px; padding:10px; max-height:220px; overflow:auto; font-size:12px; color:#9ca3af"></div>
         </section>
       </div>
-    </div>
-
-    <div class="panel">
-      <h3 style="margin:0 0 8px; color:#9ca3af">Historique</h3>
-      <div class="history" id="history"></div>
     </div>
   </div>
 
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const WEBHOOK_URL = 'https://discord.com/api/webhooks/1418132282199375934/89dXmvPn7XeQLb0mEPr-320ICJafq0nlThgjEKQPXUDp9FEBnGPg5unhi06NSoHbD9b0';
+    // ------- Modèle de lésions (RP simple)
+    const LESIONS = [
+      {key:'fracture', label:'Fracture', color:'#ef4444', code:'FX'},
+      {key:'entorse', label:'Entorse',   color:'#f59e0b', code:'EN'},
+      {key:'luxation',label:'Luxation',  color:'#10b981', code:'LX'},
+      {key:'contusion',label:'Contusion',color:'#3b82f6', code:'CT'},
+      {key:'plaie',   label:'Plaie',     color:'#a855f7', code:'PL'},
+      {key:'brulure', label:'Brûlure',   color:'#eab308', code:'BR'}
+    ];
 
-    // ---- Références DOM
-    const zoneSelect=document.getElementById('zoneSelect');
-    const lesionSelect=document.getElementById('lesionSelect');
-    const imgCanvas=document.getElementById('imgCanvas');
-    const ictx=imgCanvas.getContext('2d');
-    const historyBox=document.getElementById('history');
-    const zonesSvg=[...document.querySelectorAll('.zones-svg .zone')];
-    const patientId=document.getElementById('patientId');
-    const comments=document.getElementById('comments');
+    // ------- Éléments DOM
+    const overlay = document.getElementById('overlay');
+    const frame = document.getElementById('frame');
+    const legendBox = document.getElementById('legend');
+    const lesionsGrid = document.getElementById('lesionsGrid');
+    const historyBox = document.getElementById('history');
+    const patientId = document.getElementById('patientId');
+    const comments = document.getElementById('comments');
+    const btnUndo = document.getElementById('btnUndo');
+    const btnClear = document.getElementById('btnClear');
+    const btnPrint = document.getElementById('btnPrint');
+    const btnToggleNumbers = document.getElementById('btnToggleNumbers');
+    const printHeader = document.getElementById('printHeader');
+    const printMeta = document.getElementById('printMeta');
 
-    // ---- Dictionnaires
-    const LESIONS={
-      tete:[{value:'crane_fracture',label:'Fracture crânienne'},{value:'sinusite',label:'Sinusite (radio de sinus)'}],
-      thorax:[{value:'cote_fracture',label:'Fracture côte'},{value:'pneumonie',label:'Infiltrat pulmonaire'}],
-      bras_gauche:[{value:'fracture_humerus',label:'Fracture humérus'},{value:'luxation_coude',label:'Luxation du coude'}],
-      bras_droit:[{value:'fracture_radius_ulna',label:'Fracture radius/ulna'},{value:'entorse_poignet',label:'Entorse poignet'}],
-      jambe_gauche:[{value:'fracture_tibia',label:'Fracture tibia'},{value:'entorse_cheville',label:'Entorse cheville'}],
-      jambe_droite:[{value:'fracture_femur',label:'Fracture fémur'},{value:'entorse_genou',label:'Entorse genou'}]
-    };
-    const state={ zone:'', lesion:'', patient:'', comments:'' };
-    const zLabel=k=>({tete:'Tête', thorax:'Thorax', bras_gauche:'Bras gauche', bras_droit:'Bras droit', jambe_gauche:'Jambe gauche', jambe_droite:'Jambe droite'})[k]||k||'—';
-    function lLabel(z,val){ const arr=LESIONS[z]||[]; const f=arr.find(x=>x.value===val); return (f? f.label:val)||'—'; }
-    function logH(action,details){ const t=new Date().toLocaleString(); const line=document.createElement('div'); line.innerHTML = `<b>[${t}] ${action}</b>${details? ' — '+String(details) : ''}`; historyBox.prepend(line); }
+    // ------- État
+    let activeType = LESIONS[0].key;
+    let showNumbers = true;
+    const markers = []; // {id,type,x,y}
+    let drag = {on:false, id:null, dx:0, dy:0};
 
-    // ---- Sélection visuelle des zones (overlay)
-    function highlight(zoneKey){
-      zonesSvg.forEach(z=>z.classList.toggle('active', z.dataset.zone===zoneKey));
+    // ------- Helpers
+    const LMAP = Object.fromEntries(LESIONS.map(l => [l.key, l]));
+    function logH(msg){ const t=new Date().toLocaleString(); const d=document.createElement('div'); d.innerHTML=`<b>[${t}]</b> ${msg}`; historyBox.prepend(d); }
+    function svgPoint(evt){
+      const pt = overlay.createSVGPoint();
+      pt.x = evt.clientX; pt.y = evt.clientY;
+      const out = pt.matrixTransform(overlay.getScreenCTM().inverse());
+      return { x: Math.max(0, Math.min(418, out.x)), y: Math.max(0, Math.min(940, out.y)) };
     }
-    function setActiveZone(zoneKey){
-      highlight(zoneKey);
-      if(zoneSelect.value!==zoneKey){ zoneSelect.value=zoneKey||''; }
-      lesionSelect.innerHTML='';
-      const opt=document.createElement('option');
-      opt.value=''; opt.textContent=zoneKey? '— Choisir une lésion —' : '— Sélectionnez une zone d\u0027abord —';
-      lesionSelect.appendChild(opt);
-      if(zoneKey && LESIONS[zoneKey]){
-        LESIONS[zoneKey].forEach(l=>{
-          const o=document.createElement('option'); o.value=l.value; o.textContent=l.label; lesionSelect.appendChild(o);
-        });
-      }
-      state.zone=zoneKey||''; state.lesion=''; renderImg();
-    }
-    zonesSvg.forEach(el=> el.addEventListener('click', ()=> setActiveZone(el.dataset.zone)));
-    zoneSelect.addEventListener('change', e=> setActiveZone(e.target.value));
-    lesionSelect.addEventListener('change', e=>{ state.lesion=e.target.value; renderImg(); });
-    patientId.addEventListener('input', e=> state.patient = e.target.value);
-    comments.addEventListener('input', e=> state.comments = e.target.value);
-
-    // ---- Actions
-    document.getElementById('btnImgRender').addEventListener('click', renderImg);
-    document.getElementById('btnImgPrint').addEventListener('click', ()=> window.print());
-    const sendBtns=[document.getElementById('btnImgDiscord'), document.getElementById('btnImgDiscord2')].filter(Boolean);
-    sendBtns.forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        imgCanvas.toBlob(async (blob)=>{
-          const content=`Zone: ${zLabel(state.zone)} | Lésion: ${lLabel(state.zone, state.lesion)} | Patient: ${state.patient || '-' }\n${state.comments || ''}`;
-          const form=new FormData(); form.append('payload_json', JSON.stringify({content}));
-          form.append('file', blob, `omc-imagerie-${Date.now()}.png`);
-          const res=await fetch(WEBHOOK_URL+'?wait=true', {method:'POST', body:form});
-          if(!res.ok) alert('Envoi Discord échoué'); else alert('Image envoyée sur Discord');
-        }, 'image/png');
+    function redrawLegend(){
+      const counts = {};
+      markers.forEach(m => counts[m.type]=(counts[m.type]||0)+1);
+      legendBox.innerHTML='';
+      LESIONS.forEach(l => {
+        const item = document.createElement('div');
+        item.className='item';
+        item.innerHTML = `<span class="dot" style="background:${l.color}"></span><span>${l.label} — ${counts[l.key]||0}</span>`;
+        legendBox.appendChild(item);
       });
+    }
+    function markerNode(m){
+      const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+      g.setAttribute('class','marker');
+      g.setAttribute('data-id', m.id);
+      g.setAttribute('transform', `translate(${m.x},${m.y})`);
+
+      const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      c.setAttribute('r','10');
+      c.setAttribute('fill', LMAP[m.type].color);
+      c.setAttribute('stroke','#0b1223');
+      c.setAttribute('stroke-width','2');
+
+      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x','0'); t.setAttribute('y','3');
+      t.setAttribute('text-anchor','middle');
+      t.textContent = showNumbers ? (markers.filter(k=>k.type===m.type).length) : ''; // simple numérotation par type
+      g.appendChild(c); g.appendChild(t);
+
+      // Drag & drop
+      g.addEventListener('pointerdown', (e)=>{
+        e.stopPropagation();
+        g.setPointerCapture(e.pointerId);
+        drag.on=true; drag.id=m.id;
+        const p=svgPoint(e);
+        drag.dx=m.x - p.x; drag.dy=m.y - p.y;
+      });
+      g.addEventListener('pointermove', (e)=>{
+        if(!drag.on || drag.id!==m.id) return;
+        const p=svgPoint(e);
+        m.x = p.x + drag.dx; m.y = p.y + drag.dy;
+        g.setAttribute('transform', `translate(${m.x},${m.y})`);
+      });
+      g.addEventListener('pointerup', ()=>{
+        drag.on=false; drag.id=null;
+        logH(`Marqueur déplacé — ${LMAP[m.type].label}`);
+      });
+
+      // Alt+clic pour supprimer rapidement
+      g.addEventListener('click', (e)=>{
+        if(e.altKey){
+          const idx = markers.findIndex(mm => mm.id===m.id);
+          if(idx>-1){ markers.splice(idx,1); }
+          overlay.removeChild(g);
+          redrawLegend();
+          logH(`Marqueur supprimé — ${LMAP[m.type].label}`);
+        }
+      });
+
+      return g;
+    }
+    function addMarker(pt, type){
+      const m = { id: 'm'+crypto.randomUUID(), type, x: pt.x, y: pt.y };
+      markers.push(m);
+      overlay.appendChild(markerNode(m));
+      redrawLegend();
+      logH(`Ajout ${LMAP[type].label} @ x:${Math.round(pt.x)} y:${Math.round(pt.y)}`);
+    }
+    function rebuildNumbers(){
+      // Rafraîchir le numéro affiché dans chaque marqueur (ordre d'apparition par type)
+      const perType = {};
+      markers.forEach(m => { perType[m.type]=(perType[m.type]||0)+1; const n=perType[m.type];
+        const node = overlay.querySelector(`g.marker[data-id="${m.id}"] text`);
+        if(node){ node.textContent = showNumbers ? String(n) : ''; }
+      });
+    }
+
+    // ------- Palette (droite)
+    function buildPalette(){
+      lesionsGrid.innerHTML='';
+      LESIONS.forEach(l=>{
+        const chip = document.createElement('div');
+        chip.className='chip' + (l.key===activeType?' active':'');
+        chip.setAttribute('data-key', l.key);
+        chip.innerHTML = `<span class="dot" style="background:${l.color}"></span><span>${l.label}</span>`;
+        chip.addEventListener('click', ()=>{
+          [...lesionsGrid.children].forEach(c=>c.classList.remove('active'));
+          chip.classList.add('active');
+          activeType = l.key;
+          frame.style.cursor='crosshair';
+          logH(`Lésion sélectionnée — ${l.label}. Cliquez sur l'image pour placer.`);
+        });
+        lesionsGrid.appendChild(chip);
+      });
+    }
+
+    // ------- Interactions
+    overlay.addEventListener('click', (e)=>{
+      const pt = svgPoint(e);
+      addMarker(pt, activeType);
     });
 
-    // ---- Dessin "radio" (canvas)
-    function bone(x1,y1,x2,y2){ ictx.save(); ictx.strokeStyle='#dbeafe'; ictx.lineWidth=10; ictx.lineCap='round'; ictx.beginPath(); ictx.moveTo(x1,y1); ictx.lineTo(x2,y2); ictx.stroke(); ictx.restore(); }
-    function drawArm(x,y){ bone(x-60, y, x-10, y+120); bone(x-20, y+120, x, y+240); bone(x-40, y+120, x-20, y+240); }
-    function drawLeg(x,y){ bone(x-20, y-10, x+10, y+110); bone(x-10, y+110, x, y+240); bone(x+15, y+110, x+20, y+240); }
-    function drawRibcage(){ bone(320,120,320,300); ictx.lineWidth=5; ictx.strokeStyle='#dbeafe'; for(let i=0;i<6;i++){ ictx.beginPath(); ictx.moveTo(260,150+i*20); ictx.bezierCurveTo(300,140+i*20,340,140+i*20,380,150+i*20); ictx.stroke(); } }
-    function drawSkull(){ ictx.fillStyle='#dbeafe'; ictx.globalAlpha=.9; ictx.beginPath(); ictx.arc(320,140,45,0,Math.PI*2); ictx.fill(); ictx.globalAlpha=1; ictx.fillStyle='#0a1424'; ictx.beginPath(); ictx.arc(305,130,6,0,Math.PI*2); ictx.fill(); ictx.beginPath(); ictx.arc(335,130,6,0,Math.PI*2); ictx.fill(); ictx.fillRect(305,150,30,8); }
-    function drawCrack(cx,cy,len=40){ ictx.save(); ictx.strokeStyle='#fda4af'; ictx.lineWidth=3; ictx.beginPath(); ictx.moveTo(cx-len/2,cy); ictx.lineTo(cx-len/4,cy-8); ictx.lineTo(cx,cy+4); ictx.lineTo(cx+len/4,cy-10); ictx.lineTo(cx+len/2,cy); ictx.stroke(); ictx.restore(); }
-    function marker(x,y,txt){ ictx.save(); ictx.fillStyle='#fde68a'; ictx.strokeStyle='#f59e0b'; ictx.beginPath(); ictx.arc(x,y,10,0,Math.PI*2); ictx.fill(); ictx.stroke(); ictx.fillStyle='#ffffff'; ictx.font='12px ui-sans-serif'; ictx.fillText(txt, x+14, y+4); ictx.restore(); }
-    function halo(x,y,r){ const g=ictx.createRadialGradient(x,y,2,x,y,r); g.addColorStop(0,'rgba(147,197,253,0.8)'); g.addColorStop(1,'rgba(147,197,253,0.05)'); ictx.fillStyle=g; ictx.beginPath(); ictx.arc(x,y,r,0,Math.PI*2); ictx.fill(); }
-    function drawLesion(zone,les){
-      if(zone==='bras_gauche'){ if(les==='fracture_humerus') drawCrack(210,200,60); if(les==='luxation_coude') marker(210,260,'Luxation'); }
-      if(zone==='bras_droit'){ if(les==='fracture_radius_ulna') drawCrack(460,300,60); if(les==='entorse_poignet') marker(470,350,'Entorse'); }
-      if(zone==='jambe_gauche'){ if(les==='fracture_tibia') drawCrack(230,360,60); if(les==='entorse_cheville') marker(230,420,'Entorse'); }
-      if(zone==='jambe_droite'){ if(les==='fracture_femur') drawCrack(420,300,60); if(les==='entorse_genou') marker(420,340,'Entorse'); }
-      if(zone==='thorax'){ if(les==='cote_fracture') drawCrack(320,210,60); if(les==='pneumonie') halo(330,220,40); }
-      if(zone==='tete'){ if(les==='crane_fracture') drawCrack(320,140,50); if(les==='sinusite') halo(320,160,30); }
-    }
+    btnUndo.addEventListener('click', ()=>{
+      const last = markers.pop();
+      if(!last) return;
+      const node = overlay.querySelector(`g.marker[data-id="${last.id}"]`);
+      if(node) overlay.removeChild(node);
+      redrawLegend(); rebuildNumbers();
+      logH(`Annulé — ${last ? LMAP[last.type].label : ''}`);
+    });
 
-    function renderImg(){
-      const w=imgCanvas.width,h=imgCanvas.height;
-      const g=ictx.createLinearGradient(0,0,0,h);
-      g.addColorStop(0,'#01060d'); g.addColorStop(1,'#0a1424');
-      ictx.fillStyle=g; ictx.fillRect(0,0,w,h);
+    btnClear.addEventListener('click', ()=>{
+      if(!markers.length) return;
+      markers.splice(0, markers.length);
+      overlay.innerHTML='';
+      redrawLegend();
+      logH('Tous les marqueurs ont été effacés');
+    });
 
-      ictx.save(); ictx.globalAlpha=.08; ictx.strokeStyle='#8ab4f8'; ictx.lineWidth=1;
-      for(let x=0;x<w;x+=32){ ictx.beginPath(); ictx.moveTo(x,0); ictx.lineTo(x,h); ictx.stroke(); }
-      for(let y=0;y<h;y+=32){ ictx.beginPath(); ictx.moveTo(0,y); ictx.lineTo(w,y); ictx.stroke(); }
-      ictx.restore();
+    btnToggleNumbers.addEventListener('click', ()=>{
+      showNumbers = !showNumbers;
+      rebuildNumbers();
+      logH(`Numéros ${showNumbers?'affichés':'masqués'}`);
+    });
 
-      ictx.fillStyle='#cfe6ff'; ictx.font='14px ui-sans-serif';
-      ictx.fillText(`Zone: ${zLabel(state.zone)}`,16,24);
-      ictx.fillText(`Lésion: ${lLabel(state.zone,state.lesion)}`,16,44);
-      if(state.patient){ ictx.fillText(`Patient: ${state.patient}`,16,64); }
+    btnPrint.addEventListener('click', ()=>{
+      // Renseigner l’en-tête impression
+      const d = new Date();
+      const dt = d.toLocaleString();
+      printMeta.textContent = `Patient: ${patientId.value || '—'} • Date: ${dt}${comments.value ? ' • Notes: ' + comments.value : ''}`;
+      window.print();
+    });
 
-      ictx.strokeStyle='#dbeafe'; ictx.lineWidth=8; ictx.lineCap='round';
-      switch(state.zone){
-        case 'bras_gauche': drawArm(180,140); break;
-        case 'bras_droit':  drawArm(460,140); break;
-        case 'jambe_gauche':drawLeg(220,280); break;
-        case 'jambe_droite':drawLeg(420,280); break;
-        case 'thorax':      drawRibcage();    break;
-        case 'tete':        drawSkull();      break;
-        default:
-          ictx.globalAlpha=.25; ictx.fillStyle='#93c5fd';
-          ictx.beginPath(); ictx.ellipse(w/2,h/2,120,180,0,0,Math.PI*2); ictx.fill();
-          ictx.globalAlpha=1;
-      }
-      if(state.lesion){ drawLesion(state.zone,state.lesion); }
-
-      logH('Rendu mis à jour', `${zLabel(state.zone)} • ${lLabel(state.zone,state.lesion)}`);
-    }
-
-    // ---- Init + test
-    setActiveZone(''); renderImg();
-    if(location.search.includes('test')){
-      try{ setActiveZone('bras_gauche'); lesionSelect.value='fracture_humerus'; state.lesion='fracture_humerus'; renderImg(); console.log('%c[Tests img] OK','color:#22c55e'); }catch(e){ console.error('[Tests img] FAIL', e); }
-    }
+    // ------- Init
+    buildPalette();
+    redrawLegend();
+    frame.style.cursor='crosshair';
+    logH('Prêt — choisissez une lésion puis cliquez sur l’image pour la localiser.');
   });
   </script>
 </body>
