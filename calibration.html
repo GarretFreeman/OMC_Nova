@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>OMC — Calibrateur de zones (polygones)</title>
+<link rel="icon" href="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" type="image/png">
+<style>
+:root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:14px; }
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0; background:var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial}
+.wrap{max-width:1240px; margin:28px auto; padding:0 16px}
+.block{background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--ring); border-radius:var(--radius); padding:16px}
+h1{margin:0 0 12px; font-size:20px}
+.row{display:grid; grid-template-columns:1.1fr 1fr; gap:16px}
+@media (max-width:1100px){ .row{grid-template-columns:1fr} }
+.toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px}
+.btn{appearance:none; border:1px solid var(--ring); background:#0b1223; color:#e5e7eb; border-radius:10px; padding:8px 10px; cursor:pointer}
+.btn.primary{background:linear-gradient(180deg,#0ea5e9,#0284c7); color:#001019; border-color:#0369a1}
+.btn.warn{background:#7f1d1d}
+.input, select, textarea{background:#0b1223; color:#e5e7eb; border:1px solid var(--ring); border-radius:10px; padding:8px 10px}
+.small{font-size:12px; color:#9ca3af}
+.card{background:#0b1223; border:1px solid var(--ring); border-radius:12px; padding:12px}
+.bodymap{position:relative; border:1px solid var(--ring); border-radius:12px; background:#0b1223; padding:10px; display:flex; justify-content:center}
+.frame{position:relative; width:min(560px,100%); aspect-ratio:var(--vbw,418)/var(--vbh,940)}
+.bg{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:.95; filter:drop-shadow(0 8px 24px rgba(0,0,0,.45))}
+svg{position:absolute; inset:0; width:100%; height:100%}
+.poly{fill:rgba(56,189,248,.18); stroke:rgba(56,189,248,.9); stroke-width:2}
+.poly.selected{fill:rgba(34,197,94,.18); stroke:#22c55e; stroke-width:3}
+.vertex{width:9px; height:9px; transform:translate(-4.5px,-4.5px); fill:#f97316; stroke:#111827; stroke-width:1.5; cursor:pointer}
+.edge{stroke:transparent; stroke-width:10; cursor:copy}
+.temp-line{stroke:#38bdf8; stroke-width:2; stroke-dasharray:4 3}
+.grid{stroke:#1f2937; stroke-width:1}
+.list{max-height:320px; overflow:auto; display:flex; flex-direction:column; gap:8px}
+.zoneItem{display:flex; gap:8px; align-items:center; justify-content:space-between; border:1px solid var(--ring); border-radius:10px; padding:8px}
+.zoneItem .name{display:flex; gap:8px; align-items:center}
+.id{font-size:11px; color:#9ca3af}
+hr{border:none; border-top:1px solid var(--ring); margin:12px 0}
+textarea.export{width:100%; min-height:160px}
+.flex{display:flex; gap:8px; align-items:center}
+.w100{width:100%}
+.kbd{font:600 12px ui-sans-serif; background:#0b1223; border:1px solid var(--ring); padding:2px 6px; border-radius:6px}
+.help li{margin:4px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="block">
+    <h1>OMC — Calibrateur de zones (polygones)</h1>
+
+    <div class="toolbar">
+      <label>Image:
+        <input id="imgPath" class="input" style="width:260px" value="assets/corps-humain.png">
+      </label>
+      <label>ViewBox:
+        <input id="vbw" type="number" class="input" value="418" style="width:90px">
+        ×
+        <input id="vbh" type="number" class="input" value="940" style="width:90px">
+      </label>
+      <button id="btnReload" class="btn">Recharger</button>
+      <span class="small">Coord: <span id="coords">x:— y:—</span></span>
+    </div>
+
+    <div class="row">
+      <div class="card">
+        <div class="toolbar">
+          <input id="zoneName" class="input" placeholder="Nom de la zone (ex: bras gauche)">
+          <button id="btnStart" class="btn primary">➕ Commencer un polygone</button>
+          <button id="btnFinish" class="btn" disabled>✔️ Terminer</button>
+          <button id="btnCancel" class="btn" disabled>✖️ Annuler</button>
+          <button id="btnSnap" class="btn">Grille</button>
+          <span class="small">Pas: <input id="gridStep" type="number" class="input" value="20" style="width:70px"></span>
+        </div>
+
+        <div class="bodymap">
+          <div class="frame" id="frame">
+            <img id="bg" class="bg" src="assets/corps-humain.png" alt="Anatomie">
+            <svg id="svg" viewBox="0 0 418 940" xmlns="http://www.w3.org/2000/svg" aria-label="Calibrage zones">
+              <g id="gridLayer"></g>
+              <g id="zonesLayer"></g>
+              <g id="draftLayer"></g>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="flex">
+          <button id="btnDup" class="btn">Dupliquer</button>
+          <button id="btnDelete" class="btn warn">Supprimer</button>
+          <button id="btnUp" class="btn">Monter</button>
+          <button id="btnDown" class="btn">Descendre</button>
+          <input id="rename" class="input w100" placeholder="Renommer la zone sélectionnée">
+          <button id="btnRename" class="btn">Renommer</button>
+        </div>
+
+        <hr>
+        <div class="list" id="list"></div>
+
+        <hr>
+        <div class="flex">
+          <button id="btnExport" class="btn primary">Exporter JSON</button>
+          <button id="btnImport" class="btn">Importer JSON</button>
+          <button id="btnClearAll" class="btn warn">Tout effacer</button>
+        </div>
+        <textarea id="exportBox" class="export input" placeholder="Le JSON exporté apparaîtra ici…"></textarea>
+
+        <hr>
+        <div class="help small">
+          <b>Raccourcis & gestes</b>
+          <ul>
+            <li><span class="kbd">Clic</span> : ajouter un sommet (en mode dessin) / sélectionner un polygone.</li>
+            <li><span class="kbd">Entrée</span> : terminer le polygone • <span class="kbd">Échap</span> : annuler le dessin.</li>
+            <li><span class="kbd">Glisser</span> un sommet : déplacer • <span class="kbd">Alt+clic</span> sommet : supprimer.</li>
+            <li><span class="kbd">Ctrl+clic</span> sur une arête : insérer un sommet.</li>
+            <li><span class="kbd">Alt+glisser</span> sur le polygone : déplacer tout le polygone.</li>
+            <li><span class="kbd">↑ ↓ ← →</span> déplace la sélection (sommet ou polygone) — <span class="kbd">⇧</span> ×10.</li>
+            <li>Le bouton <b>Grille</b> affiche/masque une grille (pas réglable) + aimantation du curseur.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  /* ====== DOM ====== */
+  const imgPath = document.getElementById('imgPath');
+  const vbwIn = document.getElementById('vbw');
+  const vbhIn = document.getElementById('vbh');
+  const btnReload = document.getElementById('btnReload');
+  const frame = document.getElementById('frame');
+  const bg = document.getElementById('bg');
+  const svg = document.getElementById('svg');
+  const gridLayer = document.getElementById('gridLayer');
+  const zonesLayer = document.getElementById('zonesLayer');
+  const draftLayer = document.getElementById('draftLayer');
+  const coordsEl = document.getElementById('coords');
+
+  const zoneName = document.getElementById('zoneName');
+  const btnStart = document.getElementById('btnStart');
+  const btnFinish = document.getElementById('btnFinish');
+  const btnCancel = document.getElementById('btnCancel');
+  const btnSnap = document.getElementById('btnSnap');
+  const gridStepIn = document.getElementById('gridStep');
+
+  const list = document.getElementById('list');
+  const rename = document.getElementById('rename');
+  const btnRename = document.getElementById('btnRename');
+  const btnDup = document.getElementById('btnDup');
+  const btnDelete = document.getElementById('btnDelete');
+  const btnUp = document.getElementById('btnUp');
+  const btnDown = document.getElementById('btnDown');
+
+  const btnExport = document.getElementById('btnExport');
+  const btnImport = document.getElementById('btnImport');
+  const btnClearAll = document.getElementById('btnClearAll');
+  const exportBox = document.getElementById('exportBox');
+
+  /* ====== Etat ====== */
+  let VBW = 418, VBH = 940;
+  let SNAP = false, GRID = false;
+  let zones = loadZones();
+  let selectedId = null;
+
+  let drawing = { on:false, pts:[] };        // mode dessin polygone
+  let selection = { zone:null, vIndex:null } // sommet sélectionné ou null
+  updateViewBox();
+
+  /* ====== Helpers ====== */
+  const slug = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+  const clamp = (x,min,max)=>Math.max(min,Math.min(max,x));
+  function svgPoint(evt){
+    const pt = svg.createSVGPoint();
+    pt.x = evt.clientX; pt.y = evt.clientY;
+    const out = pt.matrixTransform(svg.getScreenCTM().inverse());
+    let x = clamp(out.x, 0, VBW), y = clamp(out.y, 0, VBH);
+    if(SNAP){ const step = Math.max(2, Number(gridStepIn.value)||20); x = Math.round(x/step)*step; y = Math.round(y/step)*step; }
+    return {x:Math.round(x), y:Math.round(y)};
+  }
+  function saveZones(){ localStorage.setItem('omc_calib_zones', JSON.stringify({VBW,VBH,zones})); }
+  function loadZones(){
+    try{
+      const raw = localStorage.getItem('omc_calib_zones');
+      if(!raw) return [];
+      const data = JSON.parse(raw);
+      if(data.VBW && data.VBH){ VBW=data.VBW; VBH=data.VBH; }
+      vbwIn.value = VBW; vbhIn.value = VBH;
+      frame.style.setProperty('--vbw', VBW); frame.style.setProperty('--vbh', VBH);
+      svg.setAttribute('viewBox', `0 0 ${VBW} ${VBH}`);
+      return Array.isArray(data.zones) ? data.zones : [];
+    }catch(e){ return []; }
+  }
+  function rebuildList(){
+    list.innerHTML='';
+    zones.forEach((z,idx)=>{
+      const row = document.createElement('div');
+      row.className='zoneItem';
+      row.dataset.id = z.id;
+      row.innerHTML = `
+        <div class="name">
+          <input class="input" style="width:220px" value="${z.label}" data-edit="${z.id}">
+          <span class="id">#${z.id}</span>
+        </div>
+        <div class="flex">
+          <span class="small">${z.points.length} sommets</span>
+          <button class="btn" data-focus="${z.id}">Focus</button>
+          <button class="btn warn" data-del="${z.id}">X</button>
+        </div>`;
+      list.appendChild(row);
+    });
+  }
+  function render(){
+    zonesLayer.innerHTML='';
+    zones.forEach(z=>{
+      const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+      const poly = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+      poly.setAttribute('points', z.points.map(p=>p.join(',')).join(' '));
+      poly.setAttribute('class', 'poly' + (z.id===selectedId?' selected':''));
+      poly.addEventListener('pointerdown', (e)=>{
+        if(e.altKey){ // déplacer le poly entier
+          poly.setPointerCapture(e.pointerId);
+          const start = svgPoint(e);
+          const orig = z.points.map(p=>p.slice());
+          poly.addEventListener('pointermove', movePoly);
+          poly.addEventListener('pointerup', up);
+          function movePoly(ev){
+            const cur = svgPoint(ev);
+            const dx = cur.x - start.x, dy = cur.y - start.y;
+            z.points = orig.map(p=>[ clamp(p[0]+dx,0,VBW), clamp(p[1]+dy,0,VBH) ]);
+            render(); // redraw
+          }
+          function up(){ poly.removeEventListener('pointermove', movePoly); poly.removeEventListener('pointerup', up); saveZones(); }
+        }else{
+          selectedId = z.id; selection = {zone:z, vIndex:null}; render();
+        }
+      });
+
+      // arêtes cliquables (Ctrl+clic pour insérer un sommet)
+      for(let i=0;i<z.points.length;i++){
+        const a = z.points[i], b = z.points[(i+1)%z.points.length];
+        const edge = document.createElementNS('http://www.w3.org/2000/svg','line');
+        edge.setAttribute('x1', a[0]); edge.setAttribute('y1', a[1]);
+        edge.setAttribute('x2', b[0]); edge.setAttribute('y2', b[1]);
+        edge.setAttribute('class','edge');
+        edge.addEventListener('click', (e)=>{
+          if(!e.ctrlKey) return;
+          const mid = [(a[0]+b[0])>>1, (a[1]+b[1])>>1];
+          z.points.splice(i+1, 0, mid);
+          render(); saveZones();
+        });
+        g.appendChild(edge);
+      }
+
+      g.appendChild(poly);
+
+      // sommets
+      z.points.forEach((p,pi)=>{
+        const v = document.createElementNS('http://www.w3.org/2000/svg','rect');
+        v.setAttribute('x', p[0]); v.setAttribute('y', p[1]); v.setAttribute('class','vertex');
+        v.addEventListener('pointerdown', (e)=>{
+          e.stopPropagation(); v.setPointerCapture(e.pointerId);
+          selectedId = z.id; selection = {zone:z, vIndex:pi};
+          const move = (ev)=>{ const c = svgPoint(ev); z.points[pi][0]=c.x; z.points[pi][1]=c.y; render(); };
+          const up   = ()=>{ v.removeEventListener('pointermove', move); v.removeEventListener('pointerup', up); saveZones(); };
+          v.addEventListener('pointermove', move); v.addEventListener('pointerup', up);
+        });
+        v.addEventListener('click', (e)=>{
+          if(e.altKey && z.points.length>3){ z.points.splice(pi,1); render(); saveZones(); }
+        });
+        g.appendChild(v);
+      });
+
+      // étiquette
+      const cx = z.points.reduce((s,p)=>s+p[0],0)/z.points.length;
+      const cy = z.points.reduce((s,p)=>s+p[1],0)/z.points.length;
+      const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+      label.setAttribute('x', cx); label.setAttribute('y', cy);
+      label.setAttribute('text-anchor','middle'); label.setAttribute('fill','#cfe6ff');
+      label.textContent = z.label;
+      g.appendChild(label);
+
+      zonesLayer.appendChild(g);
+    });
+
+    // tracé en cours
+    draftLayer.innerHTML='';
+    if(drawing.on && drawing.pts.length){
+      const p = document.createElementNS('http://www.w3.org/2000/svg','polyline');
+      p.setAttribute('points', drawing.pts.map(pt=>pt.join(',')).join(' '));
+      p.setAttribute('class','temp-line');
+      draftLayer.appendChild(p);
+    }
+
+    rebuildList();
+  }
+
+  /* ====== Grille ====== */
+  function drawGrid(){
+    gridLayer.innerHTML='';
+    if(!GRID) return;
+    const step = Math.max(2, Number(gridStepIn.value)||20);
+    for(let x=0;x<=VBW;x+=step){
+      const l = document.createElementNS('http://www.w3.org/2000/svg','line');
+      l.setAttribute('x1',x); l.setAttribute('y1',0);
+      l.setAttribute('x2',x); l.setAttribute('y2',VBH);
+      l.setAttribute('class','grid'); gridLayer.appendChild(l);
+    }
+    for(let y=0;y<=VBH;y+=step){
+      const l = document.createElementNS('http://www.w3.org/2000/svg','line');
+      l.setAttribute('x1',0); l.setAttribute('y1',y);
+      l.setAttribute('x2',VBW); l.setAttribute('y2',y);
+      l.setAttribute('class','grid'); gridLayer.appendChild(l);
+    }
+  }
+
+  /* ====== ViewBox / Image ====== */
+  function updateViewBox(){
+    VBW = Number(vbwIn.value)||418; VBH = Number(vbhIn.value)||940;
+    svg.setAttribute('viewBox', `0 0 ${VBW} ${VBH}`);
+    frame.style.setProperty('--vbw', VBW);
+    frame.style.setProperty('--vbh', VBH);
+    drawGrid(); render(); saveZones();
+  }
+  btnReload.addEventListener('click', ()=>{ bg.src = imgPath.value || 'assets/corps-humain.png'; updateViewBox(); });
+
+  /* ====== Curseur coords ====== */
+  svg.addEventListener('pointermove', e=>{ const p=svgPoint(e); coordsEl.textContent = `x:${p.x} y:${p.y}`; });
+
+  /* ====== Dessin polygone ====== */
+  btnStart.addEventListener('click', ()=>{
+    const name = zoneName.value.trim();
+    if(!name){ alert('Nom de zone requis'); return; }
+    drawing = {on:true, pts:[]};
+    btnFinish.disabled = btnCancel.disabled = false;
+    zoneName.disabled = true; btnStart.disabled = true;
+  });
+  svg.addEventListener('click', (e)=>{
+    if(!drawing.on) return;
+    const p = svgPoint(e);
+    drawing.pts.push([p.x,p.y]);
+    render();
+  });
+  btnFinish.addEventListener('click', finishPolygon);
+  btnCancel.addEventListener('click', cancelPolygon);
+  function finishPolygon(){
+    if(!drawing.on || drawing.pts.length<3){ alert('Au moins 3 sommets'); return; }
+    const label = zoneName.value.trim();
+    const id = slug(label) || ('zone_'+(zones.length+1));
+    zones.push({ id, label, type:'poly', points: drawing.pts.slice() });
+    drawing = {on:false, pts:[]};
+    zoneName.disabled = false; btnStart.disabled = false;
+    btnFinish.disabled = btnCancel.disabled = true;
+    zoneName.value = '';
+    selectedId = id; render(); saveZones();
+  }
+  function cancelPolygon(){
+    drawing = {on:false, pts:[]};
+    zoneName.disabled = false; btnStart.disabled = false;
+    btnFinish.disabled = btnCancel.disabled = true;
+    render();
+  }
+
+  /* ====== Liste / actions ====== */
+  list.addEventListener('click', (e)=>{
+    const id = e.target.dataset.focus || e.target.dataset.del;
+    if(!id) return;
+    const z = zones.find(x=>x.id===id);
+    if(!z) return;
+    if(e.target.dataset.focus){
+      selectedId = id; selection = {zone:z, vIndex:null}; render();
+    }else if(e.target.dataset.del){
+      if(confirm('Supprimer cette zone ?')){ zones = zones.filter(x=>x.id!==id); if(selectedId===id) selectedId=null; render(); saveZones(); }
+    }
+  });
+  list.addEventListener('input', (e)=>{
+    const id = e.target.dataset.edit;
+    if(!id) return;
+    const z = zones.find(x=>x.id===id);
+    if(!z) return;
+    z.label = e.target.value;
+    if(id===selectedId && !rename.value) rename.value = z.label;
+    render(); saveZones();
+  });
+
+  btnRename.addEventListener('click', ()=>{
+    if(!selectedId) return;
+    const z = zones.find(x=>x.id===selectedId);
+    if(!z) return;
+    const val = rename.value.trim(); if(!val) return;
+    z.label = val; render(); saveZones();
+  });
+
+  btnDup.addEventListener('click', ()=>{
+    if(!selectedId) return;
+    const z = zones.find(x=>x.id===selectedId);
+    const id2 = z.id + '_copy';
+    zones.push({ id:id2, label:z.label+' (copie)', type:'poly', points: z.points.map(p=>p.slice()) });
+    selectedId = id2; render(); saveZones();
+  });
+
+  btnDelete.addEventListener('click', ()=>{
+    if(!selectedId) return;
+    if(confirm('Supprimer la zone sélectionnée ?')){
+      zones = zones.filter(x=>x.id!==selectedId); selectedId=null; render(); saveZones();
+    }
+  });
+
+  btnUp.addEventListener('click', ()=>{
+    if(!selectedId) return;
+    const i = zones.findIndex(z=>z.id===selectedId);
+    if(i>0){ const tmp=zones[i]; zones[i]=zones[i-1]; zones[i-1]=tmp; render(); saveZones(); }
+  });
+  btnDown.addEventListener('click', ()=>{
+    if(!selectedId) return;
+    const i = zones.findIndex(z=>z.id===selectedId);
+    if(i>-1 && i<zones.length-1){ const tmp=zones[i]; zones[i]=zones[i+1]; zones[i+1]=tmp; render(); saveZones(); }
+  });
+
+  /* ====== Export / Import ====== */
+  btnExport.addEventListener('click', ()=>{
+    const payload = zones.map(z=>({ id:z.id, label:z.label, type:'poly', points:z.points }));
+    exportBox.value = JSON.stringify(payload, null, 2);
+    exportBox.select();
+  });
+  btnImport.addEventListener('click', ()=>{
+    let raw = prompt('Collez le JSON à importer (liste d’objets {id,label,type:"poly",points}) :');
+    if(!raw) return;
+    try{
+      const arr = JSON.parse(raw);
+      if(!Array.isArray(arr)) throw new Error('Format attendu: Array');
+      zones = arr.map(o=>({ id:o.id, label:o.label, type:'poly', points:o.points }));
+      selectedId = zones[0]?.id || null;
+      render(); saveZones();
+    }catch(e){ alert('JSON invalide'); }
+  });
+  btnClearAll.addEventListener('click', ()=>{
+    if(confirm('Tout effacer ?')){ zones=[]; selectedId=null; render(); saveZones(); }
+  });
+
+  /* ====== Grille / Snap ====== */
+  btnSnap.addEventListener('click', ()=>{
+    SNAP = !SNAP; GRID = SNAP;
+    btnSnap.textContent = SNAP ? 'Grille (ON)' : 'Grille';
+    drawGrid();
+  });
+  gridStepIn.addEventListener('change', drawGrid);
+
+  /* ====== Clavier (nudges) ====== */
+  window.addEventListener('keydown', (e)=>{
+    const step = e.shiftKey ? 10 : 1;
+    if(selection.zone){
+      const z = selection.zone;
+      if(selection.vIndex!=null){
+        // nudge sommet
+        if(e.key==='ArrowLeft'){ z.points[selection.vIndex][0]=clamp(z.points[selection.vIndex][0]-step,0,VBW); render(); saveZones(); }
+        if(e.key==='ArrowRight'){ z.points[selection.vIndex][0]=clamp(z.points[selection.vIndex][0]+step,0,VBW); render(); saveZones(); }
+        if(e.key==='ArrowUp'){ z.points[selection.vIndex][1]=clamp(z.points[selection.vIndex][1]-step,0,VBH); render(); saveZones(); }
+        if(e.key==='ArrowDown'){ z.points[selection.vIndex][1]=clamp(z.points[selection.vIndex][1]+step,0,VBH); render(); saveZones(); }
+      } else {
+        // nudge poly entier
+        if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+          const dx = (e.key==='ArrowLeft'?-step:(e.key==='ArrowRight'?step:0));
+          const dy = (e.key==='ArrowUp'?-step:(e.key==='ArrowDown'?step:0));
+          z.points = z.points.map(p=>[ clamp(p[0]+dx,0,VBW), clamp(p[1]+dy,0,VBH) ]);
+          render(); saveZones();
+        }
+      }
+    }
+    // dessin: Enter/Escape
+    if(drawing.on){
+      if(e.key==='Enter'){ finishPolygon(); }
+      if(e.key==='Escape'){ cancelPolygon(); }
+      if(e.key==='Backspace'){ drawing.pts.pop(); render(); }
+    }
+  });
+
+  /* ====== Sélection via clic vide : désélectionner sommet ====== */
+  svg.addEventListener('click', (e)=>{
+    if(drawing.on) return; // géré ailleurs
+    if(e.target===svg || e.target===gridLayer){ selection = {zone:null, vIndex:null}; selectedId=null; render(); }
+  });
+
+  /* ====== Init ====== */
+  function init(){
+    bg.src = imgPath.value || 'assets/corps-humain.png';
+    selectedId = zones[0]?.id || null;
+    rename.value = zones.find(z=>z.id===selectedId)?.label || '';
+    render(); drawGrid();
+  }
+  vbwIn.addEventListener('change', updateViewBox);
+  vbhIn.addEventListener('change', updateViewBox);
+  init();
+});
+</script>
+</body>
+</html>
