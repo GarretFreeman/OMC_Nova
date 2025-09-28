@@ -643,43 +643,45 @@
       }
     }
 
-    /* ========== Interactions ========== */
-    const overlay = document.getElementById('overlay');
-    overlay.addEventListener('click', (e)=> addMarker(svgPoint(e), activeType));
+    /* ========== Interactions (corrigé) ========== */
+overlay.addEventListener('click', (e)=>{
+  addMarker(svgPoint(e), activeType);
+});
 
-    document.getElementById('btnUndo').addEventListener('click', ()=>{
-      const last = markers.pop(); if(!last) return;
-      const node = markersLayer.querySelector(`g.marker[data-id="${last.id}"]`);
-      if(node) markersLayer.removeChild(node);
-      rebuildNumbers(); updateReport(); redrawLegend();
-      logH(`Annulé — ${last ? LMAP[last.type].label : ''}`);
-    });
+btnUndo.addEventListener('click', ()=>{
+  const last = markers.pop(); if(!last) return;
+  const node = markersLayer.querySelector(`g.marker[data-id="${last.id}"]`);
+  if(node) markersLayer.removeChild(node);
+  rebuildNumbers(); updateReport(); redrawLegend();
+  logH(`Annulé — ${last ? LMAP[last.type].label : ''}`);
+});
 
-    document.getElementById('btnClear').addEventListener('click', ()=>{
-      if(!markers.length) return;
-      markers.splice(0, markers.length);
-      markersLayer.innerHTML='';
-      rebuildNumbers(); updateReport(); redrawLegend();
-      logH('Tous les marqueurs ont été effacés');
-    });
+btnClear.addEventListener('click', ()=>{
+  if(!markers.length) return;
+  markers.splice(0, markers.length);
+  markersLayer.innerHTML='';
+  rebuildNumbers(); updateReport(); redrawLegend();
+  logH('Tous les marqueurs ont été effacés');
+});
 
-    document.getElementById('btnToggleNumbers').addEventListener('click', ()=>{
-      showNumbers = !showNumbers;
-      rebuildNumbers();
-      logH(`Numéros ${showNumbers?'affichés':'masqués'}`);
-    });
+btnToggleNumbers.addEventListener('click', ()=>{
+  showNumbers = !showNumbers;
+  rebuildNumbers();
+  logH(`Numéros ${showNumbers?'affichés':'masqués'}`);
+});
 
-    document.getElementById('btnDebug').addEventListener('click', ()=>{
-      debugOn = !debugOn;
-      zonesDebugLayer.style.display = debugOn ? '' : 'none';
-      btnDebug.textContent = debugOn ? 'Zones (debug ON)' : 'Zones (debug)';
-      drawZonesDebug();
-    });
+btnDebug.addEventListener('click', ()=>{
+  debugOn = !debugOn;
+  zonesDebugLayer.style.display = debugOn ? '' : 'none';
+  btnDebug.textContent = debugOn ? 'Zones (debug ON)' : 'Zones (debug)';
+  drawZonesDebug();
+});
 
-    document.getElementById('btnPrint').addEventListener('click', async ()=>{
-      // “Imprimer sur copieur imagerie” = envoi Discord uniquement
-      await sendToDiscordForum();
-    });
+btnPrint.addEventListener('click', async ()=>{
+  // “Imprimer sur copieur imagerie” = envoi Discord uniquement
+  await sendToDiscordForum();
+});
+
 
     [patientId, doctorName, comments].forEach(el => el.addEventListener('input', updateReport));
 
