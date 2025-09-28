@@ -26,6 +26,7 @@
     .bodyframe{position:relative; width:min(520px,100%); aspect-ratio:418/940;}
     .body-bg{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:.95; filter:drop-shadow(0 8px 24px rgba(0,0,0,.45))}
     svg.overlay{position:absolute; inset:0; width:100%; height:100%}
+    .cursor-tip{position:absolute; top:0; left:0; transform:translate(-9999px,-9999px); pointer-events:none; background:rgba(2,6,23,.9); color:#e5e7eb; border:1px solid #1f2937; padding:6px 8px; border-radius:10px; font-size:12px; white-space:nowrap; box-shadow:0 8px 24px rgba(0,0,0,.35)}
     .debug polyline, .debug polygon{fill:rgba(56,189,248,.14); stroke:rgba(56,189,248,.9); stroke-width:2}
     .debug text{fill:#cfe6ff; font:600 10px ui-sans-serif,system-ui}
     .legend{display:flex; flex-wrap:wrap; gap:10px; font-size:12px; color:#cbd5e1; margin-top:10px}
@@ -56,12 +57,13 @@
     .marker:active{cursor:grabbing}
     .marker text{font:600 10px ui-sans-serif,system-ui; fill:#0b1223}
 
-    /* Impression : on garde patient + image + légende + constat */
+    /* Impression */
     @media print{
       body{background:#fff; color:#000}
       .header,.controls,.actions,.history,.panel:first-of-type [data-hide-print]{display:none !important}
       .panel{border:none; margin:0; padding:0}
       .debug{display:none !important}
+      .cursor-tip{display:none !important}
       .print-header{display:block !important}
       .report{page-break-inside:avoid}
     }
@@ -101,6 +103,8 @@
                 <g id="markersLayer"></g>
                 <g id="zonesDebugLayer" class="debug" style="display:none"></g>
               </svg>
+              <!-- Info-bulle de localisation -->
+              <div id="cursorTip" class="cursor-tip" role="tooltip" aria-hidden="true"></div>
             </div>
           </div>
           <div class="legend" id="legend"></div>
@@ -157,7 +161,7 @@
     ];
     const LMAP = Object.fromEntries(LESIONS.map(l => [l.key, l]));
 
-    /* ========== REGIONS (tes polygones) ========== */
+    /* ========== REGIONS (polygones) ========== */
     const REGIONS_RAW = [
       {"id":"tete","label":"Téte","type":"poly","points":[[215,20],[235,30],[245,45],[250,60],[250,75],[255,80],[255,95],[245,105],[240,120],[185,120],[180,105],[175,95],[170,80],[174,60],[175,45],[190,30],[200,20],[215,20],[215,20]]},
       {"id":"cou","label":"Cou","type":"poly","points":[[185,125],[240,123],[240,146],[185,145],[185,125]]},
@@ -183,11 +187,7 @@
       {"id":"poignet_droit","label":"Poignet Droit","type":"poly","points":[[85,460],[50,450],[60,440],[60,430],[75,430],[80,430],[85,440]]},
       {"id":"main_droite","label":"Main Droite","type":"poly","points":[[80,520],[70,530],[55,530],[40,525],[45,495],[45,480],[35,495],[25,495],[30,480],[45,455],[60,455],[75,460],[85,470],[85,505],[85,515]]}
     ];
-
-    /* Tri auto par surface (petites zones d'abord) pour éviter que “bras” capte sur “main/poignet” */
-    function polyArea(pts){
-      let a=0; for(let i=0,j=pts.length-1;i<pts.length;j=i++) a += (pts[j][0]*pts[i][1] - pts[i][0]*pts[j][1]); return Math.abs(a/2);
-    }
+    function polyArea(pts){ let a=0; for(let i=0,j=pts.length-1;i<pts.length;j=i++) a += (pts[j][0]*pts[i][1] - pts[i][0]*pts[j][1]); return Math.abs(a/2); }
     const REGIONS = REGIONS_RAW.slice().sort((a,b)=> polyArea(a.points) - polyArea(b.points));
 
     /* ========== DOM ========== */
@@ -195,6 +195,7 @@
     const markersLayer = document.getElementById('markersLayer');
     const zonesDebugLayer = document.getElementById('zonesDebugLayer');
     const frame = document.getElementById('frame');
+    const cursorTip = document.getElementById('cursorTip');
 
     const legendBox = document.getElementById('legend');
     const lesionsGrid = document.getElementById('lesionsGrid');
@@ -239,7 +240,7 @@
     }
     function regionFrom(x,y){
       for(const r of REGIONS){ if(inPoly(x,y,r.points)) return r.label; }
-      return 'Zone non définie';
+      return null;
     }
 
     /* ========== Report ========== */
@@ -255,7 +256,7 @@
         const idx = perTypeIndex[m.type];
         const li = document.createElement('li');
         li.innerHTML = `<span class="badge"><span class="bdot" style="background:${LMAP[m.type].color}"></span>${LMAP[m.type].label}</span>
-        N°${idx} — localisation : ${regionFrom(m.x,m.y)}.`;
+        N°${idx} — localisation : ${regionFrom(m.x,m.y) || 'Zone non définie'}.`;
         reportList.appendChild(li);
       });
       const summary = LESIONS.map(l=>{
@@ -375,6 +376,42 @@
         zonesDebugLayer.appendChild(label);
       });
     }
+
+    /* ========== Info-bulle de localisation (suivi curseur) ========== */
+    function moveCursorTip(evt){
+      const rect = frame.getBoundingClientRect();
+      const p = svgPoint(evt);
+      const label = regionFrom(p.x, p.y);
+
+      if(!label){
+        cursorTip.style.transform = 'translate(-9999px,-9999px)';
+        cursorTip.setAttribute('aria-hidden','true');
+        return;
+      }
+
+      cursorTip.textContent = label;
+      cursorTip.setAttribute('aria-hidden','false');
+
+      // positionner près du curseur + clamp dans le cadre
+      let x = evt.clientX - rect.left + 12;
+      let y = evt.clientY - rect.top + 12;
+
+      // rendre visible pour mesurer
+      cursorTip.style.transform = `translate(${x}px, ${y}px)`;
+      const tw = cursorTip.offsetWidth || 120;
+      const th = cursorTip.offsetHeight || 28;
+
+      const fw = rect.width, fh = rect.height;
+      if(x + tw + 4 > fw) x = fw - tw - 4;
+      if(y + th + 4 > fh) y = fh - th - 4;
+
+      cursorTip.style.transform = `translate(${x}px, ${y}px)`;
+    }
+    overlay.addEventListener('pointermove', moveCursorTip);
+    overlay.addEventListener('pointerleave', ()=>{
+      cursorTip.style.transform = 'translate(-9999px,-9999px)';
+      cursorTip.setAttribute('aria-hidden','true');
+    });
 
     /* ========== Interactions ========== */
     overlay.addEventListener('click', (e)=>{
