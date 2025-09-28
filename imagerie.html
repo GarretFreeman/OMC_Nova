@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OMC — Imagerie (zones calibrées + envoi Discord Forum)</title>
+  <title>OMC — Imagerie (canevas Discord + constat)</title>
   <link rel="icon" href="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" type="image/png">
   <style>
     :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; }
@@ -158,10 +158,13 @@
 
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    /* ========= CONFIG DISCORD (à renseigner) ========= */
-    // Crée un webhook dans le canal Forum "imagerie" puis colle son URL ici.
-    const WEBHOOK_FORUM_URL = "https://discord.com/api/webhooks/1421780761731928194/ZFSpiLTHfytIGT02QBf5SBOIEDzWMaf_PMHtDB9sd-GmF5chHnQqQic-9YpLnYHJIRPo"; // ex: "https://discord.com/api/webhooks/xxx/yyy"
+    /* ========= CONFIG DISCORD ========= */
+    // Webhook du canal Forum "imagerie"
+    const WEBHOOK_FORUM_URL = ""; // ex: "https://discord.com/api/webhooks/xxx/yyy"
     const FORUM_THREAD_PREFIX = "Imagerie";
+    // Logo : place un fichier local assets/logo-omc.png (conseillé). Fallback URL si besoin.
+    const LOGO_PATH = "assets/logo-omc.png";
+    const LOGO_FALLBACK = "https://i.ibb.co/LzwcCLfN/logo-omc-nord.png";
 
     /* ========== Types de lésions (RP) ========== */
     const LESIONS = [
@@ -236,7 +239,7 @@
     let drag = {on:false, id:null, dx:0, dy:0};
     let debugOn = false;
 
-    /* ========== Helpers ========== */
+    /* ========== Utils ========== */
     function logH(msg){ const t=new Date().toLocaleString(); const d=document.createElement('div'); d.innerHTML=`<b>[${t}]</b> ${msg}`; historyBox.prepend(d); }
     function svgPoint(evt){
       const pt = overlay.createSVGPoint();
@@ -253,107 +256,21 @@
       }
       return inside;
     }
-    function regionFrom(x,y){
-      for(const r of REGIONS){ if(inPoly(x,y,r.points)) return r.label; }
-      return null;
-    }
+    function regionFrom(x,y){ for(const r of REGIONS){ if(inPoly(x,y,r.points)) return r.label; } return null; }
 
-    /* ========== Report texte (pour Discord) ========== */
-    function buildDiscordText(){
-      const now = new Date().toLocaleString();
-      const header = `**Imagerie — Constat lésionnel**\nPatient: ${patientId.value || '—'} • Date: ${now}${comments.value ? `\nNotes: ${comments.value}` : ''}`;
-      if(!markers.length) return header + `\n_Aucune lésion renseignée._`;
-      // numérotation par type
-      const perTypeIndex = {};
-      const lines = markers.map(m=>{
-        perTypeIndex[m.type]=(perTypeIndex[m.type]||0)+1;
-        const idx = perTypeIndex[m.type];
-        const zone = regionFrom(m.x,m.y) || 'Zone non définie';
-        return `• ${LMAP[m.type].label} N°${idx} — ${zone}`;
-      });
-      return header + `\n` + lines.join('\n');
-    }
-
-    /* ========== Export PNG (image + marqueurs) ========== */
-    async function exportPNG(scale=2){
-      const W = 418*scale, H = 940*scale;
-      const canvas = document.createElement('canvas');
-      canvas.width = W; canvas.height = H;
-      const ctx = canvas.getContext('2d');
-
-      // fond blanc pour l’impression/Discord
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0,0,W,H);
-
-      // image anatomique
-      await new Promise((resolve,reject)=>{
-        const img = new Image();
-        img.onload = ()=>{ ctx.drawImage(img, 0, 0, W, H); resolve(); };
-        img.onerror = reject;
-        img.src = document.querySelector('.body-bg').src;
-      });
-
-      // marqueurs + numéros
-      const perTypeNums = {};
-      markers.forEach(m=>{
-        perTypeNums[m.type]=(perTypeNums[m.type]||0)+1;
-        const n = perTypeNums[m.type];
-        const x = Math.round(m.x*scale), y = Math.round(m.y*scale);
-        ctx.beginPath();
-        ctx.fillStyle = LMAP[m.type].color;
-        ctx.strokeStyle = '#0b1223';
-        ctx.lineWidth = 2*scale;
-        ctx.arc(x, y, 10*scale, 0, Math.PI*2);
-        ctx.fill(); ctx.stroke();
-        if(showNumbers){
-          ctx.fillStyle = '#0b1223';
-          ctx.font = `${10*scale}px ui-sans-serif, system-ui`;
-          ctx.textAlign='center'; ctx.textBaseline='middle';
-          ctx.fillText(String(n), x, y);
-        }
-      });
-
-      // bandeau méta
-      const meta = `Patient: ${patientId.value || '—'}  •  Date: ${new Date().toLocaleString()}`;
-      ctx.fillStyle = '#111827';
-      ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
-      ctx.textAlign='left'; ctx.textBaseline='top';
-      ctx.fillText(meta, 10*scale, 10*scale);
-
-      return await new Promise(res=> canvas.toBlob(b=>res(b),'image/png'));
-    }
-
-    /* ========== Envoi Discord → Forum “imagerie” (webhook) ========== */
-    async function sendToDiscordForum(){
-      if(!WEBHOOK_FORUM_URL){
-        alert('Webhook Discord du forum non configuré.');
-        return;
-      }
-      try{
-        const imgBlob = await exportPNG(2);
-        const content = buildDiscordText();
-        const threadName = `${FORUM_THREAD_PREFIX} — ${patientId.value || 'Sans nom'} — ${new Date().toLocaleDateString()}`;
-
-        const fd = new FormData();
-        fd.append('payload_json', JSON.stringify({
-          content,
-          thread_name: threadName
-          // Si vous utilisez des tags de forum, ajoutez "applied_tags": ["<id_tag1>", "<id_tag2>"]
-        }));
-        fd.append('file', imgBlob, `imagerie-omc-${Date.now()}.png`);
-
-        const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', { method:'POST', body: fd });
-        if(!res.ok){
-          const txt = await res.text().catch(()=> '');
-          throw new Error('HTTP '+res.status+' '+txt);
-        }
-        logH('Dossier envoyé sur Discord (forum “imagerie”).');
-        alert('Envoyé sur Discord (forum “imagerie”).');
-      }catch(e){
-        console.error(e);
-        alert('Envoi Discord échoué. Vérifie le webhook du forum.');
-      }
-    }
+    /* ========== Charabia “médical” RP ========== */
+    const JARGON = {
+      fracture: (z)=>`Trait de fracture ${rand(['transversal','oblique','comminutif'])} ${rand(['sans','avec discret'])} déplacement. Sensibilité osseuse à la palpation ${site(z)}.`,
+      entorse:  (z)=>`Atteinte ligamentaire ${rand(['suspectée','probable'])} (${rand(['stade I','stade II'])}). Œdème ${site(z)}, douleur à la mise en charge.`,
+      luxation: (z)=>`Désaxation articulaire ${rand(['évidente','réduite spontanément'])}. Limitation des amplitudes, douleur aiguë ${site(z)}.`,
+      contusion:(z)=>`Contusion ${site(z)} avec ${rand(['ecchymose','hématome discret','tuméfaction localisée'])}. Douleur provoquée à la pression.`,
+      plaie_blanche:(z)=>`Plaie par arme blanche (${rand(['linéaire','punctiforme','lacuniforme'])}), longueur ~${rand(['2cm','3cm','4cm'])}, berges ${rand(['régulières','irrégulières'])}, saignement contrôlé.`,
+      plaie_feu:(z)=>`Plaie par arme à feu : orifice ${rand(['d’entrée','d’entrée et de sortie'])}, halo d’essuyage, trajectoire ${rand(['antéro-postérieure','oblique'])} ${site(z)}.`,
+      brulure: (z)=>`Brûlure ${rand(['érythémateuse','partielle','superficielle'])} ${site(z)} (${rand(['1er','2e'])} degré), phlyctènes ${rand(['absentes','présentes'])}.`
+    };
+    function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+    function site(z){ return z?`au niveau ${z.startsWith('de')||z.startsWith('du')?z:'de ' + z.toLowerCase()}`:'sur zone non précisée'; }
+    function jargonFor(type, zone){ const f=JARGON[type]; return f? f(zone||'') : 'Lésion décrite cliniquement.'; }
 
     /* ========== Report (UI) ========== */
     function updateReport(){
@@ -402,184 +319,4 @@
       c.setAttribute('stroke-width','2');
 
       const t = document.createElementNS('http://www.w3.org/2000/svg','text');
-      t.setAttribute('x','0'); t.setAttribute('y','3'); t.setAttribute('text-anchor','middle'); t.textContent = '';
-
-      g.appendChild(c); g.appendChild(t);
-
-      g.addEventListener('pointerdown', (e)=>{
-        e.stopPropagation();
-        g.setPointerCapture(e.pointerId);
-        drag.on=true; drag.id=m.id;
-        const p=svgPoint(e);
-        drag.dx=m.x - p.x; drag.dy=m.y - p.y;
-      });
-      g.addEventListener('pointermove', (e)=>{
-        if(!drag.on || drag.id!==m.id) return;
-        const p=svgPoint(e);
-        m.x = Math.max(0, Math.min(418, p.x + drag.dx));
-        m.y = Math.max(0, Math.min(940, p.y + drag.dy));
-        g.setAttribute('transform', `translate(${m.x},${m.y})`);
-      });
-      g.addEventListener('pointerup', ()=>{
-        drag.on=false; drag.id=null; updateReport(); logH(`Marqueur déplacé — ${LMAP[m.type].label}`);
-      });
-      g.addEventListener('click', (e)=>{
-        if(e.altKey){
-          const idx = markers.findIndex(mm => mm.id===m.id);
-          if(idx>-1){ markers.splice(idx,1); }
-          markersLayer.removeChild(g);
-          rebuildNumbers(); updateReport(); redrawLegend();
-          logH(`Marqueur supprimé — ${LMAP[m.type].label}`);
-        }
-      });
-      return g;
-    }
-    function addMarker(pt, type){
-      const m = { id: 'm'+crypto.randomUUID(), type, x: pt.x, y: pt.y };
-      markers.push(m);
-      markersLayer.appendChild(markerNode(m));
-      rebuildNumbers(); updateReport(); redrawLegend();
-      logH(`Ajout ${LMAP[type].label} @ x:${Math.round(pt.x)} y:${Math.round(pt.y)}`);
-    }
-
-    /* ========== Palette & Légende ========== */
-    function buildPalette(){
-      lesionsGrid.innerHTML='';
-      LESIONS.forEach(l=>{
-        const chip = document.createElement('div');
-        chip.className='chip' + (l.key===activeType?' active':'');
-        chip.setAttribute('data-key', l.key);
-        chip.innerHTML = `<span class="dot" style="background:${l.color}"></span><span>${l.label}</span>`;
-        chip.addEventListener('click', ()=>{
-          [...lesionsGrid.children].forEach(c=>c.classList.remove('active'));
-          chip.classList.add('active');
-          activeType = l.key;
-          frame.style.cursor='crosshair';
-          logH(`Lésion sélectionnée — ${l.label}. Cliquez sur l'image pour placer.`);
-        });
-        lesionsGrid.appendChild(chip);
-      });
-    }
-    function redrawLegend(){
-      const counts = {};
-      markers.forEach(m => counts[m.type]=(counts[m.type]||0)+1);
-      legendBox.innerHTML='';
-      LESIONS.forEach(l => {
-        const item = document.createElement('div');
-        item.className='item';
-        item.innerHTML = `<span class="dot" style="background:${l.color}"></span><span>${l.label}${counts[l.key] ? ' — '+counts[l.key] : ''}</span>`;
-        legendBox.appendChild(item);
-      });
-    }
-
-    /* ========== Zones Debug Overlay ========== */
-    function drawZonesDebug(){
-      zonesDebugLayer.innerHTML = '';
-      if(!debugOn) return;
-      REGIONS.forEach(r=>{
-        const pg = document.createElementNS('http://www.w3.org/2000/svg','polygon');
-        pg.setAttribute('points', r.points.map(p=>p.join(',')).join(' '));
-        zonesDebugLayer.appendChild(pg);
-        const cx = r.points.reduce((s,p)=>s+p[0],0)/r.points.length;
-        const cy = r.points.reduce((s,p)=>s+p[1],0)/r.points.length;
-        const label = document.createElementNS('http://www.w3.org/2000/svg','text');
-        label.setAttribute('x', cx); label.setAttribute('y', cy);
-        label.setAttribute('text-anchor','middle');
-        label.textContent = r.label;
-        zonesDebugLayer.appendChild(label);
-      });
-    }
-
-    /* ========== Info-bulle curseur (localisation live) ========== */
-    function moveCursorTip(evt){
-      const rect = frame.getBoundingClientRect();
-      const p = svgPoint(evt);
-      const label = regionFrom(p.x, p.y);
-
-      if(!label){
-        cursorTip.style.transform = 'translate(-9999px,-9999px)';
-        cursorTip.setAttribute('aria-hidden','true');
-        return;
-      }
-      cursorTip.textContent = label;
-      cursorTip.setAttribute('aria-hidden','false');
-
-      // position près du curseur + clamp
-      let x = evt.clientX - rect.left + 12;
-      let y = evt.clientY - rect.top + 12;
-      cursorTip.style.transform = `translate(${x}px, ${y}px)`;
-      const tw = cursorTip.offsetWidth || 120;
-      const th = cursorTip.offsetHeight || 28;
-      const fw = rect.width, fh = rect.height;
-      if(x + tw + 4 > fw) x = fw - tw - 4;
-      if(y + th + 4 > fh) y = fh - th - 4;
-      cursorTip.style.transform = `translate(${x}px, ${y}px)`;
-    }
-    overlay.addEventListener('pointermove', moveCursorTip);
-    overlay.addEventListener('pointerleave', ()=>{
-      cursorTip.style.transform = 'translate(-9999px,-9999px)';
-      cursorTip.setAttribute('aria-hidden','true');
-    });
-
-    /* ========== Interactions ========== */
-    overlay.addEventListener('click', (e)=>{
-      const pt = svgPoint(e);
-      addMarker(pt, activeType);
-    });
-
-    btnUndo.addEventListener('click', ()=>{
-      const last = markers.pop(); if(!last) return;
-      const node = markersLayer.querySelector(`g.marker[data-id="${last.id}"]`);
-      if(node) markersLayer.removeChild(node);
-      rebuildNumbers(); updateReport(); redrawLegend();
-      logH(`Annulé — ${last ? LMAP[last.type].label : ''}`);
-    });
-
-    btnClear.addEventListener('click', ()=>{
-      if(!markers.length) return;
-      markers.splice(0, markers.length);
-      markersLayer.innerHTML='';
-      rebuildNumbers(); updateReport(); redrawLegend();
-      logH('Tous les marqueurs ont été effacés');
-    });
-
-    btnToggleNumbers.addEventListener('click', ()=>{
-      showNumbers = !showNumbers;
-      rebuildNumbers();
-      logH(`Numéros ${showNumbers?'affichés':'masqués'}`);
-    });
-
-    btnDebug.addEventListener('click', ()=>{
-      debugOn = !debugOn;
-      zonesDebugLayer.style.display = debugOn ? '' : 'none';
-      btnDebug.textContent = debugOn ? 'Zones (debug ON)' : 'Zones (debug)';
-      drawZonesDebug();
-    });
-
-    btnPrint.addEventListener('click', async ()=>{
-      // 1) Envoi Discord (optionnel)
-      if(sendOnPrint.checked){
-        await sendToDiscordForum();
-      }
-      // 2) Impression
-      const d = new Date();
-      const dt = d.toLocaleString();
-      printMeta.textContent = `Patient: ${patientId.value || '—'} • Date: ${dt}${comments.value ? ' • Notes: ' + comments.value : ''}`;
-      window.print();
-    });
-
-    [patientId, comments].forEach(el => el.addEventListener('input', ()=>{ updateReport(); }));
-
-    /* ========== Init ========== */
-    function init(){
-      buildPalette();
-      redrawLegend();
-      updateReport();
-      frame.style.cursor='crosshair';
-      logH('Prêt — choisissez une lésion puis cliquez sur l’image pour la localiser. (Alt+clic = supprimer, glisser = déplacer)');
-    }
-    init();
-  });
-  </script>
-</body>
-</html>
+      t.setA
