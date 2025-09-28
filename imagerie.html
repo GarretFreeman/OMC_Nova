@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OMC — Imagerie (canevas Discord + constat)</title>
+  <title>OMC — Imagerie (envoi Discord seulement)</title>
   <link rel="icon" href="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" type="image/png">
   <style>
     :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; }
@@ -57,25 +57,10 @@
     .marker:active{cursor:grabbing}
     .marker text{font:600 10px ui-sans-serif,system-ui; fill:#0b1223}
 
-    /* Impression */
-    @media print{
-      body{background:#fff; color:#000}
-      .header,.controls,.actions,.history,.panel:first-of-type [data-hide-print]{display:none !important}
-      .panel{border:none; margin:0; padding:0}
-      .debug{display:none !important}
-      .cursor-tip{display:none !important}
-      .print-header{display:block !important}
-      .report{page-break-inside:avoid}
-    }
-    .print-header{display:none; margin:0 16px 8px; color:#e5e7eb}
-    .print-header h2{margin:0 0 6px}
-    .muted{color:#94a3b8; font-size:12px}
     .history{background:#030712; border:1px solid var(--ring); border-radius:12px; padding:10px; max-height:220px; overflow:auto; font-size:12px; color:#9ca3af; margin-top:12px}
 
-    /* header controls */
+    /* petits contrôles header */
     .h-ctrls{display:flex; gap:12px; align-items:center}
-    .switch{display:inline-flex; align-items:center; gap:8px; font-size:12px; color:#cbd5e1}
-    .switch input{accent-color:#38bdf8}
   </style>
 </head>
 <body>
@@ -86,18 +71,9 @@
         <h1 style="margin:0">Imagerie médicale</h1>
       </div>
       <div class="h-ctrls">
-        <label class="switch" data-hide-print>
-          <input type="checkbox" id="sendOnPrint">
-          Envoyer sur Discord (forum “imagerie”) à l’impression
-        </label>
-        <button id="btnDebug" class="btn" data-hide-print>Zones (debug)</button>
-        <button id="btnPrint" class="btn">Imprimer</button>
+        <button id="btnDebug" class="btn">Zones (debug)</button>
+        <button id="btnPrint" class="btn primary">Imprimer sur copieur imagerie</button>
       </div>
-    </div>
-
-    <div class="print-header" id="printHeader">
-      <h2>Constat lésionnel — OMC</h2>
-      <div class="muted" id="printMeta"></div>
     </div>
 
     <div class="panel">
@@ -127,6 +103,10 @@
               <input id="patientId" type="text" placeholder="Ex: John Doe #SS-204">
             </div>
             <div class="field">
+              <label class="label">Nom du médecin</label>
+              <input id="doctorName" type="text" placeholder="Ex: Martin Dupont">
+            </div>
+            <div class="field">
               <label class="label">Commentaires</label>
               <textarea id="comments" placeholder="Notes pour le dossier…"></textarea>
             </div>
@@ -150,7 +130,7 @@
             <div id="reportSummary" style="margin-top:10px"></div>
           </div>
 
-          <div class="history" id="history" data-hide-print></div>
+          <div class="history" id="history"></div>
         </section>
       </div>
     </div>
@@ -159,10 +139,10 @@
   <script>
   document.addEventListener('DOMContentLoaded', () => {
     /* ========= CONFIG DISCORD ========= */
-    // Webhook du canal Forum "imagerie"
+    // Webhook du canal Forum "imagerie" (obligatoire)
     const WEBHOOK_FORUM_URL = "https://discord.com/api/webhooks/1421780761731928194/ZFSpiLTHfytIGT02QBf5SBOIEDzWMaf_PMHtDB9sd-GmF5chHnQqQic-9YpLnYHJIRPo"; // ex: "https://discord.com/api/webhooks/xxx/yyy"
     const FORUM_THREAD_PREFIX = "Imagerie";
-    // Logo : place un fichier local assets/logo-omc.png (conseillé). Fallback URL si besoin.
+    // Logo local recommandé
     const LOGO_PATH = "assets/logo-omc.png";
     const LOGO_FALLBACK = "https://i.ibb.co/LzwcCLfN/logo-omc-nord.png";
 
@@ -178,7 +158,7 @@
     ];
     const LMAP = Object.fromEntries(LESIONS.map(l => [l.key, l]));
 
-    /* ========== REGIONS (polygones) ========== */
+    /* ========== REGIONS (polygones calibrés) ========== */
     const REGIONS_RAW = [
       {"id":"tete","label":"Téte","type":"poly","points":[[215,20],[235,30],[245,45],[250,60],[250,75],[255,80],[255,95],[245,105],[240,120],[185,120],[180,105],[175,95],[170,80],[174,60],[175,45],[190,30],[200,20],[215,20],[215,20]]},
       {"id":"cou","label":"Cou","type":"poly","points":[[185,125],[240,123],[240,146],[185,145],[185,125]]},
@@ -218,6 +198,7 @@
     const lesionsGrid = document.getElementById('lesionsGrid');
     const historyBox = document.getElementById('history');
     const patientId = document.getElementById('patientId');
+    const doctorName = document.getElementById('doctorName');
     const comments = document.getElementById('comments');
 
     const btnUndo = document.getElementById('btnUndo');
@@ -225,12 +206,10 @@
     const btnToggleNumbers = document.getElementById('btnToggleNumbers');
     const btnPrint = document.getElementById('btnPrint');
     const btnDebug = document.getElementById('btnDebug');
-    const sendOnPrint = document.getElementById('sendOnPrint');
 
     const reportMeta = document.getElementById('reportMeta');
     const reportList = document.getElementById('reportList');
     const reportSummary = document.getElementById('reportSummary');
-    const printMeta = document.getElementById('printMeta');
 
     /* ========== ÉTAT ========== */
     let activeType = LESIONS[0].key;
@@ -258,14 +237,14 @@
     }
     function regionFrom(x,y){ for(const r of REGIONS){ if(inPoly(x,y,r.points)) return r.label; } return null; }
 
-    /* ========== Charabia “médical” RP ========== */
+    /* ========== Jargon RP ========== */
     const JARGON = {
-      fracture: (z)=>`Trait de fracture ${rand(['transversal','oblique','comminutif'])} ${rand(['sans','avec discret'])} déplacement. Sensibilité osseuse à la palpation ${site(z)}.`,
+      fracture: (z)=>`Trait de fracture ${rand(['transversal','oblique','comminutif'])} ${rand(['sans','avec discret'])} déplacement. Sensibilité osseuse ${site(z)}.`,
       entorse:  (z)=>`Atteinte ligamentaire ${rand(['suspectée','probable'])} (${rand(['stade I','stade II'])}). Œdème ${site(z)}, douleur à la mise en charge.`,
       luxation: (z)=>`Désaxation articulaire ${rand(['évidente','réduite spontanément'])}. Limitation des amplitudes, douleur aiguë ${site(z)}.`,
       contusion:(z)=>`Contusion ${site(z)} avec ${rand(['ecchymose','hématome discret','tuméfaction localisée'])}. Douleur provoquée à la pression.`,
-      plaie_blanche:(z)=>`Plaie par arme blanche (${rand(['linéaire','punctiforme','lacuniforme'])}), longueur ~${rand(['2cm','3cm','4cm'])}, berges ${rand(['régulières','irrégulières'])}, saignement contrôlé.`,
-      plaie_feu:(z)=>`Plaie par arme à feu : orifice ${rand(['d’entrée','d’entrée et de sortie'])}, halo d’essuyage, trajectoire ${rand(['antéro-postérieure','oblique'])} ${site(z)}.`,
+      plaie_blanche:(z)=>`Plaie par arme blanche (${rand(['linéaire','punctiforme','lacuniforme'])}), ~${rand(['2cm','3cm','4cm'])}, berges ${rand(['régulières','irrégulières'])}, saignement contrôlé.`,
+      plaie_feu:(z)=>`Plaie par arme à feu : orifice ${rand(['d’entrée','d’entrée et sortie'])}, halo d’essuyage, trajectoire ${rand(['antéro-postérieure','oblique'])} ${site(z)}.`,
       brulure: (z)=>`Brûlure ${rand(['érythémateuse','partielle','superficielle'])} ${site(z)} (${rand(['1er','2e'])} degré), phlyctènes ${rand(['absentes','présentes'])}.`
     };
     function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
@@ -275,7 +254,7 @@
     /* ========== Report (UI) ========== */
     function updateReport(){
       const now = new Date().toLocaleString();
-      reportMeta.textContent = `Patient : ${patientId.value || '—'} • Date : ${now}${comments.value ? ' • Notes : ' + comments.value : ''}`;
+      reportMeta.textContent = `Patient : ${patientId.value || '—'} • Médecin : ${doctorName.value || '—'} • Date : ${now}${comments.value ? ' • Notes : ' + comments.value : ''}`;
       reportList.innerHTML = '';
       const perTypeCount = {};
       const perTypeIndex = {};
@@ -407,7 +386,7 @@
       });
     }
 
-    /* ========== Info-bulle curseur (localisation live) ========== */
+    /* ========== Info-bulle curseur ========== */
     function moveCursorTip(evt){
       const rect = frame.getBoundingClientRect();
       const p = svgPoint(evt);
@@ -437,7 +416,7 @@
       cursorTip.setAttribute('aria-hidden','true');
     });
 
-    /* ========== Helpers Canevas export ========== */
+    /* ========== Helpers dessin ========== */
     function roundRect(ctx, x, y, w, h, r){
       const rr = Math.min(r, w/2, h/2);
       ctx.beginPath();
@@ -458,9 +437,8 @@
       });
     }
 
-    /* ========== Export CANEVAS “fiche” (PNG) ========== */
+    /* ========== Export CANEVAS PNG (silhouette + fiche) ========== */
     async function exportReportPNG(scale=2){
-      // Dimensions : hauteur = 940 (comme l’image), largeur = image (418) + marge + fiche (~520)
       const H = 940*scale;
       const sideGap = 20*scale;
       const figPad = 20*scale;
@@ -473,12 +451,11 @@
       // fond
       ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,W,H);
 
-      // ===== Colonne gauche : silhouette + marqueurs =====
+      // silhouette
       const bgSrc = document.querySelector('.body-bg').src;
-      const bgImg = await loadImage(bgSrc); // local asset conseillé
-      // on remplit la hauteur avec marges
+      const bgImg = await loadImage(bgSrc);
       const figH = H - figPad*2;
-      const s = figH / 940; // facteur
+      const s = figH / 940;
       const figW = 418*s;
       const figX = figPad;
       const figY = figPad;
@@ -505,18 +482,16 @@
         }
       });
 
-      // ===== Colonne droite : fiche constat =====
+      // fiche à droite
       const rightX = figX + figW + sideGap;
       const cardY = figPad;
       const cardW = rightW;
       const cardH = H - figPad*2;
 
-      // carte
       roundRect(ctx, rightX, cardY, cardW, cardH, 16*scale);
       ctx.fillStyle = '#f8fafc'; ctx.fill();
       ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1*scale; ctx.stroke();
 
-      // en-tête gradient
       const headerH = 72*scale;
       const grad = ctx.createLinearGradient(0, cardY, 0, cardY+headerH);
       grad.addColorStop(0, '#0ea5e9'); grad.addColorStop(1, '#0284c7');
@@ -526,13 +501,9 @@
       // logo
       try{
         let logoImg;
-        try {
-          logoImg = await loadImage(LOGO_PATH);
-        } catch {
-          logoImg = await loadImage(LOGO_FALLBACK, {cross:true});
-        }
-        const lw = 44*scale, lh = 44*scale;
-        ctx.drawImage(logoImg, rightX+16*scale, cardY+14*scale, lw, lh);
+        try { logoImg = await loadImage(LOGO_PATH); }
+        catch { logoImg = await loadImage(LOGO_FALLBACK, {cross:true}); }
+        ctx.drawImage(logoImg, rightX+16*scale, cardY+14*scale, 44*scale, 44*scale);
       }catch{}
 
       // titre
@@ -541,41 +512,36 @@
       ctx.textAlign='left'; ctx.textBaseline='middle';
       ctx.fillText('Constat lésionnel — OMC', rightX+72*scale, cardY+headerH/2);
 
-      // meta patient
+      // meta patient/médecin/date
       const metaY = cardY + headerH + 16*scale;
+      const dateStr = new Date().toLocaleString();
       ctx.fillStyle = '#0f172a';
       ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
-      const dateStr = new Date().toLocaleString();
-      const patientStr = `Patient : ${patientId.value || '—'}`;
-      const dateLine = `Date : ${dateStr}`;
-      ctx.fillText(patientStr, rightX+16*scale, metaY);
-      ctx.fillText(dateLine, rightX+16*scale, metaY + 20*scale);
+      ctx.fillText(`Patient : ${patientId.value || '—'}`, rightX+16*scale, metaY);
+      ctx.fillText(`Médecin : ${doctorName.value || '—'}`, rightX+16*scale, metaY + 20*scale);
+      ctx.fillText(`Date : ${dateStr}`, rightX+16*scale, metaY + 40*scale);
       if(comments.value){
         ctx.fillStyle = '#334155';
-        wrapText(ctx, `Notes : ${comments.value}`, rightX+16*scale, metaY + 44*scale, cardW-32*scale, 14*scale, 18*scale);
+        wrapText(ctx, `Notes : ${comments.value}`, rightX+16*scale, metaY + 64*scale, cardW-32*scale, 14*scale, 18*scale);
       }
 
-      // résumé badges
+      // badges résumé
       const counts = {}; markers.forEach(m=>counts[m.type]=(counts[m.type]||0)+1);
-      let badgeX = rightX+16*scale, badgeY = metaY + (comments.value? 94*scale : 70*scale);
+      let badgeX = rightX+16*scale, badgeY = metaY + (comments.value? 114*scale : 90*scale);
       LESIONS.forEach(l=>{
         const txt = `${l.label} : ${counts[l.key]||0}`;
-        const paddingX = 10*scale, paddingY = 6*scale;
         ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
-        const w = ctx.measureText(txt).width + 24*scale + paddingX*2;
+        const w = ctx.measureText(txt).width + 24*scale + 20*scale;
         if(badgeX + w > rightX + cardW - 16*scale){ badgeX = rightX+16*scale; badgeY += 30*scale; }
-        // badge bg
         roundRect(ctx, badgeX, badgeY, w, 24*scale, 999);
         ctx.fillStyle = '#ffffff'; ctx.fill();
         ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1*scale; ctx.stroke();
-        // dot
-        ctx.beginPath(); ctx.fillStyle = l.color; ctx.arc(badgeX+paddingX+6*scale, badgeY+12*scale, 5*scale, 0, Math.PI*2); ctx.fill();
-        // text
-        ctx.fillStyle = '#0f172a'; ctx.fillText(txt, badgeX+paddingX+18*scale, badgeY+15*scale);
+        ctx.beginPath(); ctx.fillStyle = l.color; ctx.arc(badgeX+12*scale, badgeY+12*scale, 5*scale, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#0f172a'; ctx.fillText(txt, badgeX+24*scale, badgeY+15*scale);
         badgeX += w + 8*scale;
       });
 
-      // liste constatations
+      // liste constatations + charabia RP
       let listTop = badgeY + 36*scale;
       ctx.fillStyle = '#0f172a';
       ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
@@ -593,18 +559,15 @@
           const idx = perTypeIndex[m.type];
           const zone = regionFrom(m.x,m.y) || 'Zone non définie';
 
-          // puce colorée
           ctx.beginPath();
           ctx.fillStyle = LMAP[m.type].color;
           ctx.arc(rightX+22*scale, listTop+8*scale, 4*scale, 0, Math.PI*2); ctx.fill();
 
-          // ligne titre
           ctx.fillStyle = '#0f172a';
           ctx.font = `${13*scale}px ui-sans-serif, system-ui`;
           const line = `${LMAP[m.type].label} — N°${idx} · ${zone}`;
           ctx.fillText(line, rightX+34*scale, listTop+12*scale);
 
-          // charabia
           ctx.fillStyle = '#475569';
           ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
           const ch = jargonFor(m.type, zone);
@@ -612,16 +575,15 @@
         });
       }
 
-      // pied de carte (signature)
+      // signature
       const footerY = cardY + cardH - 54*scale;
       roundRect(ctx, rightX+16*scale, footerY, cardW-32*scale, 38*scale, 10*scale);
       ctx.fillStyle = '#ffffff'; ctx.fill();
       ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1*scale; ctx.stroke();
-
       ctx.fillStyle = '#0f172a'; ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
-      ctx.fillText('Établi par : Dr — (OMC) • Signature : ____________', rightX+24*scale, footerY+24*scale);
+      ctx.fillText(`Établi par : Dr ${doctorName.value || '—'} (OMC) • Signature : ____________`, rightX+24*scale, footerY+24*scale);
 
-      // petit watermark
+      // watermark
       ctx.save();
       ctx.globalAlpha = 0.06;
       ctx.translate(rightX + cardW - 120*scale, cardY + cardH - 80*scale);
@@ -631,7 +593,6 @@
       ctx.fillText('OMC', 0, 0);
       ctx.restore();
 
-      // helpers
       function wrapText(context, text, x, y, maxWidth, fontSize, lineHeight){
         const words = String(text).split(/\s+/);
         let line = '', cy=y, used=0;
@@ -654,37 +615,19 @@
       return await new Promise(res=> canvas.toBlob(b=>res(b),'image/png'));
     }
 
-    /* ========== Discord : envoi PNG du canevas ========== */
-    function buildDiscordText(){
-      const now = new Date().toLocaleString();
-      const header = `**Imagerie — Constat lésionnel**\nPatient: ${patientId.value || '—'} • Date: ${now}${comments.value ? `\nNotes: ${comments.value}` : ''}`;
-      if(!markers.length) return header + `\n_Aucune lésion renseignée._`;
-      const perTypeIndex = {};
-      const lines = markers.map(m=>{
-        perTypeIndex[m.type]=(perTypeIndex[m.type]||0)+1;
-        const idx = perTypeIndex[m.type];
-        const zone = regionFrom(m.x,m.y) || 'Zone non définie';
-        return `• ${LMAP[m.type].label} N°${idx} — ${zone}`;
-      });
-      return header + `\n` + lines.join('\n');
-    }
-
+    /* ========== Discord : envoi PNG seul au forum ========== */
     async function sendToDiscordForum(){
       if(!WEBHOOK_FORUM_URL){
         alert('Webhook Discord du forum non configuré.');
         return;
       }
       try{
-        const imgBlob = await exportReportPNG(2); // <<< joli canevas
-        const content = buildDiscordText();
+        const imgBlob = await exportReportPNG(2);
         const threadName = `${FORUM_THREAD_PREFIX} — ${patientId.value || 'Sans nom'} — ${new Date().toLocaleDateString()}`;
 
         const fd = new FormData();
-        fd.append('payload_json', JSON.stringify({
-          content,
-          thread_name: threadName
-          // "applied_tags": ["<id_tag1>", "<id_tag2>"] // si besoin
-        }));
+        // Pas de "content": on n’envoie QUE l’image. On précise juste le nom du sujet.
+        fd.append('payload_json', JSON.stringify({ thread_name: threadName }));
         fd.append('file', imgBlob, `imagerie-omc-${Date.now()}.png`);
 
         const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', { method:'POST', body: fd });
@@ -693,7 +636,7 @@
           throw new Error('HTTP '+res.status+' '+txt);
         }
         logH('Canevas envoyé sur Discord (forum “imagerie”).');
-        alert('Envoyé sur Discord (forum “imagerie”).');
+        alert('Canevas envoyé sur le copieur imagerie (Discord).');
       }catch(e){
         console.error(e);
         alert('Envoi Discord échoué. Vérifie le webhook du forum et le logo (CORS).');
@@ -701,12 +644,10 @@
     }
 
     /* ========== Interactions ========== */
-    overlay.addEventListener('click', (e)=>{
-      const pt = svgPoint(e);
-      addMarker(pt, activeType);
-    });
+    const overlay = document.getElementById('overlay');
+    overlay.addEventListener('click', (e)=> addMarker(svgPoint(e), activeType));
 
-    btnUndo.addEventListener('click', ()=>{
+    document.getElementById('btnUndo').addEventListener('click', ()=>{
       const last = markers.pop(); if(!last) return;
       const node = markersLayer.querySelector(`g.marker[data-id="${last.id}"]`);
       if(node) markersLayer.removeChild(node);
@@ -714,7 +655,7 @@
       logH(`Annulé — ${last ? LMAP[last.type].label : ''}`);
     });
 
-    btnClear.addEventListener('click', ()=>{
+    document.getElementById('btnClear').addEventListener('click', ()=>{
       if(!markers.length) return;
       markers.splice(0, markers.length);
       markersLayer.innerHTML='';
@@ -722,39 +663,28 @@
       logH('Tous les marqueurs ont été effacés');
     });
 
-    btnToggleNumbers.addEventListener('click', ()=>{
+    document.getElementById('btnToggleNumbers').addEventListener('click', ()=>{
       showNumbers = !showNumbers;
       rebuildNumbers();
       logH(`Numéros ${showNumbers?'affichés':'masqués'}`);
     });
 
-    btnDebug.addEventListener('click', ()=>{
+    document.getElementById('btnDebug').addEventListener('click', ()=>{
       debugOn = !debugOn;
       zonesDebugLayer.style.display = debugOn ? '' : 'none';
       btnDebug.textContent = debugOn ? 'Zones (debug ON)' : 'Zones (debug)';
       drawZonesDebug();
     });
 
-    btnPrint.addEventListener('click', async ()=>{
-      if(sendOnPrint.checked){ await sendToDiscordForum(); }
-      const d = new Date();
-      const dt = d.toLocaleString();
-      printMeta.textContent = `Patient: ${patientId.value || '—'} • Date: ${dt}${comments.value ? ' • Notes: ' + comments.value : ''}`;
-      window.print();
+    document.getElementById('btnPrint').addEventListener('click', async ()=>{
+      // “Imprimer sur copieur imagerie” = envoi Discord uniquement
+      await sendToDiscordForum();
     });
 
-    [patientId, comments].forEach(el => el.addEventListener('input', ()=>{ updateReport(); }));
+    [patientId, doctorName, comments].forEach(el => el.addEventListener('input', updateReport));
 
     /* ========== Init ========== */
-    function buildPalette(){ /* défini plus haut (on re-déclare localement) */ }
-    // (réutilisation de buildPalette défini plus haut)
-    // Petite astuce pour éviter la re-déclaration (déjà défini plus haut)
-    // => Je ré-assigne simplement ;)
-    // (le code est déjà au-dessus)
-    redrawLegend = redrawLegend; // noop to satisfy linters
-
-    // Recréation palette (version brève)
-    (function makePalette(){
+    function buildPaletteInit(){
       lesionsGrid.innerHTML='';
       LESIONS.forEach(l=>{
         const chip=document.createElement('div');
@@ -767,11 +697,9 @@
         });
         lesionsGrid.appendChild(chip);
       });
-    })();
-
+    }
     function redrawLegend(){
-      const counts = {};
-      markers.forEach(m => counts[m.type]=(counts[m.type]||0)+1);
+      const counts = {}; markers.forEach(m => counts[m.type]=(counts[m.type]||0)+1);
       legendBox.innerHTML='';
       LESIONS.forEach(l=>{
         const item=document.createElement('div');
@@ -780,8 +708,8 @@
         legendBox.appendChild(item);
       });
     }
-
     function init(){
+      buildPaletteInit();
       redrawLegend();
       updateReport();
       frame.style.cursor='crosshair';
