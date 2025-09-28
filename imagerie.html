@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OMC — Imagerie</title>
+  <title>OMC — Imagerie (avec calibration)</title>
   <link rel="icon" href="https://i.ibb.co/LzwcCLfN/logo-omc-nord.png" type="image/png">
   <style>
     :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; }
@@ -15,19 +15,17 @@
     .header{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:16px 20px; border-bottom:1px solid var(--ring)}
     .header .brand{display:flex; align-items:center; gap:10px}
     .btn{appearance:none; border:1px solid var(--ring); border-radius:12px; padding:10px 12px; background:#0b1223; color:#e5e7eb; cursor:pointer; text-decoration:none}
+    .btn.primary{background:linear-gradient(180deg,#0ea5e9,#0284c7); color:#001019; border-color:#0369a1}
     .panel{background:#0b1223; border:1px solid var(--ring); border-radius:var(--radius); padding:16px; margin:16px}
 
-    /* GRID principal */
     .main-grid{display:grid; grid-template-columns:1fr 1.1fr; gap:16px; align-items:stretch}
     @media (max-width:1000px){ .main-grid{grid-template-columns:1fr} }
 
-    /* Carte du corps (image + overlay editable) */
     .bodymap{position:relative; width:100%; background:#0b1223; border:1px solid var(--ring); border-radius:12px; padding:12px; display:flex; align-items:center; justify-content:center}
     .bodyframe{position:relative; width:min(520px,100%); aspect-ratio:418/940;}
     .body-bg{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:.95; filter:drop-shadow(0 8px 24px rgba(0,0,0,.45));}
     svg.overlay{position:absolute; inset:0; width:100%; height:100%}
 
-    /* Panneau droit */
     .controls{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px}
     .field{display:flex; flex-direction:column; gap:6px}
     .label{font-size:12px; color:#9ca3af}
@@ -39,7 +37,6 @@
     .dot{width:14px; height:14px; border-radius:50%}
     .actions{display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 12px}
 
-    /* Constat lésionnel (droite) */
     .report{background:#030712; border:1px solid var(--ring); border-radius:12px; padding:14px; font-size:13px; line-height:1.5}
     .report h4{margin:0 0 6px; font-size:14px; color:#cbd5e1}
     .report small{color:#94a3b8}
@@ -48,18 +45,28 @@
     .report .badge{display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border:1px solid var(--ring); border-radius:999px; font-size:12px; margin-right:6px}
     .report .badge .bdot{width:10px; height:10px; border-radius:50%}
 
-    /* Marqueurs */
+    .legend{display:flex; flex-wrap:wrap; gap:10px; font-size:12px; color:#cbd5e1}
+    .legend .item{display:flex; align-items:center; gap:6px; padding:6px 8px; border:1px solid var(--ring); border-radius:10px; background:#0b1223}
+
     .marker{cursor:grab}
     .marker:active{cursor:grabbing}
     .marker text{font:600 10px ui-sans-serif,system-ui; fill:#0b1223}
 
-    /* Impression : patient + image + constat */
+    /* === Calibration UI === */
+    .calibbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:10px 0}
+    .calibnote{font-size:12px; color:#9ca3af}
+    .coords{font-size:12px; color:#cbd5e1; padding:4px 8px; border:1px solid var(--ring); border-radius:8px; background:#0b1223}
+    .export{width:100%; min-height:100px; background:#030712; color:#e5e7eb; border:1px solid var(--ring); border-radius:8px; padding:10px; font-family:ui-monospace, SFMono-Regular, Menlo, monospace}
+    .handle{cursor:move}
+    .calib-label{font:600 10px ui-sans-serif,system-ui}
+
+    /* Impression : cacher calibration + contrôles */
     @media print{
-      body{background:#fff; color:#000}
-      .header,.controls,.actions,.history,.panel:first-of-type{display:none !important}
+      .header,.controls,.actions,.calibbar,#exportWrap,.history{display:none !important}
       .panel{border:none; margin:0; padding:0}
       .print-header{display:block !important}
       .report{page-break-inside:avoid}
+      .legend{display:none !important}
     }
     .print-header{display:none; margin:0 16px 8px; color:#e5e7eb}
     .print-header h2{margin:0 0 6px}
@@ -73,10 +80,11 @@
         <a class="btn" href="index.html">← Accueil</a>
         <h1 style="margin:0">Imagerie médicale</h1>
       </div>
-      <button id="btnPrint" class="btn">Imprimer</button>
+      <div style="display:flex; gap:8px">
+        <button id="btnPrint" class="btn">Imprimer</button>
+      </div>
     </div>
 
-    <!-- En-tête dédiée impression -->
     <div class="print-header" id="printHeader">
       <h2>Constat lésionnel — OMC</h2>
       <div class="muted" id="printMeta"></div>
@@ -84,18 +92,38 @@
 
     <div class="panel">
       <div class="main-grid">
-        <!-- Colonne gauche : image + overlay -->
+        <!-- Colonne gauche -->
         <section>
           <h3 style="margin:0 0 10px; color:#9ca3af">Localiser les lésions</h3>
           <div class="bodymap">
             <div class="bodyframe" id="frame">
               <img class="body-bg" src="assets/corps-humain.png" alt="Silhouette anatomique (face)">
-              <svg class="overlay" id="overlay" viewBox="0 0 418 940" xmlns="http://www.w3.org/2000/svg" aria-label="Localisation des lésions"></svg>
+              <svg class="overlay" id="overlay" viewBox="0 0 418 940" xmlns="http://www.w3.org/2000/svg" aria-label="Localisation des lésions">
+                <!-- calque des marqueurs -->
+                <g id="markersLayer"></g>
+                <!-- calque calibration (dessiné quand actif) -->
+                <g id="calibLayer"></g>
+              </svg>
             </div>
           </div>
+
+          <!-- Barre calibration -->
+          <div class="calibbar">
+            <button id="btnCalib" class="btn">Activer calibration</button>
+            <button id="btnCalibLabels" class="btn">Masquer étiquettes</button>
+            <button id="btnExport" class="btn">Exporter JSON</button>
+            <span class="coords" id="coords">x: —, y: —</span>
+            <span class="calibnote">Astuce : drag = déplacer, Alt+drag = déplacer la forme entière, ↑↓←→ = pas fin (⇧ = ×10)</span>
+          </div>
+          <div id="exportWrap" style="display:none">
+            <textarea id="exportBox" class="export" readonly></textarea>
+          </div>
+
+          <!-- Légende (hors constat) -->
+          <div class="legend" id="legend"></div>
         </section>
 
-        <!-- Colonne droite : infos + palette + constat -->
+        <!-- Colonne droite -->
         <section>
           <div class="controls">
             <div class="field">
@@ -134,79 +162,128 @@
 
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    // ------- Types de lésions (inclut 2 types de plaies)
+    /* ================== LÉSIONS ================== */
     const LESIONS = [
-      {key:'fracture',      label:'Fracture',                  color:'#ef4444', code:'FX'},
-      {key:'entorse',       label:'Entorse',                   color:'#f59e0b', code:'EN'},
-      {key:'luxation',      label:'Luxation',                  color:'#10b981', code:'LX'},
-      {key:'contusion',     label:'Contusion',                 color:'#3b82f6', code:'CT'},
-      {key:'plaie_blanche', label:'Plaie par arme blanche',    color:'#a855f7', code:'PB'},
-      {key:'plaie_feu',     label:'Plaie par arme à feu',      color:'#b91c1c', code:'PAF'},
-      {key:'brulure',       label:'Brûlure',                   color:'#eab308', code:'BR'}
+      {key:'fracture',      label:'Fracture',               color:'#ef4444', code:'FX'},
+      {key:'entorse',       label:'Entorse',                color:'#f59e0b', code:'EN'},
+      {key:'luxation',      label:'Luxation',               color:'#10b981', code:'LX'},
+      {key:'contusion',     label:'Contusion',              color:'#3b82f6', code:'CT'},
+      {key:'plaie_blanche', label:'Plaie arme blanche',     color:'#a855f7', code:'PB'},
+      {key:'plaie_feu',     label:'Plaie arme à feu',       color:'#b91c1c', code:'PAF'},
+      {key:'brulure',       label:'Brûlure',                color:'#eab308', code:'BR'}
+    ];
+    const LMAP = Object.fromEntries(LESIONS.map(l => [l.key, l]));
+
+    /* ============== RÉGIONS (calibrables) ============== */
+    // Coordonnées initiales (issues de ta version précédente)
+    const REGIONS = [
+      { id:'bras_g',   label:'bras gauche',   type:'poly',   points:[[80,230],[60,300],[50,380],[40,520],[60,620],[90,620],[100,500],[110,360],[115,280]] },
+      { id:'bras_d',   label:'bras droit',    type:'poly',   points:[[338,230],[358,300],[368,380],[378,520],[358,620],[328,620],[318,500],[308,360],[303,280]] },
+      { id:'tete',     label:'tête',          type:'circle', cx:209, cy:110, r:80 },
+      { id:'thorax',   label:'thorax',        type:'rect',   x:120, y:230, w:180, h:210 },
+      { id:'abdomen',  label:'abdomen/pelvis',type:'rect',   x:150, y:420, w:120, h:60 },
+      { id:'jambe_g',  label:'jambe gauche',  type:'poly',   points:[[185,440],[175,600],[172,760],[175,840],[200,920],[220,900],[215,760],[210,600],[210,440]] },
+      { id:'jambe_d',  label:'jambe droite',  type:'poly',   points:[[233,440],[243,600],[246,760],[243,840],[218,920],[198,900],[203,760],[208,600],[208,440]] },
     ];
 
-    // ------- Éléments DOM
+    /* ============== DOM ============== */
     const overlay = document.getElementById('overlay');
+    const markersLayer = document.getElementById('markersLayer');
+    const calibLayer = document.getElementById('calibLayer');
     const frame = document.getElementById('frame');
+
+    const legendBox = document.getElementById('legend');
     const lesionsGrid = document.getElementById('lesionsGrid');
     const historyBox = document.getElementById('history');
     const patientId = document.getElementById('patientId');
     const comments = document.getElementById('comments');
+
     const btnUndo = document.getElementById('btnUndo');
     const btnClear = document.getElementById('btnClear');
-    const btnPrint = document.getElementById('btnPrint');
     const btnToggleNumbers = document.getElementById('btnToggleNumbers');
+    const btnPrint = document.getElementById('btnPrint');
 
-    const reportBox = document.getElementById('reportBox');
+    // Calibration
+    const btnCalib = document.getElementById('btnCalib');
+    const btnCalibLabels = document.getElementById('btnCalibLabels');
+    const btnExport = document.getElementById('btnExport');
+    const coordsEl = document.getElementById('coords');
+    const exportWrap = document.getElementById('exportWrap');
+    const exportBox = document.getElementById('exportBox');
+
+    // Constat
     const reportMeta = document.getElementById('reportMeta');
     const reportList = document.getElementById('reportList');
     const reportSummary = document.getElementById('reportSummary');
-
-    const printHeader = document.getElementById('printHeader');
     const printMeta = document.getElementById('printMeta');
 
-    // ------- État
+    /* ============== ÉTATS ============== */
     let activeType = LESIONS[0].key;
     let showNumbers = true;
     const markers = []; // {id,type,x,y}
     let drag = {on:false, id:null, dx:0, dy:0};
 
-    const LMAP = Object.fromEntries(LESIONS.map(l => [l.key, l]));
+    // Calibration
+    let calibOn = false;
+    let showCalibLabels = true;
+    let selection = { regionId:null, pointIndex:null }; // pour polygone
+
+    /* ============== UTILS ============== */
     function logH(msg){ const t=new Date().toLocaleString(); const d=document.createElement('div'); d.innerHTML=`<b>[${t}]</b> ${msg}`; historyBox.prepend(d); }
-
-    // Approximation zone anatomique depuis x,y (viewBox 418x940)
-    function regionFrom(x,y){
-      // bandes verticales gauche/droite (latéralité)
-      const side = x < 209 ? 'gauche' : 'droite';
-      if(y < 200) return 'tête';
-      if(y < 420) return 'thorax';
-      if(y < 520) return `abdomen/pelvis`;
-      if(y < 740) return `membre ${side} (cuisse/genou)`;
-      return `membre ${side} (jambe/cheville)`;
-    }
-
     function svgPoint(evt){
       const pt = overlay.createSVGPoint();
       pt.x = evt.clientX; pt.y = evt.clientY;
       const out = pt.matrixTransform(overlay.getScreenCTM().inverse());
       return { x: Math.max(0, Math.min(418, out.x)), y: Math.max(0, Math.min(940, out.y)) };
     }
+    const clamp = (x, min, max) => Math.max(min, Math.min(max, x));
 
-    function rebuildNumbers(){
-      const perType = {};
-      markers.forEach(m => {
-        perType[m.type]=(perType[m.type]||0)+1;
-        const n = perType[m.type];
-        const node = overlay.querySelector(`g.marker[data-id="${m.id}"] text`);
-        if(node) node.textContent = showNumbers ? String(n) : '';
-      });
+    /* ============== HIT-TEST ============== */
+    function inRect(x,y, r){ return x>=r.x && x<=r.x+r.w && y>=r.y && y<=r.y+r.h; }
+    function inCircle(x,y, c){ const dx=x-c.cx, dy=y-c.cy; return (dx*dx+dy*dy) <= c.r*c.r; }
+    function inPoly(x,y, pts){
+      let inside=false;
+      for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+        const xi=pts[i][0], yi=pts[i][1], xj=pts[j][0], yj=pts[j][1];
+        const intersect = ((yi>y)!==(yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi+1e-9) + xi);
+        if(intersect) inside=!inside;
+      }
+      return inside;
+    }
+    function pointInShape(r,x,y){
+      if(r.type==='rect')   return inRect(x,y,r);
+      if(r.type==='circle') return inCircle(x,y,r);
+      if(r.type==='poly')   return inPoly(x,y,r.points);
+      return false;
+    }
+    function regionFrom(x,y){
+      for(const r of REGIONS){
+        if(pointInShape(r,x,y)){
+          if(r.label.startsWith('jambe')){
+            if(y<600) return r.label+' (cuisse/genou)';
+            if(y<780) return r.label+' (jambe)';
+            return r.label+' (cheville/pied)';
+          }
+          if(r.label.startsWith('bras')){
+            if(y<360) return r.label+' (bras/épaule)';
+            if(y<520) return r.label+' (coude/avant-bras)';
+            return r.label+' (poignet/main)';
+          }
+          return r.label;
+        }
+      }
+      const side = x<209?'gauche':'droite';
+      if(y<200) return 'tête';
+      if(y<420) return 'thorax';
+      if(y<520) return 'abdomen/pelvis';
+      if(y<740) return `membre ${side} (cuisse/genou)`;
+      return `membre ${side} (jambe/cheville)`;
     }
 
+    /* ============== REPORT ============== */
     function updateReport(){
       const now = new Date().toLocaleString();
       reportMeta.textContent = `Patient : ${patientId.value || '—'} • Date : ${now}${comments.value ? ' • Notes : ' + comments.value : ''}`;
-
-      // Liste détaillée
       reportList.innerHTML = '';
       const perTypeCount = {};
       const perTypeIndex = {};
@@ -219,15 +296,23 @@
         N°${idx} — localisation estimée : ${regionFrom(m.x,m.y)}.`;
         reportList.appendChild(li);
       });
-
-      // Résumé par type
-      const summaryBadges = Object.entries(LMAP).map(([k,l])=>{
-        const n = perTypeCount[k] || 0;
+      const summary = Object.entries(LMAP).map(([k,l])=>{
+        const n = perTypeCount[k]||0;
         return `<span class="badge"><span class="bdot" style="background:${l.color}"></span>${l.label} : ${n}</span>`;
       }).join(' ');
-      reportSummary.innerHTML = summaryBadges || '<small>Aucune lésion renseignée.</small>';
+      reportSummary.innerHTML = summary || '<small>Aucune lésion renseignée.</small>';
     }
 
+    /* ============== MARQUEURS (lésions) ============== */
+    function rebuildNumbers(){
+      const perType = {};
+      markers.forEach(m => {
+        perType[m.type]=(perType[m.type]||0)+1;
+        const n = perType[m.type];
+        const node = markersLayer.querySelector(`g.marker[data-id="${m.id}"] text`);
+        if(node) node.textContent = showNumbers ? String(n) : '';
+      });
+    }
     function markerNode(m){
       const g = document.createElementNS('http://www.w3.org/2000/svg','g');
       g.setAttribute('class','marker');
@@ -243,12 +328,12 @@
       const t = document.createElementNS('http://www.w3.org/2000/svg','text');
       t.setAttribute('x','0'); t.setAttribute('y','3');
       t.setAttribute('text-anchor','middle');
-      t.textContent = ''; // sera défini par rebuildNumbers()
+      t.textContent = '';
 
       g.appendChild(c); g.appendChild(t);
 
-      // Drag & drop
       g.addEventListener('pointerdown', (e)=>{
+        if(calibOn) return; // en mode calib on évite de déplacer des marqueurs par erreur
         e.stopPropagation();
         g.setPointerCapture(e.pointerId);
         drag.on=true; drag.id=m.id;
@@ -256,42 +341,36 @@
         drag.dx=m.x - p.x; drag.dy=m.y - p.y;
       });
       g.addEventListener('pointermove', (e)=>{
+        if(calibOn) return;
         if(!drag.on || drag.id!==m.id) return;
         const p=svgPoint(e);
-        m.x = p.x + drag.dx; m.y = p.y + drag.dy;
+        m.x = clamp(p.x + drag.dx,0,418); m.y = clamp(p.y + drag.dy,0,940);
         g.setAttribute('transform', `translate(${m.x},${m.y})`);
       });
       g.addEventListener('pointerup', ()=>{
-        drag.on=false; drag.id=null;
-        updateReport();
-        logH(`Marqueur déplacé — ${LMAP[m.type].label}`);
+        if(calibOn) return;
+        drag.on=false; drag.id=null; updateReport(); logH(`Marqueur déplacé — ${LMAP[m.type].label}`);
       });
-
-      // Alt+clic pour supprimer
       g.addEventListener('click', (e)=>{
+        if(calibOn) return;
         if(e.altKey){
           const idx = markers.findIndex(mm => mm.id===m.id);
           if(idx>-1){ markers.splice(idx,1); }
-          overlay.removeChild(g);
-          rebuildNumbers();
-          updateReport();
-          logH(`Marqueur supprimé — ${LMAP[m.type].label}`);
+          markersLayer.removeChild(g);
+          rebuildNumbers(); updateReport(); logH(`Marqueur supprimé — ${LMAP[m.type].label}`);
         }
       });
-
       return g;
     }
-
     function addMarker(pt, type){
       const m = { id: 'm'+crypto.randomUUID(), type, x: pt.x, y: pt.y };
       markers.push(m);
-      overlay.appendChild(markerNode(m));
-      rebuildNumbers();
-      updateReport();
+      markersLayer.appendChild(markerNode(m));
+      rebuildNumbers(); updateReport();
       logH(`Ajout ${LMAP[type].label} @ x:${Math.round(pt.x)} y:${Math.round(pt.y)}`);
     }
 
-    // ------- Palette (droite)
+    /* ============== PALETTE ============== */
     function buildPalette(){
       lesionsGrid.innerHTML='';
       LESIONS.forEach(l=>{
@@ -310,28 +389,224 @@
       });
     }
 
-    // ------- Interactions
+    /* ============== LÉGENDE LÉSIONS ============== */
+    function redrawLegend(){
+      const counts = {};
+      markers.forEach(m => counts[m.type]=(counts[m.type]||0)+1);
+      legendBox.innerHTML='';
+      LESIONS.forEach(l => {
+        const item = document.createElement('div');
+        item.className='item';
+        item.innerHTML = `<span class="dot" style="width:12px;height:12px;background:${l.color}"></span><span>${l.label} — ${counts[l.key]||0}</span>`;
+        legendBox.appendChild(item);
+      });
+    }
+
+    /* ============== CALIBRATION RENDER ============== */
+    function drawCalib(){
+      calibLayer.innerHTML = '';
+      if(!calibOn) return;
+
+      REGIONS.forEach((r, idx)=>{
+        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.setAttribute('data-rid', r.id);
+
+        // Couleur de calque (semi-transparente)
+        const stroke = 'rgba(56,189,248,0.9)'; // cyan
+        const fill   = 'rgba(56,189,248,0.15)';
+
+        let shapeNode, labelNode;
+
+        if(r.type==='rect'){
+          shapeNode = document.createElementNS('http://www.w3.org/2000/svg','rect');
+          shapeNode.setAttribute('x',r.x); shapeNode.setAttribute('y',r.y);
+          shapeNode.setAttribute('width',r.w); shapeNode.setAttribute('height',r.h);
+          shapeNode.setAttribute('rx', 8);
+        } else if(r.type==='circle'){
+          shapeNode = document.createElementNS('http://www.w3.org/2000/svg','circle');
+          shapeNode.setAttribute('cx',r.cx); shapeNode.setAttribute('cy',r.cy);
+          shapeNode.setAttribute('r',r.r);
+        } else if(r.type==='poly'){
+          shapeNode = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+          shapeNode.setAttribute('points', r.points.map(p=>p.join(',')).join(' '));
+        }
+
+        shapeNode.setAttribute('fill', fill);
+        shapeNode.setAttribute('stroke', stroke);
+        shapeNode.setAttribute('stroke-width', '2');
+        shapeNode.classList.add('handle');
+
+        // Etiquette
+        labelNode = document.createElementNS('http://www.w3.org/2000/svg','text');
+        labelNode.setAttribute('x', 6);
+        labelNode.setAttribute('y', 16 + idx*0.01); // éviter recouvrement exact
+        labelNode.setAttribute('class','calib-label');
+        labelNode.setAttribute('fill', 'white');
+        labelNode.textContent = r.label;
+        if(!showCalibLabels) labelNode.setAttribute('display','none');
+
+        g.appendChild(shapeNode);
+
+        // Handles pour polygone
+        if(r.type==='poly'){
+          r.points.forEach((p,pi)=>{
+            const h = document.createElementNS('http://www.w3.org/2000/svg','rect');
+            h.setAttribute('x', p[0]-4); h.setAttribute('y', p[1]-4);
+            h.setAttribute('width', 8); h.setAttribute('height', 8);
+            h.setAttribute('fill', '#f97316'); // orange
+            h.setAttribute('stroke', '#111827');
+            h.setAttribute('stroke-width', '1.5');
+            h.setAttribute('data-point', pi);
+            h.classList.add('handle');
+
+            // drag sommet
+            h.addEventListener('pointerdown', (e)=>{
+              e.stopPropagation(); h.setPointerCapture(e.pointerId);
+              selection = { regionId:r.id, pointIndex:pi };
+            });
+            h.addEventListener('pointermove', (e)=>{
+              if(selection.regionId!==r.id || selection.pointIndex!==pi) return;
+              const pnt = svgPoint(e);
+              r.points[pi][0] = clamp(Math.round(pnt.x),0,418);
+              r.points[pi][1] = clamp(Math.round(pnt.y),0,940);
+              drawCalib(); // redraw en live
+            });
+            h.addEventListener('pointerup', ()=>{
+              selection = {regionId:null, pointIndex:null};
+              drawCalib();
+              logH(`Sommet ajusté — ${r.label} [${pi}]`);
+            });
+
+            g.appendChild(h);
+          });
+        } else {
+          // Drag de la forme entière (rect/circle) + Alt+drag pour poly (géré ci-dessous)
+          shapeNode.addEventListener('pointerdown', (e)=>{
+            e.stopPropagation(); shapeNode.setPointerCapture(e.pointerId);
+            selection = { regionId:r.id, pointIndex:null, ox:e.clientX, oy:e.clientY, rx:JSON.parse(JSON.stringify(r)) };
+          });
+          shapeNode.addEventListener('pointermove', (e)=>{
+            if(selection.regionId!==r.id) return;
+            const dx = (e.clientX - selection.ox) * (418 / overlay.clientWidth);
+            const dy = (e.clientY - selection.oy) * (940 / overlay.clientHeight);
+            if(r.type==='rect'){
+              r.x = clamp(Math.round(selection.rx.x + dx),0,418-r.w);
+              r.y = clamp(Math.round(selection.rx.y + dy),0,940-r.h);
+            }else if(r.type==='circle'){
+              r.cx = clamp(Math.round(selection.rx.cx + dx),0,418);
+              r.cy = clamp(Math.round(selection.rx.cy + dy),0,940);
+            }
+            drawCalib();
+          });
+          shapeNode.addEventListener('pointerup', ()=>{
+            selection = {regionId:null, pointIndex:null};
+            drawCalib();
+            logH(`Forme déplacée — ${r.label}`);
+          });
+        }
+
+        // Alt+drag pour déplacer un polygone entier
+        if(r.type==='poly'){
+          shapeNode.addEventListener('pointerdown', (e)=>{
+            if(!e.altKey) return; e.stopPropagation(); shapeNode.setPointerCapture(e.pointerId);
+            selection = { regionId:r.id, movingPoly:true, ox:e.clientX, oy:e.clientY, orig: r.points.map(p=>p.slice()) };
+          });
+          shapeNode.addEventListener('pointermove', (e)=>{
+            if(!selection.movingPoly || selection.regionId!==r.id) return;
+            const dx = (e.clientX - selection.ox) * (418 / overlay.clientWidth);
+            const dy = (e.clientY - selection.oy) * (940 / overlay.clientHeight);
+            r.points = selection.orig.map(p=>[ clamp(Math.round(p[0]+dx),0,418), clamp(Math.round(p[1]+dy),0,940) ]);
+            drawCalib();
+          });
+          shapeNode.addEventListener('pointerup', ()=>{
+            if(!selection.movingPoly) return;
+            selection = {regionId:null, pointIndex:null};
+            drawCalib();
+            logH(`Polygone déplacé — ${r.label}`);
+          });
+        }
+
+        // Clic pour surligner la région sélectionnée
+        g.addEventListener('click', () => {
+          selection.regionId = r.id;
+          drawCalib();
+        });
+
+        // Style si sélection
+        if(selection.regionId===r.id){
+          shapeNode.setAttribute('stroke', '#22c55e'); // vert
+          shapeNode.setAttribute('stroke-width', '3');
+        }
+
+        g.appendChild(labelNode);
+        calibLayer.appendChild(g);
+      });
+    }
+
+    // clavier : nudges
+    window.addEventListener('keydown', (e)=>{
+      if(!calibOn || !selection.regionId) return;
+      const r = REGIONS.find(R=>R.id===selection.regionId);
+      const step = e.shiftKey ? 10 : 1;
+      let moved = false;
+
+      if(r.type==='poly'){
+        if(selection.pointIndex!=null){
+          if(e.key==='ArrowLeft'){ r.points[selection.pointIndex][0] = clamp(r.points[selection.pointIndex][0]-step,0,418); moved=true; }
+          if(e.key==='ArrowRight'){ r.points[selection.pointIndex][0] = clamp(r.points[selection.pointIndex][0]+step,0,418); moved=true; }
+          if(e.key==='ArrowUp'){ r.points[selection.pointIndex][1] = clamp(r.points[selection.pointIndex][1]-step,0,940); moved=true; }
+          if(e.key==='ArrowDown'){ r.points[selection.pointIndex][1] = clamp(r.points[selection.pointIndex][1]+step,0,940); moved=true; }
+        } else {
+          // nudge du poly entier
+          if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+            const dx = (e.key==='ArrowLeft'?-step:(e.key==='ArrowRight'?step:0));
+            const dy = (e.key==='ArrowUp'?-step:(e.key==='ArrowDown'?step:0));
+            r.points = r.points.map(p=>[ clamp(p[0]+dx,0,418), clamp(p[1]+dy,0,940) ]);
+            moved=true;
+          }
+        }
+      } else if(r.type==='rect'){
+        if(e.key==='ArrowLeft'){ r.x = clamp(r.x-step,0,418-r.w); moved=true; }
+        if(e.key==='ArrowRight'){ r.x = clamp(r.x+step,0,418-r.w); moved=true; }
+        if(e.key==='ArrowUp'){ r.y = clamp(r.y-step,0,940-r.h); moved=true; }
+        if(e.key==='ArrowDown'){ r.y = clamp(r.y+step,0,940-r.h); moved=true; }
+      } else if(r.type==='circle'){
+        if(e.key==='ArrowLeft'){ r.cx = clamp(r.cx-step,0,418); moved=true; }
+        if(e.key==='ArrowRight'){ r.cx = clamp(r.cx+step,0,418); moved=true; }
+        if(e.key==='ArrowUp'){ r.cy = clamp(r.cy-step,0,940); moved=true; }
+        if(e.key==='ArrowDown'){ r.cy = clamp(r.cy+step,0,940); moved=true; }
+      }
+
+      if(moved){ e.preventDefault(); drawCalib(); }
+    });
+
+    // coords souris
+    overlay.addEventListener('pointermove', (e)=>{
+      const p = svgPoint(e);
+      coordsEl.textContent = `x: ${Math.round(p.x)}, y: ${Math.round(p.y)}`;
+    });
+
+    /* ============== INTERACTIONS GÉNÉRALES ============== */
     overlay.addEventListener('click', (e)=>{
+      if(calibOn) return; // en mode calib : pas de pose de marqueurs
       const pt = svgPoint(e);
       addMarker(pt, activeType);
+      redrawLegend();
     });
 
     btnUndo.addEventListener('click', ()=>{
-      const last = markers.pop();
-      if(!last) return;
-      const node = overlay.querySelector(`g.marker[data-id="${last.id}"]`);
-      if(node) overlay.removeChild(node);
-      rebuildNumbers();
-      updateReport();
+      const last = markers.pop(); if(!last) return;
+      const node = markersLayer.querySelector(`g.marker[data-id="${last.id}"]`);
+      if(node) markersLayer.removeChild(node);
+      rebuildNumbers(); updateReport(); redrawLegend();
       logH(`Annulé — ${last ? LMAP[last.type].label : ''}`);
     });
 
     btnClear.addEventListener('click', ()=>{
       if(!markers.length) return;
       markers.splice(0, markers.length);
-      overlay.innerHTML='';
-      rebuildNumbers();
-      updateReport();
+      markersLayer.innerHTML='';
+      rebuildNumbers(); updateReport(); redrawLegend();
       logH('Tous les marqueurs ont été effacés');
     });
 
@@ -341,7 +616,6 @@
       logH(`Numéros ${showNumbers?'affichés':'masqués'}`);
     });
 
-    // Impression : renseigne l’en-tête
     btnPrint.addEventListener('click', ()=>{
       const d = new Date();
       const dt = d.toLocaleString();
@@ -349,14 +623,41 @@
       window.print();
     });
 
-    // MAJ méta si patient/notes changent
-    [patientId, comments].forEach(el => el.addEventListener('input', updateReport));
+    [patientId, comments].forEach(el => el.addEventListener('input', ()=>{ updateReport(); }));
 
-    // ------- Init
+    /* ============== CALIBRATION UI ============== */
+    btnCalib.addEventListener('click', ()=>{
+      calibOn = !calibOn;
+      btnCalib.textContent = calibOn ? 'Désactiver calibration' : 'Activer calibration';
+      drawCalib();
+      logH(calibOn ? 'Mode calibration ACTIVÉ' : 'Mode calibration DÉSACTIVÉ');
+    });
+
+    btnCalibLabels.addEventListener('click', ()=>{
+      showCalibLabels = !showCalibLabels;
+      btnCalibLabels.textContent = showCalibLabels ? 'Masquer étiquettes' : 'Afficher étiquettes';
+      drawCalib();
+    });
+
+    btnExport.addEventListener('click', ()=>{
+      const exportData = REGIONS.map(r=>{
+        if(r.type==='poly') return {id:r.id,label:r.label,type:r.type,points:r.points};
+        if(r.type==='rect') return {id:r.id,label:r.label,type:r.type,x:r.x,y:r.y,w:r.w,h:r.h};
+        if(r.type==='circle') return {id:r.id,label:r.label,type:r.type,cx:r.cx,cy:r.cy,r:r.r};
+      });
+      exportBox.value = JSON.stringify(exportData, null, 2);
+      exportWrap.style.display = 'block';
+      exportBox.select();
+      logH('Export JSON généré — copie/colle ces valeurs dans REGIONS');
+    });
+
+    /* ============== INIT ============== */
     buildPalette();
-    frame.style.cursor='crosshair';
+    redrawLegend();
     updateReport();
-    logH('Prêt — choisissez une lésion puis cliquez sur l’image pour la localiser. (Alt+clic pour supprimer un point, glisser pour déplacer)');
+    frame.style.cursor='crosshair';
+    logH('Prêt — choisissez une lésion puis cliquez sur l’image pour la localiser. (Alt+clic = supprimer, glisser = déplacer)'); 
+    logH('Calibration : cliquez “Activer calibration”, puis glissez sommets (polys) ou formes (rect/cercle). Flèches = pas fin.');
   });
   </script>
 </body>
