@@ -28,7 +28,6 @@
     .cert-label{font-size:12px;color:#64748b;margin-bottom:4px}
     .cert-value{font-weight:600}
 
-    /* Footer centré en hauteur */
     .cert-footer{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:12px}
 
     /* Tampon rond */
@@ -41,23 +40,20 @@
     .stamp::after{content:"CENTER";position:absolute; bottom:10px; left:0; right:0; text-align:center; font-size:10px; letter-spacing:2px;}
     .stamp .inner{font-size:11px; line-height:1.1}
 
-    /* Bloc réglementaire centré */
     .legal{
       margin-top:16px; padding-top:12px; border-top:1px solid #e2e8f0;
       color:#475569; font-size:12px; line-height:1.45; text-align:center;
     }
 
-    /* QR code */
     .qr{ width:110px; height:110px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; object-fit:contain; }
 
-    /* Grille formulaire */
     .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
     @media (max-width: 720px){
       .cert-grid, .form-grid{grid-template-columns:1fr}
       .cert-footer{flex-direction:column; align-items:flex-start}
     }
 
-    /* Mode "impression" (capture) : masque logo + QR */
+    /* Mode "impression" (capture) : masque logo + QR (laisse comme ça si tu veux un visuel « neutre » dans Discord) */
     .print-mode header img#brandLogo,
     .print-mode #qrImg{ display:none !important; }
   </style>
@@ -92,12 +88,11 @@
           <label><input type="radio" name="concl" value="inapte"> Inapte</label>
         </div>
 
-        <!-- Bouton à droite -->
         <div class="field" style="grid-column:2/3; display:flex; align-items:flex-end; justify-content:flex-end">
           <button id="printDoc">Imprimer le document</button>
         </div>
 
-        <!-- Bloc détails + motifs rapides -->
+        <!-- Détails + motifs rapides -->
         <div class="field" id="reserveWrap" style="display:none; grid-column:1/3">
           <label id="reserveLabel">Réserves</label>
           <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:6px">
@@ -163,7 +158,9 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1417874223115931789/fa_Ar35jK1b8i2Z3itgqpg79Q0ZN0VnFaIF63R10QouiIJ8JTIMAihW8k_2gNflYJPn3';
+    // ➜ Webhook forum (parent du forum, pas un thread)
+    const DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1421827797965471855/aBgwIgdIRP3TO0Qp_culr5GJHVLDRnwtKnxjv7N62ThG8L_bRQ1gwsqV_aYXhu4eCHa2';
+
     const el=id=>document.getElementById(id);
     const pad2=n=>String(n).padStart(2,'0');
     const refJJMMHHMM=(d=new Date())=>`${pad2(d.getDate())}${pad2(d.getMonth()+1)}${pad2(d.getHours())}${pad2(d.getMinutes())}`;
@@ -321,19 +318,41 @@
 
     updateVisibility(); refreshCert();
 
+    // ===== Envoi en FORUM Discord (création d'un post) =====
     async function sendCaptureToDiscord(){
       printBtn.disabled=true; printBtn.textContent='Impression…';
+
+      // Capture « propre » pour Discord (logo + QR masqués). Supprime .print-mode si tu veux les afficher.
       certPreview.classList.add('print-mode');
       try{
         const canvas=await html2canvas(certPreview,{scale:2, backgroundColor:'#ffffff'});
         const blob=await new Promise(res=> canvas.toBlob(res,'image/png'));
-        const content=`Certificat OMC — ${patient.value||'—'} — Ref ${pvRef.textContent||''}`;
+
+        // Titre du post (thread_name) — 100 caractères max conseillé
+        const ref = pvRef.textContent || currentRef();
+        const dateTxt = pvDate.textContent || (new Date()).toISOString().slice(0,10);
+        const who = (patient.value || 'Patient —');
+        const typeLabel = (certType.value==='pro'?'Aptitude pro':certType.value==='ppa'?'PPA':'Divers');
+        const threadTitle = `[Certificat] ${who} — ${typeLabel} — Ref ${ref}`.slice(0,100);
+
+        // Message (corps) du post
+        const content=`Certificat OMC — ${who} — ${dateTxt}\nRef: ${ref}`;
+
+        // Construction multipart/form-data
         const form=new FormData();
-        form.append('payload_json', JSON.stringify({content}));
-        form.append('file', blob, `certificat_${pvRef.textContent||'ref'}.png`);
-        const resp=await fetch(DISCORD_WEBHOOK+'?wait=true',{method:'POST', body:form});
-        if(!resp.ok) throw new Error('Discord '+resp.status);
-        alert('✅ Document “imprimé” envoyé vers Discord.');
+        form.append('payload_json', JSON.stringify({ content }));
+        form.append('file', blob, `certificat_${ref}.png`);
+
+        // ➜ Ajout du thread_name dans la requête pour créer le post du forum
+        const url = DISCORD_WEBHOOK + '?wait=true&thread_name=' + encodeURIComponent(threadTitle);
+
+        const resp=await fetch(url,{method:'POST', body:form});
+        if(!resp.ok){
+          // Petit fallback explicite pour aider au debug côté client
+          const t = await resp.text().catch(()=> '');
+          throw new Error(`Discord ${resp.status} — ${t}`);
+        }
+        alert('✅ Document publié dans le forum Discord.');
       }catch(e){
         alert('Erreur : '+e.message); console.error(e);
       }finally{
