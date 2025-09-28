@@ -66,7 +66,6 @@
   <div class="wrap block">
     <div class="header">
       <div class="brand"><a href="index.html">← Accueil</a><h1 style="margin:0">Générateur de certificat</h1></div>
-      <!-- Bouton en-tête supprimé -->
     </div>
 
     <div class="panel">
@@ -88,16 +87,28 @@
 
         <div class="field" id="conclusionWrap" style="grid-column:1/3">
           <label>Conclusion</label>
-          <label><input type="radio" name="concl" value="ok" checked> Aucune contre-indication</label>
+          <label><input type="radio" name="concl" value="ok" checked> Apte</label>
           <label><input type="radio" name="concl" value="reserve"> Apte avec réserve</label>
+          <label><input type="radio" name="concl" value="inapte"> Inapte</label>
         </div>
 
-        <!-- Bouton déplacé : colonne de droite -->
+        <!-- Bouton à droite -->
         <div class="field" style="grid-column:2/3; display:flex; align-items:flex-end; justify-content:flex-end">
           <button id="printDoc">Imprimer le document</button>
         </div>
 
-        <div class="field" id="reserveWrap" style="display:none; grid-column:1/3"><label>Réserves</label><textarea id="reserveText" rows="3"></textarea></div>
+        <!-- Bloc détails + motifs rapides -->
+        <div class="field" id="reserveWrap" style="display:none; grid-column:1/3">
+          <label id="reserveLabel">Réserves</label>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:6px">
+            <select id="reserveQuick" style="flex:1; min-width:280px; display:none">
+              <option value="">— Ajouter un motif rapide —</option>
+            </select>
+            <button id="clearReserve" type="button" style="display:none">Effacer le texte</button>
+          </div>
+          <textarea id="reserveText" rows="3" placeholder="Précisez les réserves ou le motif"></textarea>
+        </div>
+
         <div class="field" id="notesWrap" style="display:none; grid-column:1/3"><label>Texte du certificat</label><textarea id="notes" rows="5"></textarea></div>
 
         <div class="field"><label>Médecin</label><input id="doctor" placeholder="Dr. Jane SMITH"></div>
@@ -159,7 +170,8 @@
 
     const certType=el('certType'), certDate=el('certDate'), patient=el('patient'), dob=el('dob');
     const companyWrap=el('companyWrap'), company=el('company');
-    const conclusionWrap=el('conclusionWrap'), reserveWrap=el('reserveWrap'), reserveText=el('reserveText');
+    const conclusionWrap=el('conclusionWrap'), reserveWrap=el('reserveWrap');
+    const reserveText=el('reserveText'), reserveLabel=el('reserveLabel'), reserveQuick=el('reserveQuick'), clearReserve=el('clearReserve');
     const notesWrap=el('notesWrap'), notes=el('notes'), doctor=el('doctor');
     const pvTitle=el('certTitle'), pvTag=el('certTag'), pvPatient=el('pvPatient'), pvDob=el('pvDob');
     const pvDate=el('pvDate'), pvRef=el('pvRef'), pvCompanyWrap=el('pvCompanyWrap'), pvCompany=el('pvCompany');
@@ -175,20 +187,82 @@
       catch { certDate.value = todayISO; }
     }
 
+    // Listes de motifs rapides
+    const QUICK_RESERVE = [
+      "Port de charges limité à 10 kg",
+      "Travail en hauteur déconseillé",
+      "Poste sans exposition au bruit >85 dB(A)",
+      "Pas de travail de nuit",
+      "Aménagement du poste recommandé",
+      "Port d’EPI obligatoire",
+      "Éviter manutentions répétées bras en l’air",
+      "Conduite d’engins sous supervision"
+    ];
+    const QUICK_INAPTE = [
+      "Pathologie incompatible avec le poste",
+      "Risque cardio-respiratoire non contrôlé",
+      "Limitation fonctionnelle majeure",
+      "Contre-indication temporaire (réévaluation nécessaire)",
+      "Non-conformité au référentiel médical du poste",
+      "Inaptitude psychologique au poste sensible"
+    ];
+
+    function fillQuickOptions(kind){
+      reserveQuick.innerHTML = '<option value="">— Ajouter un motif rapide —</option>';
+      const list = (kind==='reserve') ? QUICK_RESERVE : QUICK_INAPTE;
+      list.forEach(txt=>{
+        const opt = document.createElement('option');
+        opt.value = txt; opt.textContent = txt;
+        reserveQuick.appendChild(opt);
+      });
+    }
+
+    function updateReserveVisibility(){
+      const type = certType.value;
+      if (type==='divers'){
+        reserveWrap.style.display='none';
+        reserveQuick.style.display='none';
+        clearReserve.style.display='none';
+        return;
+      }
+      const choice=(document.querySelector('input[name="concl"]:checked')||{}).value||'ok';
+      if (choice==='reserve'){
+        reserveLabel.textContent='Réserves';
+        fillQuickOptions('reserve');
+        reserveWrap.style.display='';
+        reserveQuick.style.display='';
+        clearReserve.style.display='';
+      } else if (choice==='inapte'){
+        reserveLabel.textContent='Motif d’inaptitude';
+        fillQuickOptions('inapte');
+        reserveWrap.style.display='';
+        reserveQuick.style.display='';
+        clearReserve.style.display='';
+      } else {
+        reserveWrap.style.display='none';
+        reserveQuick.style.display='none';
+        clearReserve.style.display='none';
+      }
+    }
+
     function updateVisibility(){
       const type=certType.value;
       if(type==='pro'){ companyWrap.style.display=''; conclusionWrap.style.display=''; notesWrap.style.display='none'; }
       if(type==='ppa'){ companyWrap.style.display='none'; conclusionWrap.style.display=''; notesWrap.style.display='none'; }
       if(type==='divers'){ companyWrap.style.display='none'; conclusionWrap.style.display='none'; reserveWrap.style.display='none'; notesWrap.style.display=''; }
+      updateReserveVisibility();
     }
 
     function currentConclusion(){
       const type=certType.value;
       if(type==='divers') return (notes.value||'—');
       const choice=(document.querySelector('input[name="concl"]:checked')||{}).value||'ok';
-      if(choice==='ok') return 'Examen clinique sans anomalie. Aucune contre-indication.';
-      const r=(reserveText.value||'').trim();
-      return 'Apte avec réserve' + (r? ' — '+r : '');
+      const detail=(reserveText.value||'').trim();
+
+      if(choice==='ok') return 'Apte — examen clinique sans contre-indication.';
+      if(choice==='reserve') return 'Apte avec réserve' + (detail ? ' — '+detail : '');
+      if(choice==='inapte') return 'Inapte' + (detail ? ' — '+detail : '');
+      return '—';
     }
 
     function currentRef(){ return refJJMMHHMM(new Date()); }
@@ -216,6 +290,22 @@
       updateQR();
     }
 
+    // Ajout d’un motif rapide dans la zone de texte
+    function appendReason(txt){
+      if(!txt) return;
+      if(reserveText.value.trim()){
+        reserveText.value = reserveText.value.trim() + ' ; ' + txt;
+      } else {
+        reserveText.value = txt;
+      }
+      reserveQuick.value = '';
+      refreshCert();
+      reserveText.focus();
+    }
+
+    reserveQuick.addEventListener('change', ()=> appendReason(reserveQuick.value));
+    clearReserve.addEventListener('click', ()=>{ reserveText.value=''; refreshCert(); });
+
     ['change','keyup','input'].forEach(evt=>{
       [certType,certDate,patient,dob,company,notes,doctor,reserveText].forEach(c=>{
         c.addEventListener(evt, ()=>{ updateVisibility(); refreshCert(); });
@@ -224,8 +314,7 @@
 
     document.querySelectorAll('input[name="concl"]').forEach(r=>{
       r.addEventListener('change', ()=>{
-        const showReserve = (r.value==='reserve' && r.checked && certType.value!=='divers');
-        reserveWrap.style.display = showReserve ? '' : 'none';
+        updateReserveVisibility();
         refreshCert();
       });
     });
@@ -234,8 +323,6 @@
 
     async function sendCaptureToDiscord(){
       printBtn.disabled=true; printBtn.textContent='Impression…';
-
-      // Masquer logo + QR pendant la capture
       certPreview.classList.add('print-mode');
       try{
         const canvas=await html2canvas(certPreview,{scale:2, backgroundColor:'#ffffff'});
@@ -250,7 +337,7 @@
       }catch(e){
         alert('Erreur : '+e.message); console.error(e);
       }finally{
-        certPreview.classList.remove('print-mode'); // ré-affiche logo + QR
+        certPreview.classList.remove('print-mode');
         printBtn.disabled=false; printBtn.textContent='Imprimer le document';
       }
     }
