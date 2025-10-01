@@ -11,9 +11,21 @@
     body{background:var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial; margin:0}
     .wrap{max-width:1100px;margin:40px auto; padding:0 16px}
     .block{background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--ring); border-radius:var(--radius)}
-    .header{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:16px 20px; border-bottom:1px solid var(--ring)}
-    .header .brand{display:flex; align-items:center; gap:10px}
-    .header a{appearance:none; border:1px solid var(--ring); border-radius:12px; padding:8px 10px; background:#0b1223; color:#e5e7eb; text-decoration:none}
+
+    /* ======= Top identique au calcul des coûts (2x plus petit) ======= */
+    .top{ text-align:center; padding:16px 20px; border-bottom:1px solid var(--ring) }
+    .brand{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
+    .brand img{
+      height:72px;              /* 144 -> 72 */
+      width:288px;              /* 576 -> 288 */
+      object-fit:contain;
+      background:#071423; padding:6px; border-radius:16px;
+    }
+    .brand strong{ font-size:18px; font-weight:800; letter-spacing:.3px }
+    .backbar{ display:flex; justify-content:center; margin:8px 0 0 }
+    .back{ appearance:none; border:1px solid var(--ring); border-radius:12px; padding:8px 12px; background:#0b1223; color:#e5e7eb; text-decoration:none }
+    .back:hover{ background:#0e1a2e; border-color:#20314f }
+
     .panel{background:#0b1223; border:1px solid var(--ring); border-radius:var(--radius); padding:14px; margin:16px}
     .field{display:flex; flex-direction:column; gap:6px; margin-bottom:10px}
     button{appearance:none; border:1px solid var(--ring); border-radius:12px; padding:10px 12px; background:#0b1223; color:#e5e7eb; cursor:pointer}
@@ -56,10 +68,18 @@
 </head>
 <body>
   <div class="wrap block">
-    <div class="header">
-      <div class="brand"><a href="index.html">← Accueil</a><h1 style="margin:0">Générateur de certificat</h1></div>
+    <!-- Haut harmonisé -->
+    <div class="top">
+      <div class="brand">
+        <img src="assets/logo-omc.png" alt="OMC">
+        <strong>Ocean Medical Center — Intranet</strong>
+      </div>
+      <div class="backbar">
+        <a class="back" href="index.html">← Accueil</a>
+      </div>
     </div>
 
+    <!-- (le reste de la page est inchangé) -->
     <div class="panel">
       <div class="form-grid">
         <div class="field"><label>Type de certificat</label>
@@ -110,7 +130,6 @@
     <div class="panel">
       <div class="certificate" id="certPreview">
         <header>
-          <!-- ⚠️ Logo local + CORS -->
           <img id="brandLogo" src="assets/logo-omc.png" alt="OMC" crossOrigin="anonymous">
           <div>
             <div id="certTag" style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #1e3a4a;background:#0b2230;color:#9ed9ff;font-size:12px">OCEAN MEDICAL CENTER</div>
@@ -176,7 +195,7 @@
     const printBtn=el('printDoc');
     const brandLogo = el('brandLogo');
 
-    // Date par défaut (timezone-safe)
+    // Date par défaut
     if (certDate) {
       const tzOffset = (new Date()).getTimezoneOffset()*60000;
       const todayISO = new Date(Date.now()-tzOffset).toISOString().slice(0,10);
@@ -184,7 +203,6 @@
       catch { certDate.value = todayISO; }
     }
 
-    /* ========= Quick motifs ========= */
     const QUICK_RESERVE = [
       "Port de charges limité à 10 kg",
       "Travail en hauteur déconseillé",
@@ -264,12 +282,11 @@
 
     function currentRef(){ return refJJMMHHMM(new Date()); }
 
-    // Génère un QR en mode image externe (CORS si possible)
+    // Génère un QR
     function updateQR(){
       const data = { patient: patient.value || '', date: certDate.value || '', ref: pvRef.textContent || '' };
       const txt = `OMC|Patient:${data.patient}|Date:${data.date}|Ref:${data.ref}`;
       const url = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(txt);
-      // tenter CORS
       qrImg.crossOrigin = 'anonymous';
       qrImg.src = url;
       stampInner.textContent = data.ref || 'OMC';
@@ -290,7 +307,6 @@
       updateQR();
     }
 
-    // Ajout motif rapide
     function appendReason(txt){
       if(!txt) return;
       if(reserveText.value.trim()){
@@ -313,15 +329,11 @@
     });
 
     document.querySelectorAll('input[name="concl"]').forEach(r=>{
-      r.addEventListener('change', ()=>{
-        updateReserveVisibility();
-        refreshCert();
-      });
+      r.addEventListener('change', ()=>{ updateReserveVisibility(); refreshCert(); });
     });
 
     updateVisibility(); refreshCert();
 
-    /* ========= Assurer le chargement des images (Logo + QR) ========= */
     function ensureImageLoaded(img, fallbackSrc=null){
       return new Promise((resolve)=>{
         if (img && img.complete && img.naturalWidth>0) return resolve();
@@ -341,16 +353,14 @@
       });
     }
     async function ensureAssetsLoaded(){
-      // fallback optionnel pour le logo si jamais le fichier local est manquant
       const logoFallback = 'https://i.ibb.co/LzwcCLfN/logo-omc-nord.png';
       await Promise.all([
         ensureImageLoaded(brandLogo, logoFallback),
         ensureImageLoaded(qrImg, null)
       ]);
-      await new Promise(r=>setTimeout(r,50)); // laisser le temps au DOM de peindre
+      await new Promise(r=>setTimeout(r,50));
     }
 
-    /* ========= Discord (forum) ========= */
     async function sendToDiscordForum(){
       if(!WEBHOOK_FORUM_URL){
         alert('Webhook Discord du forum non configuré.');
@@ -360,10 +370,7 @@
       printBtn.textContent = 'Impression…';
 
       try{
-        // S’assurer que logo + QR sont bien chargés/affichés
         await ensureAssetsLoaded();
-
-        // Capture avec CORS
         const canvas = await html2canvas(certPreview, {
           scale: 2,
           backgroundColor: '#ffffff',
@@ -398,10 +405,9 @@
 
     document.getElementById('printDoc').addEventListener('click', sendToDiscordForum);
 
-    // Tests (console via ?test)
     if(location.search.includes('test')){
       try{
-        const r=currentRef(); console.assert(r.length===8, 'Référence JJMMHHMM incorrecte: '+r);
+        const r=refJJMMHHMM(new Date()); console.assert(r.length===8, 'Référence JJMMHHMM incorrecte: '+r);
         console.log('%c[Tests cert] OK','color:#22c55e');
       }catch(e){ console.error('[Tests cert] FAIL', e); }
     }
