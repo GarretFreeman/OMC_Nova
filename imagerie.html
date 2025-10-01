@@ -1001,9 +1001,7 @@
     [patientId, doctorName, comments].forEach(el => el.addEventListener('input', updateReport));
 
     /* ========= Init ========= */
-    function buildPalette(){ /* redéfini plus haut */ }
-    // (On réutilise la version définie plus haut)
-    function init(){
+     function init(){
       buildPalette();
       redrawLegend();
       updateReport();
