@@ -16,33 +16,51 @@
     body{margin:0; background:var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,Cantarell,"Noto Sans","Helvetica Neue",Arial}
 
     .wrap{max-width:1200px; margin:32px auto; padding:0 16px}
-    .header{display:flex; align-items:center; gap:14px; margin-bottom:16px}
-    .back{appearance:none; border:1px solid var(--ring); background:#0b1223; color:var(--text); text-decoration:none; padding:8px 10px; border-radius:12px}
-    .logo{height:44px; width:auto; border-radius:10px; background:#071423; padding:6px; border:1px solid var(--ring)}
-    .title{margin:0; font-size:20px}
 
-    /* GRID 3 COLS */
+    /* ======= Top identique à l'accueil mais 2x plus petit ======= */
+    .top{
+      text-align:center; margin-bottom:18px;
+    }
+    .brand{
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+    }
+    .brand img{
+      height:72px;   /* 144 -> 72 */
+      width:288px;   /* 576 -> 288 */
+      object-fit:contain; background:#071423; padding:6px; border-radius:16px;
+    }
+    .brand strong{ font-size:18px; font-weight:800; letter-spacing:.3px }
+
+    .backbar{display:flex; justify-content:center; margin:8px 0 10px}
+    .back{appearance:none; border:1px solid var(--ring); background:#0b1223; color:var(--text);
+      text-decoration:none; padding:8px 12px; border-radius:12px}
+    .back:hover{background:#0e1a2e; border-color:#20314f}
+
+    /* ======= Layout 3 colonnes ======= */
     .layout{display:grid; grid-template-columns: 240px 1fr 360px; gap:16px}
-    @media (max-width: 1080px){ .layout{grid-template-columns: 220px 1fr} .aside{grid-column: 1 / -1; position:static}}
-    @media (max-width: 780px){ .layout{grid-template-columns: 1fr} }
+    @media (max-width:1080px){ .layout{grid-template-columns:220px 1fr} .aside{grid-column:1 / -1; position:static} }
+    @media (max-width:780px){ .layout{grid-template-columns:1fr} }
 
-    /* PANELS */
     .panel{background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--ring); border-radius:var(--radius); box-shadow:var(--shadow)}
     .panel-body{padding:14px}
 
-    /* SIDEBAR LEFT */
+    /* ======= Sidebar gauche : recherche + catégories ======= */
     .sidebar{position:sticky; top:16px}
     .search{display:flex; gap:8px; margin-bottom:12px}
     .input{flex:1; padding:10px 12px; border-radius:12px; border:1px solid var(--ring); background:#0b1223; color:#fff}
-    .btn{appearance:none; border:1px solid var(--ring); background:#0b1223; color:#e5e7eb; padding:8px 12px; border-radius:12px; cursor:pointer}
-    .btn:hover{background:#0e1a2e; border-color:#20314f}
 
     .cats{display:flex; flex-direction:column; gap:8px}
-    .cat{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 12px; border:1px solid var(--ring); border-radius:12px; background:#0b1223; cursor:pointer}
-    .cat[aria-current="true"]{background:linear-gradient(180deg,#0f2746,#0c1d35); border-color:#1b3a63}
-    .count{font-size:12px; color:#cbd5e1; border:1px solid var(--ring); padding:2px 8px; border-radius:999px}
+    .cat{
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      padding:10px 12px; border:1px solid var(--ring); border-radius:12px;
+      background:#0b1223; cursor:pointer; color:#ffffff;   /* texTE blanc */
+      transition: background .15s ease, border-color .15s ease;
+    }
+    .cat:hover{ background:#102039; border-color:#1b3a63 } /* survol change de couleur */
+    .cat[aria-current="true"]{ background:linear-gradient(180deg,#0f2746,#0c1d35); border-color:#1b3a63 }
+    .count{font-size:12px; color:#e5e7eb; border:1px solid var(--ring); padding:2px 8px; border-radius:999px}
 
-    /* MAIN GRID */
+    /* ======= Centre : cartes ======= */
     .toolbar{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px}
     .hint{color:var(--muted); font-size:13px}
     .grid{display:grid; gap:12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); padding:8px}
@@ -58,13 +76,9 @@
     .add{padding:10px 12px; border-radius:12px; border:1px solid #1b3a63; background:#0f2746; color:#e5e7eb; font-weight:700}
     .add:hover{background:#123155}
 
-    /* ASIDE RIGHT (sticky) */
+    /* ======= Droite : Récap (sans TVA, sans copier/export) ======= */
     .aside{position:sticky; top:16px; height:fit-content}
     .aside .panel-body{display:flex; flex-direction:column; gap:12px}
-    .row-spread{display:flex; justify-content:space-between; align-items:center; gap:8px}
-    .muted{color:#9ca3af}
-    .switch{display:flex; align-items:center; gap:8px}
-    .tax-input{width:90px; padding:8px 10px; border-radius:10px; border:1px solid var(--ring); background:#0b1223; color:#fff; text-align:center}
 
     .summary-wrap{border:1px solid var(--ring); border-radius:12px; overflow:hidden}
     table.summary{width:100%; border-collapse:collapse; font-size:14px; background:#0b1223}
@@ -76,30 +90,20 @@
     .summary .ctrls{display:inline-flex; gap:6px}
     .summary .mini{width:26px; height:26px; border-radius:7px; border:1px solid var(--ring); background:#0b1223; color:#fff; display:grid; place-items:center; cursor:pointer}
 
-    .totals{border:1px solid var(--ring); border-radius:12px; padding:10px}
-    .total-line{display:flex; justify-content:space-between; align-items:center; margin:6px 0}
-    .total-line strong{font-size:16px}
     .grand{font-size:26px; font-weight:900; text-align:right}
-
-    .actions{display:flex; gap:8px; flex-wrap:wrap}
-    .ghost{background:#0b1223; border:1px solid var(--ring); color:#e5e7eb; padding:8px 12px; border-radius:12px; cursor:pointer}
-    .ghost:hover{background:#0e1a2e}
-    .primary{background:#0f2746; border:1px solid #1b3a63; color:#e5e7eb; padding:8px 12px; border-radius:12px; font-weight:700}
-    .primary:hover{background:#133154}
-
-    /* MOBILE adjustments: put summary at bottom as full width panel */
-    @media (max-width:780px){
-      .aside .panel-body{gap:16px}
-      .summary .col-qty{width:100px}
-    }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="header">
-      <a class="back" href="index.html">← Accueil</a>
-      <img class="logo" src="assets/Logo-omc.png" alt="OMC">
-      <h1 class="title">Calcul des coûts d’intervention (USD)</h1>
+    <!-- TOP allégé, identique à l'accueil mais 2x plus petit -->
+    <div class="top">
+      <div class="brand">
+        <img src="assets/Logo-omc.png" alt="OMC">
+        <strong>Ocean Medical Center — Intranet</strong>
+      </div>
+      <div class="backbar">
+        <a class="back" href="index.html">← Accueil</a>
+      </div>
     </div>
 
     <div class="layout">
@@ -108,7 +112,6 @@
         <div class="panel-body">
           <div class="search" role="search">
             <input id="q" class="input" type="search" placeholder="Rechercher (nom, code)…" aria-label="Rechercher">
-            <button id="clearQ" class="btn" title="Effacer la recherche">Effacer</button>
           </div>
 
           <div class="cats" id="cats" role="tablist" aria-label="Catégories">
@@ -122,23 +125,15 @@
         <div class="panel-body">
           <div class="toolbar">
             <div class="hint" id="hintCount">—</div>
-            <div class="hint">Astuce : cliquez sur “Ajouter” ou utilisez + / −</div>
+            <div class="hint">Astuce : “Ajouter” ou utilisez + / −</div>
           </div>
           <div id="grid" class="grid"></div>
         </div>
       </main>
 
-      <!-- COLONNE DROITE : Récap -->
+      <!-- COLONNE DROITE : Récap (Total uniquement) -->
       <aside class="aside panel" aria-label="Récapitulatif">
         <div class="panel-body">
-          <div class="row-spread">
-            <div class="switch">
-              <label><input type="checkbox" id="taxEnable"> TVA</label>
-              <input class="tax-input" id="taxRate" type="number" min="0" max="100" step="0.5" value="0"> %
-            </div>
-            <button id="reset" class="ghost">Réinitialiser</button>
-          </div>
-
           <div class="summary-wrap">
             <table class="summary" aria-describedby="summaryCaption">
               <caption id="summaryCaption" style="position:absolute;left:-9999px">Récapitulatif des éléments sélectionnés</caption>
@@ -155,16 +150,7 @@
             </table>
           </div>
 
-          <div class="totals" id="totalsBox">
-            <div class="total-line"><span class="muted">Sous-total</span><span id="subtotal">$0</span></div>
-            <div class="total-line"><span class="muted">TVA</span><span id="taxval">$0</span></div>
-            <div class="grand" id="grand">$0</div>
-          </div>
-
-          <div class="actions">
-            <button id="copy" class="ghost">Copier le récap</button>
-            <button id="export" class="primary">Exporter JSON</button>
-          </div>
+          <div class="grand" id="grand">$0</div>
         </div>
       </aside>
     </div>
@@ -173,7 +159,7 @@
   <script>
   document.addEventListener('DOMContentLoaded', () => {
     /* =========================
-       Données (inchangées)
+       Données
        ========================= */
     const CATALOG = [
       { id:'CONS_TRAVAIL',  name:'Certificat aptitude Travail',      priceUSD:450,  category:'Consultation' },
@@ -213,17 +199,9 @@
       grid: document.getElementById('grid'),
       hintCount: document.getElementById('hintCount'),
       q: document.getElementById('q'),
-      clearQ: document.getElementById('clearQ'),
 
       summaryBody: document.getElementById('summaryBody'),
-      subtotal: document.getElementById('subtotal'),
-      taxval: document.getElementById('taxval'),
-      grand: document.getElementById('grand'),
-      taxEnable: document.getElementById('taxEnable'),
-      taxRate: document.getElementById('taxRate'),
-      reset: document.getElementById('reset'),
-      copy: document.getElementById('copy'),
-      export: document.getElementById('export')
+      grand: document.getElementById('grand')
     };
 
     /* =========================
@@ -248,7 +226,7 @@
         btn.setAttribute('role','tab');
         btn.setAttribute('aria-current', String(c===activeCategory));
         btn.innerHTML = `<span>${c}</span><span class="count">${counts[c]}</span>`;
-        btn.onclick = () => { activeCategory = c; renderGrid(); };
+        btn.onclick = () => { activeCategory = c; renderGrid(); updateSummary(); };
         els.cats.appendChild(btn);
       }
     }
@@ -285,33 +263,27 @@
         price.className = 'price';
         price.textContent = fmtUSD(item.priceUSD);
 
-        const controls = document.createElement('div');
-        controls.className = 'row';
-
-        const qty = document.createElement('div');
-        qty.className = 'qty';
-        const minus = document.createElement('button'); minus.className = 'step'; minus.textContent = '−';
+        const controls = document.createElement('div'); controls.className = 'row';
+        const qty = document.createElement('div'); qty.className = 'qty';
+        const minus = document.createElement('button'); minus.className='step'; minus.textContent='−';
         const input = document.createElement('input'); input.type='number'; input.min='0'; input.step='1'; input.value = state.get(item.id) ?? 0;
-        const plus  = document.createElement('button'); plus.className  = 'step'; plus.textContent  = '+';
-        minus.onclick = () => { setQty(item.id, Math.max(0, (state.get(item.id)||0)-1)); input.value = state.get(item.id)||0; };
+        const plus  = document.createElement('button'); plus.className='step'; plus.textContent='+';
+        minus.onclick = () => { setQty(item.id, Math.max(0,(state.get(item.id)||0)-1)); input.value = state.get(item.id)||0; };
         plus.onclick  = () => { setQty(item.id, (state.get(item.id)||0)+1);         input.value = state.get(item.id)||0; };
         input.oninput = () => { const v=Math.max(0, parseInt(input.value||'0',10)); setQty(item.id, v); input.value=v; };
         qty.append(minus,input,plus);
 
-        const add = document.createElement('button');
-        add.className = 'add';
-        add.textContent = 'Ajouter';
+        const add = document.createElement('button'); add.className='add'; add.textContent='Ajouter';
         add.onclick = () => { setQty(item.id, (state.get(item.id)||0)+1); input.value = state.get(item.id)||0; };
 
         controls.append(price, qty);
         card.append(head, controls, add);
         els.grid.appendChild(card);
       }
-      updateSummary();
     }
 
     /* =========================
-       Calculs & Récap
+       Calculs & Récap (TOTAL seulement)
        ========================= */
     function compute(){
       const rows = [];
@@ -321,14 +293,11 @@
         const line = item.priceUSD * q; subtotal += line;
         rows.push({ id:item.id, name:item.name, qty:q, line });
       }
-      const taxEnabled = els.taxEnable.checked;
-      const taxRate = Math.max(0, Number(els.taxRate.value||0));
-      const tax = taxEnabled ? subtotal * taxRate / 100 : 0;
-      return { rows, subtotal, tax, total: subtotal + tax };
+      return { rows, total: subtotal };
     }
 
     function updateSummary(){
-      const {rows, subtotal, tax, total} = compute();
+      const {rows, total} = compute();
       els.summaryBody.innerHTML = '';
       if(rows.length === 0){
         const tr = document.createElement('tr');
@@ -352,57 +321,21 @@
           els.summaryBody.appendChild(tr);
         }
       }
-      els.subtotal.textContent = fmtUSD(subtotal);
-      els.taxval.textContent   = fmtUSD(tax);
-      els.grand.textContent    = fmtUSD(total);
-
-      els.taxRate.disabled = !els.taxEnable.checked;
-      els.taxRate.style.opacity = els.taxEnable.checked ? 1 : .6;
+      els.grand.textContent = fmtUSD(total);
     }
 
     function setQty(id, qty){
       if(qty <= 0) state.delete(id); else state.set(id, qty);
-      updateSummary(); // récap
-      // ne re-render pas toute la grille => léger; on met à jour quand on y revient
-      // si tu veux un update visuel immédiat des inputs de la grille : renderGrid();
+      updateSummary();
     }
 
     /* =========================
        Recherche
        ========================= */
-    els.q.addEventListener('input', () => { query = els.q.value.trim().toLowerCase(); renderGrid(); });
-    els.clearQ.addEventListener('click', () => { els.q.value=''; query=''; renderGrid(); els.q.focus(); });
-
-    /* =========================
-       TVA & Reset
-       ========================= */
-    els.taxEnable.addEventListener('change', updateSummary);
-    els.taxRate.addEventListener('input', updateSummary);
-    els.reset.addEventListener('click', () => { state.clear(); updateSummary(); });
-
-    /* =========================
-       Export & Copy
-       ========================= */
-    els.copy.addEventListener('click', async () => {
-      const {rows, subtotal, tax, total} = compute();
-      const lines = [
-        '— Récap OMC —',
-        ...rows.map(r => `• ${r.name}  x${r.qty}  = ${fmtUSD(r.line)}`),
-        `Sous-total : ${fmtUSD(subtotal)}`,
-        `TVA : ${fmtUSD(tax)}`,
-        `TOTAL : ${fmtUSD(total)}`
-      ];
-      try { await navigator.clipboard.writeText(lines.join('\n')); alert('Récap copié dans le presse-papiers ✅'); }
-      catch(e){ alert('Impossible de copier automatiquement.'); }
-    });
-
-    els.export.addEventListener('click', () => {
-      const payload = compute();
-      const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'omc-recap.json'; a.click();
-      URL.revokeObjectURL(url);
+    els.q.addEventListener('input', () => {
+      query = els.q.value.trim().toLowerCase();
+      renderGrid();
+      updateSummary();
     });
 
     /* =========================
