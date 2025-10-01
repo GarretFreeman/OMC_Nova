@@ -254,8 +254,9 @@
       plaie_feu:   ['Compression si hémorragie', 'Orientation traçabilité/forensic', 'Surveillance choc', 'Imagerie selon siège'],
       brulure:  ['Refroidissement 15 min', 'Pansement stérile', 'Surveillance douleur', 'Éviter exposition']
     };
+    const EXTRA_REC = 'Suivi par un kinésithérapeute pour rééducation'; // <-- ajouté
 
-    /* ========= Zones (polygones) — inchangées ========= */
+    /* ========= Zones (polygones) ========= */
     const REGIONS_RAW = [
       {"id":"tete","label":"Tête","type":"poly","points":[[215,20],[235,30],[245,45],[250,60],[250,75],[255,80],[255,95],[245,105],[240,120],[185,120],[180,105],[175,95],[170,80],[174,60],[175,45],[190,30],[200,20],[215,20],[215,20]]},
       {"id":"cou","label":"Cou","type":"poly","points":[[185,125],[240,123],[240,146],[185,145],[185,125]]},
@@ -310,7 +311,6 @@
     const reportTreat = document.getElementById('reportTreat');
     const reportRecs = document.getElementById('reportRecs');
 
-    const optionsBox = document.getElementById('optionsBox');
     const lesionOptions = document.getElementById('lesionOptions');
     const activeMarkerLabel = document.getElementById('activeMarkerLabel');
     const medsChoices = document.getElementById('medsChoices');
@@ -344,7 +344,6 @@
       return inside;
     }
     function regionFrom(x,y){ for(const r of REGIONS){ if(inPoly(x,y,r.points)) return r.label; } return null; }
-    function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
     /* ========= Texte description selon options ========= */
     function markerText(m){
@@ -354,19 +353,19 @@
         case 'fracture':
           return `Fracture ${o.type||'non précisée'} ${o.deplacement?('('+o.deplacement+') '):''}${o.ouverte?'avec plaie ouverte, ':''}au niveau de la ${zone.toLowerCase()}.`;
         case 'entorse':
-          return `Entorse ${o.stade?('stade '+o.stade):'—'} ${o.oedeme?('avec œdème '+o.oedeme):''}${o.instabilite?' et instabilité':''} ${'au niveau de la '+zone.toLowerCase()}.`;
+          return `Entorse ${o.stade?('stade '+o.stade):'—'} ${o.oedeme?('avec œdème '+o.oedeme):''}${o.instabilite?' et instabilité':''} au niveau de la ${zone.toLowerCase()}.`;
         case 'luxation':
-          return `Luxation ${o.reduction?('('+o.reduction+') '):''}avec douleur ${o.douleur||'—'} ${'au niveau de la '+zone.toLowerCase()}.`;
+          return `Luxation ${o.reduction?('('+o.reduction+') '):''}avec douleur ${o.douleur||'—'} au niveau de la ${zone.toLowerCase()}.`;
         case 'contusion':
-          return `Contusion ${o.hematome?('avec hématome '+o.hematome):''}${o.douleur?(' et douleur '+o.douleur):''} ${'au niveau de la '+zone.toLowerCase()}.`;
+          return `Contusion ${o.hematome?('avec hématome '+o.hematome):''}${o.douleur?(' et douleur '+o.douleur):''} au niveau de la ${zone.toLowerCase()}.`;
         case 'plaie_blanche':
-          return `Plaie par arme blanche ${o.longueur||''}${o.berges?(', berges '+o.berges):''}${o.saign?' avec saignement actif':''} ${'au niveau de la '+zone.toLowerCase()}.`;
+          return `Plaie par arme blanche ${o.longueur||''}${o.berges?(', berges '+o.berges):''}${o.saign?' avec saignement actif':''} au niveau de la ${zone.toLowerCase()}.`;
         case 'plaie_feu':
-          return `Plaie par arme à feu, orifice ${o.orifice||'—'}, trajectoire ${o.traj||'—'}${o.hemorragie?' avec hémorragie':''} ${'au niveau de la '+zone.toLowerCase()}.`;
+          return `Plaie par arme à feu, orifice ${o.orifice||'—'}, trajectoire ${o.traj||'—'}${o.hemorragie?' avec hémorragie':''} au niveau de la ${zone.toLowerCase()}.`;
         case 'brulure':
-          return `Brûlure ${o.degre||'—'} (${o.surface||'surface —'})${o.phlyctenes?(', phlyctènes '+o.phlyctenes):''} ${'au niveau de la '+zone.toLowerCase()}.`;
+          return `Brûlure ${o.degre||'—'} (${o.surface||'surface —'})${o.phlyctenes?(', phlyctènes '+o.phlyctenes):''} au niveau de la ${zone.toLowerCase()}.`;
         default:
-          return `Lésion ${LMAP[m.type].label} ${'au niveau de la '+zone.toLowerCase()}.`;
+          return `Lésion ${LMAP[m.type].label} au niveau de la ${zone.toLowerCase()}.`;
       }
     }
 
@@ -397,7 +396,7 @@
 
       // Traitement / Préconisations
       reportTreat.innerHTML = selectedMeds.size
-        ? `<h4 style="margin:10px 0 6px">Traitement</h4><ul style="margin:0 0 0 18px; padding:0">${[...selectedMeds].map(x=>`<li>${x}</li>`).join('')}</ul>`
+        ? `<h4 style="margin:10px 0 6px">Traitement médicamenteux</h4><ul style="margin:0 0 0 18px; padding:0">${[...selectedMeds].map(x=>`<li>${x}</li>`).join('')}</ul>`
         : '';
       reportRecs.innerHTML = selectedRecs.size
         ? `<h4 style="margin:10px 0 6px">Préconisations</h4><ul style="margin:0 0 0 18px; padding:0">${[...selectedRecs].map(x=>`<li>${x}</li>`).join('')}</ul>`
@@ -433,10 +432,9 @@
       });
     }
 
-    /* ========= Options par lésion active ========= */
+    /* ========= Gestion de la lésion active ========= */
     function setActiveMarker(id){
       activeMarkerId = id;
-      // highlight
       markersLayer.querySelectorAll('.marker').forEach(g=>g.classList.remove('active'));
       if(id){
         const node = markersLayer.querySelector(`g.marker[data-id="${id}"]`);
@@ -447,7 +445,6 @@
 
     function renderLesionOptions(){
       lesionOptions.innerHTML = '';
-      let title = '—';
       if(!activeMarkerId){
         activeMarkerLabel.textContent = '—';
         lesionOptions.innerHTML = `<div class="label">Sélectionnez ou ajoutez une lésion pour voir ses options.</div>`;
@@ -456,8 +453,7 @@
       const m = markers.find(x=>x.id===activeMarkerId);
       if(!m){ activeMarkerLabel.textContent='—'; return; }
       const cfg = FORM_CFG[m.type] || [];
-      title = `${LMAP[m.type].label}`;
-      activeMarkerLabel.textContent = `(${title})`;
+      activeMarkerLabel.textContent = `(${LMAP[m.type].label})`;
 
       cfg.forEach(group=>{
         const wrap = document.createElement('div');
@@ -493,12 +489,15 @@
     /* ========= Traitements & Préconisations (agrégés) ========= */
     function updateTPPanels(){
       const types = [...new Set(markers.map(m=>m.type))];
+
       // Médics
       const meds = new Set();
       types.forEach(t => (MEDS_CFG[t]||[]).forEach(x=>meds.add(x)));
+
       // Recos
       const recs = new Set();
       types.forEach(t => (RECS_CFG[t]||[]).forEach(x=>recs.add(x)));
+      if(types.length>0){ recs.add(EXTRA_REC); } // <-- Ajout kiné
 
       // rendre listes
       const renderList = (box, items, setStore) => {
@@ -519,7 +518,6 @@
           row.append(input, span);
           box.appendChild(row);
         });
-        // remettre sélection
         setStore.clear(); prev.forEach(v => { if(items.has(v)) setStore.add(v); });
         updateReport();
       };
@@ -569,10 +567,7 @@
         m.y = Math.max(0, Math.min(940, p.y + Number(g.dataset.dy)));
         g.setAttribute('transform', `translate(${m.x},${m.y})`);
       });
-      g.addEventListener('pointerup', ()=>{
-        dragging=false;
-        updateReport();
-      });
+      g.addEventListener('pointerup', ()=>{ dragging=false; updateReport(); });
       g.addEventListener('click', (e)=>{
         if(e.altKey){
           const idx = markers.findIndex(mm => mm.id===m.id);
@@ -686,6 +681,7 @@
       context.fillText(line, x, cy);
       return cy - y + lineHeight;
     }
+
     function measureRightCardHeight(scale, rightW){
       const paddingX = 16*scale;
       const headerH = 72*scale;
@@ -728,17 +724,33 @@
       } else {
         markers.forEach(m=>{
           perTypeIndex[m.type]=(perTypeIndex[m.type]||0)+1;
-          const zone = regionFrom(m.x,m.y) || 'Zone non définie';
-          y += line13 + 12*scale;
-          ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
           const ch = markerText(m);
+          ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
+          y += line13 + 12*scale; // titre ligne
           y += wrapHeight(ctx, ch, rightW - (paddingX*2 + 50*scale), line12) + 10*scale;
         });
       }
 
-      y += 24*scale;
+      // --- AJOUT : sections Traitement médicamenteux & Préconisations (si données) ---
+      if(selectedMeds.size){
+        y += 20*scale; // marge + titre
+        selectedMeds.forEach(txt=>{
+          ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
+          y += wrapHeight(ctx, txt, rightW - (paddingX*2 + 20*scale), line12) + 6*scale;
+        });
+      }
+      if(selectedRecs.size){
+        y += 20*scale; // marge + titre
+        selectedRecs.forEach(txt=>{
+          ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
+          y += wrapHeight(ctx, txt, rightW - (paddingX*2 + 20*scale), line12) + 6*scale;
+        });
+      }
+
+      y += 24*scale; // marge basse
       return y;
     }
+
     async function exportReportPNG(scale=2){
       const rightW = 640*scale;
       const sideGap = 20*scale;
@@ -757,14 +769,17 @@
       canvas.width = W; canvas.height = H;
       const ctx = canvas.getContext('2d');
 
+      // fond
       ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,W,H);
 
+      // silhouette
       const bgSrc = document.querySelector('.body-bg').src;
       const bgImg = await loadImage(bgSrc);
       const figX = figPad;
       const figY = figPad;
       ctx.drawImage(bgImg, figX, figY, figW, figH);
 
+      // marqueurs
       const perTypeNums = {};
       markers.forEach(m=>{
         perTypeNums[m.type]=(perTypeNums[m.type]||0)+1;
@@ -785,12 +800,23 @@
         }
       });
 
+      // carte à droite
       const rightX = Math.round(figX + figW + sideGap);
       const cardY  = figPad;
       const cardW  = rightW;
       const cardH  = measureRightCardHeight(scale, rightW);
 
       // carte + header
+      function roundRect(ctx, x, y, w, h, r){
+        const rr = Math.min(r, w/2, h/2);
+        ctx.beginPath();
+        ctx.moveTo(x+rr,y);
+        ctx.arcTo(x+w,y,x+w,y+h,rr);
+        ctx.arcTo(x+w,y+h,x,y+h,rr);
+        ctx.arcTo(x,y+h,x,y,rr);
+        ctx.arcTo(x,y,x+w,y,rr);
+        ctx.closePath();
+      }
       roundRect(ctx, rightX, cardY, cardW, cardH, 16*scale);
       ctx.fillStyle = '#f8fafc'; ctx.fill();
       ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1*scale; ctx.stroke();
@@ -809,11 +835,13 @@
         ctx.drawImage(logoImg, rightX+16*scale, cardY+14*scale, 44*scale, 44*scale);
       }catch{}
 
+      // titre
       ctx.fillStyle = '#001019';
       ctx.font = `${20*scale}px ui-sans-serif, system-ui`;
       ctx.textAlign='left'; ctx.textBaseline='middle';
       ctx.fillText('Constat lésionnel — OMC', rightX+72*scale, cardY+headerH/2);
 
+      // meta
       const metaY = cardY + headerH + 16*scale;
       const dateStr = new Date().toLocaleString();
       ctx.fillStyle = '#0f172a';
@@ -826,6 +854,7 @@
         wrapText(ctx, `Notes : ${comments.value}`, rightX+16*scale, metaY + 64*scale, cardW-32*scale, 14*scale, 18*scale);
       }
 
+      // résumé badges
       const counts = {}; markers.forEach(m=>counts[m.type]=(counts[m.type]||0)+1);
       let badgeX = rightX+16*scale, badgeY = metaY + (comments.value? 114*scale : 90*scale);
       ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
@@ -841,6 +870,7 @@
         badgeX += w + 8*scale;
       });
 
+      // liste constatations
       let listTop = badgeY + 36*scale;
       ctx.fillStyle = '#0f172a';
       ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
@@ -873,8 +903,42 @@
         });
       }
 
+      // --- AJOUT : sections Traitement médicamenteux & Préconisations (si données) ---
+      if(selectedMeds.size){
+        listTop += 16*scale;
+        ctx.fillStyle = '#0f172a';
+        ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
+        ctx.fillText('Traitement médicamenteux :', rightX+16*scale, listTop);
+        listTop += 16*scale;
+        ctx.fillStyle = '#475569';
+        ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
+        [...selectedMeds].forEach(txt=>{
+          // puce
+          ctx.beginPath(); ctx.fillStyle='#0f172a';
+          ctx.arc(rightX+22*scale, listTop-4*scale, 3*scale, 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle='#475569';
+          listTop += wrapText(ctx, txt, rightX+34*scale, listTop, cardW-50*scale, 12*scale, 16*scale) + 8*scale;
+        });
+      }
+      if(selectedRecs.size){
+        listTop += 8*scale;
+        ctx.fillStyle = '#0f172a';
+        ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
+        ctx.fillText('Préconisations :', rightX+16*scale, listTop);
+        listTop += 16*scale;
+        ctx.fillStyle = '#475569';
+        ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
+        [...selectedRecs].forEach(txt=>{
+          ctx.beginPath(); ctx.fillStyle='#0f172a';
+          ctx.arc(rightX+22*scale, listTop-4*scale, 3*scale, 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle='#475569';
+          listTop += wrapText(ctx, txt, rightX+34*scale, listTop, cardW-50*scale, 12*scale, 16*scale) + 8*scale;
+        });
+      }
+
       return await new Promise(res=> canvas.toBlob(b=>res(b),'image/png'));
     }
+
     async function sendToDiscordForum(){
       if(!WEBHOOK_FORUM_URL){ alert('Webhook Discord non configuré.'); return; }
       try{
@@ -937,6 +1001,8 @@
     [patientId, doctorName, comments].forEach(el => el.addEventListener('input', updateReport));
 
     /* ========= Init ========= */
+    function buildPalette(){ /* redéfini plus haut */ }
+    // (On réutilise la version définie plus haut)
     function init(){
       buildPalette();
       redrawLegend();
