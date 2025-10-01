@@ -28,73 +28,50 @@
     overflow-x:hidden;
   }
 
-  .wrap{max-width:1200px;margin:40px auto; padding:0 16px}
+  .wrap{max-width:1200px;margin:40px auto; padding:0 16px; text-align:center}
 
-  .topbar{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px;}
-  .brand{display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:14px;
-    background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06);}
-  .brand img{ height:36px; width:36px; border-radius:10px; background:#071423; padding:4px }
-  .brand strong{ font-size:15px }
+  /* Logo et titre */
+  .brand{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:20px; margin-bottom:40px;
+  }
+  .brand img{ height:144px; width:144px; border-radius:24px; background:#071423; padding:8px }
+  .brand strong{ font-size:32px; font-weight:800; letter-spacing:.5px }
 
-  .status{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
-  .pill{font-size:12px; color:#cbd5e1; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.06);
-    background:rgba(17,24,39,.35);}
+  .hero{
+    background:rgba(17,24,39,.55); border:1px solid rgba(255,255,255,.06);
+    border-radius:var(--radius); box-shadow:var(--shadow); padding:40px 28px;
+  }
 
-  .hero{background:rgba(17,24,39,.55); border:1px solid rgba(255,255,255,.06);
-    border-radius:var(--radius); box-shadow:var(--shadow); padding:26px 28px;}
-
-  .header{display:flex; align-items:flex-start; justify-content:space-between; gap:18px;
-    border-bottom:1px solid rgba(255,255,255,.06); padding-bottom:16px; margin-bottom:16px;}
-  .titles h1{ font-size:22px; margin:0 0 6px }
-  .titles p{ margin:0; color:var(--muted); font-size:14px }
-
-  .action-row{display:flex; gap:10px; flex-wrap:wrap;}
-  .btn{background:#0c1a2e; color:var(--text); padding:10px 14px; border-radius:12px; font-weight:600; font-size:14px;
-    border:1px solid rgba(255,255,255,.08); text-decoration:none; transition:.2s; }
-  .btn:hover{ background:#0e213b; border-color:#17365b; }
-
-  .choice-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:8px;}
+  .choice-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:8px;}
   @media (max-width:960px){ .choice-grid{ grid-template-columns:1fr } }
 
-  .choice{display:flex; flex-direction:column; gap:12px; text-decoration:none; color:var(--text);
-    padding:22px; border-radius:18px; background:rgba(13,24,46,.75); border:1px solid rgba(255,255,255,.06);
+  .choice{display:flex; flex-direction:column; gap:16px; text-decoration:none; color:var(--text);
+    padding:28px; border-radius:18px; background:rgba(13,24,46,.75); border:1px solid rgba(255,255,255,.06);
     box-shadow:var(--shadow); transition:.2s;}
   .choice:hover{ transform:translateY(-3px); background:#0e203d; border-color:#1b3a63 }
 
-  .choice-figure{width:78px; height:78px; display:grid; place-items:center; border-radius:18px;
-    background:#071423; border:1px solid rgba(255,255,255,.08);}
-  .choice-figure img{ width:48px; height:48px; object-fit:contain }
+  .choice-figure{
+    width:140px; height:140px;
+    display:grid; place-items:center; border-radius:20px;
+    background:#071423; border:1px solid rgba(255,255,255,.08);
+    margin:0 auto;
+  }
+  .choice-figure img{ width:96px; height:96px; object-fit:contain }
 
-  .choice-title{ font-size:17px; font-weight:800 }
-  .choice-desc{ color:var(--muted); font-size:13px }
+  .choice-title{ font-size:18px; font-weight:800; text-align:center }
+  .choice-desc{ color:var(--muted); font-size:14px; text-align:center }
 </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="topbar">
-      <div class="brand">
-        <img src="assets/Logo-omc.png" alt="OMC">
-        <strong>Ocean Medical Center — Intranet</strong>
-      </div>
-      <div class="status">
-        <span class="pill">Accès interne</span>
-        <span class="pill">Dernière MAJ : <span id="maj">–</span></span>
-      </div>
+    <div class="brand">
+      <img src="assets/Logo-omc.png" alt="OMC">
+      <strong>Ocean Medical Center — Intranet</strong>
     </div>
 
     <section class="hero">
-      <div class="header">
-        <div class="titles">
-          <h1>Bienvenue à bord</h1>
-          <p>Accédez rapidement aux outils du secrétariat et des pôles médicaux.</p>
-        </div>
-        <div class="action-row">
-          <a class="btn" href="#raccourcis">Raccourcis</a>
-          <a class="btn" href="https://discord.com" target="_blank">Discord OMC</a>
-        </div>
-      </div>
-
-      <div id="raccourcis" class="choice-grid">
+      <div class="choice-grid">
         <!-- Calculs des coûts -->
         <a class="choice" href="calc.html">
           <div class="choice-figure">
@@ -130,17 +107,5 @@
       </div>
     </section>
   </div>
-
-<script>
-  // Affiche une date de "dernière MAJ" locale
-  (function(){
-    try{
-      const el = document.getElementById('maj');
-      const now = new Date();
-      const opts = { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' };
-      el.textContent = new Intl.DateTimeFormat('fr-FR', opts).format(now);
-    }catch(e){}
-  })();
-</script>
 </body>
 </html>
