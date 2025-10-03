@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OMC — Certificat de deces</title>
+  <title>OMC - Certificat de deces</title>
   <link rel="icon" href="assets/Logo-omc.png" type="image/png">
   <style>
     :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; }
@@ -59,7 +59,7 @@
     <div class="top">
       <div class="brand">
         <img src="assets/Logo-omc.png" alt="OMC">
-        <strong>Ocean Medical Center — Intranet</strong>
+        <strong>Ocean Medical Center - Intranet</strong>
       </div>
       <div class="backbar">
         <a class="back" href="index.html">← Accueil</a>
@@ -68,13 +68,13 @@
 
     <div class="panel">
       <div class="form-grid">
-        <div class="field"><label>Defunt <small>(Nom Prenom)</small></label><input id="deceased" placeholder="Garret FREEMAN"></div>
+        <div class="field"><label>Defunt <small>(Nom Prenom)</small></label><input id="deceased" placeholder="John DOE"></div>
         <div class="field"><label>Date de naissance</label><input id="dob" placeholder="01/01/1980"></div>
 
         <div class="field"><label>Date du deces</label><input type="date" id="dod"></div>
         <div class="field"><label>Heure du deces</label><input type="time" id="tod"></div>
 
-        <div class="field"><label>Lieu du deces</label><input id="place" placeholder="OMC — Service Urgences"></div>
+        <div class="field"><label>Lieu du deces</label><input id="place" placeholder="OMC - Service Urgences"></div>
 
         <!-- Causes immediates -->
         <div class="field"><label>Cause immediate</label>
@@ -82,14 +82,14 @@
         </div>
 
         <!-- Cause antecedente detail -->
-        <div class="field"><label>Cause antecedente — Precision</label>
+        <div class="field"><label>Cause antecedente - Precision</label>
           <select id="antDetail"></select>
         </div>
 
-        <div class="field"><label>Medecin certificateur</label><input id="doctor" placeholder="Dr. Bill HANSON"></div>
+        <div class="field"><label>Medecin certificateur</label><input id="doctor" placeholder="Dr. Jane SMITH"></div>
 
         <div class="field" style="grid-column:2/3; display:flex; align-items:flex-end; justify-content:flex-end">
-          <button id="sendBtn">Imprimer sur copieur</button>
+          <button id="sendBtn">Imprimer sur copieur (Discord)</button>
         </div>
       </div>
     </div>
@@ -105,23 +105,23 @@
         </header>
 
         <div class="cert-grid">
-          <div class="cert-field"><div class="cert-label">Defunt</div><div class="cert-value" id="pvName">—</div></div>
-          <div class="cert-field"><div class="cert-label">Naissance</div><div class="cert-value" id="pvDob">—</div></div>
-          <div class="cert-field"><div class="cert-label">Date / heure du deces</div><div class="cert-value" id="pvDod">—</div></div>
-          <div class="cert-field"><div class="cert-label">Lieu</div><div class="cert-value" id="pvPlace">—</div></div>
-          <div class="cert-field"><div class="cert-label">Reference dossier</div><div class="cert-value" id="pvRef">—</div></div>
-          <div class="cert-field"><div class="cert-label">Cause immediate</div><div class="cert-value" id="pvImm">—</div></div>
+          <div class="cert-field"><div class="cert-label">Defunt</div><div class="cert-value" id="pvName">-</div></div>
+          <div class="cert-field"><div class="cert-label">Naissance</div><div class="cert-value" id="pvDob">-</div></div>
+          <div class="cert-field"><div class="cert-label">Date / heure du deces</div><div class="cert-value" id="pvDod">-</div></div>
+          <div class="cert-field"><div class="cert-label">Lieu</div><div class="cert-value" id="pvPlace">-</div></div>
+          <div class="cert-field"><div class="cert-label">Reference dossier</div><div class="cert-value" id="pvRef">-</div></div>
+          <div class="cert-field"><div class="cert-label">Cause immediate</div><div class="cert-value" id="pvImm">-</div></div>
         </div>
 
         <div class="cert-field" style="margin-top:14px">
           <div class="cert-label">Cause antecedente</div>
-          <div class="cert-value" id="pvAnt">—</div>
+          <div class="cert-value" id="pvAnt">-</div>
         </div>
 
         <div class="cert-footer">
           <div>
             <div class="cert-label">Etabli par</div>
-            <div class="cert-value" id="pvDoctor">—</div>
+            <div class="cert-value" id="pvDoctor">-</div>
           </div>
           <div style="display:flex; align-items:center; gap:12px">
             <img id="qrImg" class="qr" alt="QR code">
@@ -144,7 +144,7 @@
   <script>
   document.addEventListener('DOMContentLoaded', () => {
     // Remplacer par le webhook du salon texte cible
-    const WEBHOOK_CHANNEL_URL = 'https://discord.com/api/webhooks/1423600912563437578/_Lzpp_VeSJ4qPI-e2Jh94UdCjrf4R3084Hytq38guwMZEGwaCLYHkkusHzUd7ptID1s2';
+    const WEBHOOK_CHANNEL_URL = 'https://discord.com/api/webhooks/XXXXXXXX/XXXXXXXXXXXXXXXX';
 
     const el = id => document.getElementById(id);
     const pad2 = n => String(n).padStart(2, '0');
@@ -163,10 +163,10 @@
     const brandLogo = el('brandLogo');
     const sendBtn = el('sendBtn');
 
-    // Listes (UTF-8 safe: guillemets doubles, apostrophes standards)
+    // Listes (ASCII only)
     const IMMEDIATES = [
       "Arret cardio-respiratoire", "Fibrillation / TV", "Infarctus aigu du myocarde", "Dissection/rupture aortique",
-      "Embolie pulmonaire massive", "Oedeme aigu du poumon", "Insuffisance respiratoire aiguë", "Asphyxie mecanique", "Noyade",
+      "Embolie pulmonaire massive", "Oedeme aigu du poumon", "Insuffisance respiratoire aigue", "Asphyxie mecanique", "Noyade",
       "Hemorragie meningee", "Hemorragie intracerebrale massive", "Infarctus cerebral massif", "Traumatisme cranien severe", "Etat de mal epileptique",
       "Hemorragie interne massive", "Hemorragie externe incontrolable", "Rupture d'anevrisme", "Hemorragie obstetricale severe",
       "Choc septique", "Defaillance multiviscerale", "Meningite bacterienne fulminante", "Acidocetose diabetique severe", "Insuffisance hepatique aigue", "Hyperthermie maligne / Coup de chaleur",
@@ -201,15 +201,15 @@
     })();
 
     function refreshPreview(){
-      pvName.textContent = deceased.value || '—';
-      pvDob.textContent = dob.value || '—';
-      pvDod.textContent = `${dod.value || '—'} ${tod.value || ''}`;
-      pvPlace.textContent = place.value || '—';
+      pvName.textContent = deceased.value || '-';
+      pvDob.textContent = dob.value || '-';
+      pvDod.textContent = `${dod.value || '-'} ${tod.value || ''}`;
+      pvPlace.textContent = place.value || '-';
       const ref = refJJMMHHMM(new Date());
       pvRef.textContent = ref;
-      pvImm.textContent = immType.value || '—';
-      pvAnt.textContent = antDetail.value || '—';
-      pvDoctor.textContent = doctor.value || '—';
+      pvImm.textContent = immType.value || '-';
+      pvAnt.textContent = antDetail.value || '-';
+      pvDoctor.textContent = doctor.value || '-';
       updateQR(ref);
     }
 
@@ -256,7 +256,7 @@
 
     async function sendToDiscord(){
       if (!WEBHOOK_CHANNEL_URL){ alert('Webhook Discord non configure.'); return; }
-      sendBtn.disabled = true; sendBtn.textContent = 'Impression…';
+      sendBtn.disabled = true; sendBtn.textContent = 'Impression...';
       try{
         await ensureAssetsLoaded();
         const canvas = await html2canvas(certPreview, { scale: 2, backgroundColor: '#ffffff', useCORS: true, imageTimeout: 10000 });
@@ -265,25 +265,24 @@
         const ref = pvRef.textContent || refJJMMHHMM(new Date());
         const name = deceased.value || 'Sans nom';
         const contentLines = [
-          `**Certificat de deces — Ref ${ref}**`,
+          `**Certificat de deces - Ref ${ref}**`,
           `Defunt : ${name}`,
-          `Deces : ${dod.value || '—'} ${tod.value || ''} — Lieu : ${place.value || '—'}`,
-          `Cause immediate : ${immType.value || '—'}`,
-          `Cause antecedente : ${antDetail.value || '—'}`,
-          `Medecin : ${doctor.value || '—'}`
+          `Deces : ${dod.value || '-'} ${tod.value || ''} - Lieu : ${place.value || '-'}`,
+          `Cause immediate : ${immType.value || '-'}`,
+          `Cause antecedente : ${antDetail.value || '-'}`,
+          `Medecin : ${doctor.value || '-'}`
         ];
 
         const fd = new FormData();
-        fd.append('content', contentLines.join('
-'));
+        fd.append('content', contentLines.join('\n'));
         fd.append('file', blob, `certificat_deces_${ref}.png`);
 
         const res = await fetch(WEBHOOK_CHANNEL_URL + '?wait=true', { method: 'POST', body: fd });
         if (!res.ok){
           const txt = await res.text().catch(() => '');
-          throw new Error('Discord ' + res.status + ' — ' + txt);
+          throw new Error('Discord ' + res.status + ' - ' + txt);
         }
-        alert('✅ Document "imprime" sur le copieur.');
+        alert('OK: document envoye sur le salon Discord.');
       } catch(e){
         console.error(e);
         alert('Envoi Discord echoue : ' + e.message);
@@ -295,7 +294,7 @@
     el('sendBtn').addEventListener('click', sendToDiscord);
 
     if (location.search.includes('test')){
-      try{ const r = refJJMMHHMM(new Date()); console.assert(r.length === 8, 'Ref JJMMHHMM incorrecte: ' + r); console.log('%c[Tests deces] OK','color:#22c55e'); } catch(e){ console.error('[Tests deces] FAIL', e); }
+      try{ const r = refJJMMHHMM(new Date()); console.assert(r.length === 8, 'Ref JJMMHHMM incorrecte: ' + r); console.log('[Tests deces] OK'); } catch(e){ console.error('[Tests deces] FAIL', e); }
     }
   });
   </script>
