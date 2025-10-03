@@ -12,7 +12,6 @@
     .wrap{max-width:1100px;margin:40px auto; padding:0 16px}
     .block{background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--ring); border-radius:var(--radius)}
 
-    /* ======= Entête ======= */
     .top{ text-align:center; padding:16px 20px; border-bottom:1px solid var(--ring) }
     .brand{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
     .brand img{ height:72px; width:288px; object-fit:contain; background:#071423; padding:6px; border-radius:16px; }
@@ -26,7 +25,6 @@
     label small{color:var(--muted)}
     button{appearance:none; border:1px solid var(--ring); border-radius:12px; padding:10px 12px; background:#0b1223; color:#e5e7eb; cursor:pointer}
 
-    /* Carte (fond blanc export Discord) */
     .certificate{background:white;color:#0b2130;border-radius:12px;padding:28px;border:1px solid #e2e8f0;}
     .certificate header{display:flex;gap:14px;align-items:center}
     .certificate header img#brandLogo{height:54px;width:54px;border-radius:10px;border:1px solid #d1e0e8;background:#eef7fb;object-fit:cover}
@@ -38,7 +36,6 @@
 
     .cert-footer{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:12px}
 
-    /* Tampon rond */
     .stamp{ width:120px;height:120px;border:3px solid #0b2230;border-radius:50%; display:flex;align-items:center;justify-content:center;position:relative;color:#0b2230; font-weight:800;text-align:center;background:#f8fbff; }
     .stamp::before{content:"OCEAN MEDICAL";position:absolute; top:10px; left:0; right:0; text-align:center; font-size:10px; letter-spacing:1.5px;}
     .stamp::after{content:"CENTER";position:absolute; bottom:10px; left:0; right:0; text-align:center; font-size:10px; letter-spacing:2px;}
@@ -59,7 +56,6 @@
 </head>
 <body>
   <div class="wrap block">
-    <!-- Entête -->
     <div class="top">
       <div class="brand">
         <img src="assets/Logo-omc.png" alt="OMC">
@@ -70,7 +66,6 @@
       </div>
     </div>
 
-    <!-- Formulaire -->
     <div class="panel">
       <div class="form-grid">
         <div class="field"><label>Défunt <small>(Nom Prénom)</small></label><input id="deceased" placeholder="John DOE"></div>
@@ -80,43 +75,28 @@
         <div class="field"><label>Heure du décès</label><input type="time" id="tod"></div>
 
         <div class="field"><label>Lieu du décès</label><input id="place" placeholder="OMC — Service Urgences"></div>
-        <div class="field"><label>Type</label>
-          <select id="dtype">
-            <option value="naturel">Décès naturel</option>
-            <option value="accidentel">Accidentel</option>
-            <option value="violent">Violent</option>
-            <option value="indetermine">Indéterminé</option>
-          </select>
+
+        <!-- Causes immédiates -->
+        <div class="field"><label>Cause immédiate — Type</label>
+          <select id="immType"></select>
         </div>
 
-        <div class="field" style="grid-column:1/3"><label>Cause immédiate</label><textarea id="causeImm" rows="2" placeholder="Arrêt cardio-respiratoire..."></textarea></div>
-        <div class="field" style="grid-column:1/3"><label>Causes antécédentes</label><textarea id="causeAnt" rows="2" placeholder="Traumatisme thoracique, hémorragie interne..."></textarea></div>
-        <div class="field" style="grid-column:1/3"><label>Circonstances / Observations</label><textarea id="circ" rows="3" placeholder="Contexte, éléments utiles RP..."></textarea></div>
-
-        <div class="field"><label>Obstacle médico-légal</label>
-          <div class="row">
-            <label class="row"><input type="radio" name="oml" value="non" checked> Non</label>
-            <label class="row"><input type="radio" name="oml" value="oui"> Oui</label>
-          </div>
+        <!-- Causes antécédentes: type + précision dépendante -->
+        <div class="field"><label>Cause antécédente — Type</label>
+          <select id="antType"></select>
+        </div>
+        <div class="field"><label>Cause antécédente — Précision</label>
+          <select id="antDetail"></select>
         </div>
 
-        <div class="field"><label>Médecin certificateur</label><input id="doctor" placeholder="Dr. Jane SMITH"></div>
+        <div class="field"><label>Médecin certificateur</label><input id="doctor" placeholder="Dr. Bill Hanson"></div>
 
-        <div class="field"><label>Ajouter un ping (optionnel)</label>
-          <div class="row">
-            <input id="mention" placeholder="@role ou @user (coller l'ID si besoin)">
-            <label class="row"><input type="checkbox" id="mentionAsId"> Utiliser ID (format &lt@&amp;ROLEID>)</label>
-          </div>
-        </div>
-
-        <!-- Bouton à droite -->
         <div class="field" style="grid-column:2/3; display:flex; align-items:flex-end; justify-content:flex-end">
           <button id="sendBtn">Imprimer sur copieur (Discord)</button>
         </div>
       </div>
     </div>
 
-    <!-- Aperçu -->
     <div class="panel">
       <div class="certificate" id="certPreview">
         <header>
@@ -133,20 +113,12 @@
           <div class="cert-field"><div class="cert-label">Date / heure du décès</div><div class="cert-value" id="pvDod">—</div></div>
           <div class="cert-field"><div class="cert-label">Lieu</div><div class="cert-value" id="pvPlace">—</div></div>
           <div class="cert-field"><div class="cert-label">Référence dossier</div><div class="cert-value" id="pvRef">—</div></div>
-          <div class="cert-field"><div class="cert-label">Type</div><div class="cert-value" id="pvType">—</div></div>
+          <div class="cert-field"><div class="cert-label">Cause immédiate (type)</div><div class="cert-value" id="pvImm">—</div></div>
         </div>
 
         <div class="cert-field" style="margin-top:14px">
-          <div class="cert-label">Cause immédiate</div>
-          <div class="cert-value" id="pvCauseImm">—</div>
-        </div>
-        <div class="cert-field" style="margin-top:10px">
-          <div class="cert-label">Causes antécédentes</div>
-          <div class="cert-value" id="pvCauseAnt">—</div>
-        </div>
-        <div class="cert-field" style="margin-top:10px">
-          <div class="cert-label">Circonstances / Observations</div>
-          <div class="cert-value" id="pvCirc">—</div>
+          <div class="cert-label">Cause antécédente</div>
+          <div class="cert-value" id="pvAnt">—</div>
         </div>
 
         <div class="cert-footer">
@@ -161,7 +133,7 @@
         </div>
 
         <div class="legal">
-          Ce document RP atteste du décès de la personne identifiée, d'après les éléments cliniques et contextuels connus à la date et heure indiquées. Toute reproduction ou altération sans autorisation est interdite.
+          Document RP attestant du décès selon les éléments connus à la date et l'heure indiquées. Toute reproduction ou altération sans autorisation est interdite.
         </div>
       </div>
     </div>
@@ -170,8 +142,7 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    /* ========= CONFIG DISCORD (salon classique) ========= */
-    // Remplacer par le webhook du salon cible (texte ou forum/fil existant si désiré)
+    /* ========= CONFIG DISCORD ========= */
     const WEBHOOK_CHANNEL_URL = 'https://discord.com/api/webhooks/1423600912563437578/_Lzpp_VeSJ4qPI-e2Jh94UdCjrf4R3084Hytq38guwMZEGwaCLYHkkusHzUd7ptID1s2';
 
     const el=id=>document.getElementById(id);
@@ -179,51 +150,127 @@
     const refJJMMHHMM=(d=new Date())=>`${pad2(d.getDate())}${pad2(d.getMonth()+1)}${pad2(d.getHours())}${pad2(d.getMinutes())}`;
 
     // Champs
-    const deceased=el('deceased'), dob=el('dob'), dod=el('dod'), tod=el('tod'), place=el('place'), dtype=el('dtype');
-    const causeImm=el('causeImm'), causeAnt=el('causeAnt'), circ=el('circ');
+    const deceased=el('deceased'), dob=el('dob'), dod=el('dod'), tod=el('tod'), place=el('place');
+    const immType=el('immType');
+    const antType=el('antType'), antDetail=el('antDetail');
     const doctor=el('doctor');
-    const mention=el('mention'), mentionAsId=el('mentionAsId');
 
     // Preview
-    const pvName=el('pvName'), pvDob=el('pvDob'), pvDod=el('pvDod'), pvPlace=el('pvPlace'), pvRef=el('pvRef'), pvType=el('pvType');
-    const pvCauseImm=el('pvCauseImm'), pvCauseAnt=el('pvCauseAnt'), pvCirc=el('pvCirc'), pvDoctor=el('pvDoctor');
+    const pvName=el('pvName'), pvDob=el('pvDob'), pvDod=el('pvDod'), pvPlace=el('pvPlace'), pvRef=el('pvRef');
+    const pvImm=el('pvImm'), pvAnt=el('pvAnt'), pvDoctor=el('pvDoctor');
     const qrImg=el('qrImg'), stampInner=el('stampInner'), certPreview=el('certPreview');
     const brandLogo=el('brandLogo');
     const sendBtn=el('sendBtn');
 
-    // Date/heure par défaut (local)
+    // Data listes
+    const CATEGORIES = {
+      'cardio':'Cardio-respiratoire',
+      'neuro':'Neurologique',
+      'hemo':'Hémorragique',
+      'infect':'Infectieuse / Métabolique',
+      'toxic':'Toxique',
+      'trauma':'Traumatique'
+    };
+
+    const DETAILS = {
+      cardio: [
+        'Arrêt cardio-respiratoire',
+        'Fibrillation / TV',
+        'Infarctus aigu du myocarde',
+        'Dissection/rupture aortique',
+        'Embolie pulmonaire massive',
+        "Œdème aigu du poumon",
+        'Insuffisance respiratoire aiguë',
+        'Asphyxie mécanique',
+        'Noyade'
+      ],
+      neuro: [
+        'Hémorragie méningée',
+        'Hémorragie intracérébrale massive',
+        'Infarctus cérébral massif',
+        'Traumatisme crânien sévère',
+        'État de mal épileptique'
+      ],
+      hemo: [
+        'Hémorragie interne massive',
+        'Hémorragie externe incontrôlée',
+        'Rupture d’anévrisme',
+        'Hémorragie obstétricale sévère'
+      ],
+      infect: [
+        'Choc septique',
+        'Défaillance multiviscérale',
+        'Méningite bactérienne fulminante',
+        'Acidocétose diabétique sévère',
+        'Insuffisance hépatique aiguë',
+        'Hyperthermie maligne / Coup de chaleur'
+      ],
+      toxic: [
+        'Intoxication médicamenteuse massive',
+        'Overdose opioïdes / cocaïne',
+        'Intoxication monoxyde de carbone',
+        'Empoisonnement chimique (cyanure, OP)'
+      ],
+      trauma: [
+        'Polytraumatisme avec choc hémorragique',
+        'Écrasement thoraco-abdominal',
+        'Section médullaire haute',
+        'Brûlures étendues avec défaillance vitale'
+      ]
+    };
+
+    function fillSelectOptions(select, objOrArray){
+      select.innerHTML = '';
+      if (Array.isArray(objOrArray)){
+        objOrArray.forEach(v=>{
+          const opt=document.createElement('option'); opt.value=v; opt.textContent=v; select.appendChild(opt);
+        });
+      } else {
+        Object.entries(objOrArray).forEach(([val,label])=>{
+          const opt=document.createElement('option'); opt.value=val; opt.textContent=label; select.appendChild(opt);
+        });
+      }
+    }
+
+    // Init selects
+    fillSelectOptions(immType, CATEGORIES);
+    fillSelectOptions(antType, CATEGORIES);
+    function refreshAntDetail(){ fillSelectOptions(antDetail, DETAILS[antType.value] || []); }
+    antType.addEventListener('change', ()=>{ refreshAntDetail(); refreshPreview(); });
+    refreshAntDetail();
+
+    // Date/heure par défaut
     (function initDates(){
       const now=new Date();
       const tzOff=now.getTimezoneOffset()*60000;
       const todayISO=new Date(Date.now()-tzOff).toISOString().slice(0,10);
       try{ dod.valueAsNumber=Date.now()-tzOff; }catch{ dod.value=todayISO; }
-      tod.value = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+      const hh=pad2(now.getHours()), mm=pad2(now.getMinutes());
+      const todEl = el('tod'); if (todEl) todEl.value = `${hh}:${mm}`;
     })();
-
-    function currentOML(){ return (document.querySelector('input[name="oml"]:checked')||{}).value||'non'; }
 
     function refreshPreview(){
       pvName.textContent = deceased.value || '—';
       pvDob.textContent = dob.value || '—';
       const dd = dod.value || '—';
-      const tt = tod.value || '—';
+      const tt = (el('tod').value || '—');
       pvDod.textContent = `${dd} ${tt}`.trim();
       pvPlace.textContent = place.value || '—';
+
       const ref = refJJMMHHMM(new Date());
       pvRef.textContent = ref;
-      const typeMap={naturel:'Décès naturel', accidentel:'Accidentel', violent:'Violent', indetermine:'Indéterminé'};
-      pvType.textContent = `${typeMap[dtype.value]||'—'} — OML: ${currentOML().toUpperCase()}`;
 
-      pvCauseImm.textContent = causeImm.value || '—';
-      pvCauseAnt.textContent = causeAnt.value || '—';
-      pvCirc.textContent = circ.value || '—';
+      pvImm.textContent = CATEGORIES[immType.value] || '—';
+      const antT = CATEGORIES[antType.value] || '—';
+      const antD = antDetail.value || '';
+      pvAnt.textContent = antD ? `${antT} — ${antD}` : antT;
+
       pvDoctor.textContent = doctor.value || '—';
-
       updateQR(ref);
     }
 
     function updateQR(ref){
-      const data = { name: deceased.value||'', dob: dob.value||'', dod: dod.value||'', tod: tod.value||'', ref: ref||'' };
+      const data = { name: deceased.value||'', dob: dob.value||'', dod: dod.value||'', tod: (el('tod').value||''), ref: ref||'' };
       const txt = `OMC|Defunt:${data.name}|Naissance:${data.dob}|Deces:${data.dod} ${data.tod}|Ref:${data.ref}`;
       const url = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(txt);
       qrImg.crossOrigin='anonymous';
@@ -232,7 +279,7 @@
     }
 
     ['change','keyup','input'].forEach(evt=>{
-      [deceased,dob,dod,tod,place,dtype,causeImm,causeAnt,circ,doctor].forEach(c=> c.addEventListener(evt, refreshPreview));
+      [deceased,dob,dod,el('tod'),place,immType,antType,antDetail,doctor].forEach(c=> c.addEventListener(evt, refreshPreview));
     });
 
     refreshPreview();
@@ -276,24 +323,15 @@
         const contentLines = [
           `**Certificat de décès — Ref ${ref}**`,
           `Défunt : ${name}`,
-          `Décès : ${dod.value||'—'} ${tod.value||''} — Lieu : ${place.value||'—'}`,
-          `Type : ${dtype.options[dtype.selectedIndex].text} — OML: ${currentOML().toUpperCase()}`,
+          `Décès : ${dod.value||'—'} ${(el('tod').value||'')} — Lieu : ${place.value||'—'}`,
+          `Cause immédiate (type) : ${CATEGORIES[immType.value]||'—'}`,
+          `Cause antécédente : ${(CATEGORIES[antType.value]||'—')}${antDetail.value? ' — '+antDetail.value : ''}`,
           `Médecin : ${doctor.value||'—'}`
         ];
-        // Mention
-        const mentionTxt = (mention.value||'').trim();
-        if(mentionTxt){
-          if(mentionAsId.checked){
-            // Si ID de rôle: écrire <@&ID>; si ID d'utilisateur: <@ID>
-            const isRoleId = /^\d{17,20}$/.test(mentionTxt);
-            contentLines.push(isRoleId ? `<@&${mentionTxt}>` : `<@${mentionTxt}>`);
-          } else {
-            contentLines.push(mentionTxt);
-          }
-        }
 
         const fd = new FormData();
-        fd.append('content', contentLines.join('\n'));
+        fd.append('content', contentLines.join('
+'));
         fd.append('file', blob, `certificat_deces_${ref}.png`);
 
         const res = await fetch(WEBHOOK_CHANNEL_URL + '?wait=true', { method:'POST', body: fd });
@@ -312,7 +350,6 @@
 
     el('sendBtn').addEventListener('click', sendToDiscord);
 
-    // Auto-test simple
     if(location.search.includes('test')){
       try{ const r=refJJMMHHMM(new Date()); console.assert(r.length===8, 'Ref JJMMHHMM incorrecte:'+r); console.log('%c[Tests décès] OK','color:#22c55e'); }catch(e){ console.error('[Tests décès] FAIL', e); }
     }
