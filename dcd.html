@@ -84,11 +84,6 @@
           <select id="immDetail"></select>
         </div>
 
-        <!-- Cause antecedente (on conserve la precision simple) -->
-        <div class="field"><label>Cause antecedente - Precision</label>
-          <select id="antDetail"></select>
-        </div>
-
         <div class="field"><label>Medecin certificateur</label><input id="doctor" placeholder="Dr. Jane SMITH"></div>
 
         <div class="field" style="grid-column:2/3; display:flex; align-items:flex-end; justify-content:flex-end">
@@ -114,11 +109,6 @@
           <div class="cert-field"><div class="cert-label">Lieu</div><div class="cert-value" id="pvPlace">-</div></div>
           <div class="cert-field"><div class="cert-label">Reference dossier</div><div class="cert-value" id="pvRef">-</div></div>
           <div class="cert-field"><div class="cert-label">Cause immediate</div><div class="cert-value" id="pvImm">-</div></div>
-        </div>
-
-        <div class="cert-field" style="margin-top:14px">
-          <div class="cert-label">Cause antecedente</div>
-          <div class="cert-value" id="pvAnt">-</div>
         </div>
 
         <div class="cert-footer">
@@ -155,12 +145,11 @@
     // Champs
     const deceased = el('deceased'), dob = el('dob'), dod = el('dod'), tod = el('tod'), place = el('place');
     const immCat = el('immCat'), immDetail = el('immDetail');
-    const antDetail = el('antDetail');
     const doctor = el('doctor');
 
     // Preview
     const pvName = el('pvName'), pvDob = el('pvDob'), pvDod = el('pvDod'), pvPlace = el('pvPlace'), pvRef = el('pvRef');
-    const pvImm = el('pvImm'), pvAnt = el('pvAnt'), pvDoctor = el('pvDoctor');
+    const pvImm = el('pvImm'), pvDoctor = el('pvDoctor');
     const qrImg = el('qrImg'), stampInner = el('stampInner'), certPreview = el('certPreview');
     const brandLogo = el('brandLogo');
     const sendBtn = el('sendBtn');
@@ -169,10 +158,10 @@
     const IMM_CATEGORIES = {
       cardio: 'Cardio-respiratoire',
       neuro: 'Neurologique',
-      hemo: 'Hemorragique',
-      infect: 'Infectieuse / Metabolique',
+      hemo:  'Hemorragique',
+      infect:'Infectieuse / Metabolique',
       toxic: 'Toxique',
-      trauma: 'Traumatique'
+      trauma:'Traumatique'
     };
 
     const IMM_DETAILS = {
@@ -222,15 +211,18 @@
       ]
     };
 
-    const ANTECEDENTS = [
-      'Cardiopathie chronique', 'Hypertension arterielle', 'Diabete sucre', 'Pathologie respiratoire chronique', 'Insuffisance renale',
-      'Cirrhose hepatique', 'Cancer evolutif', 'Polytraumatisme ancien', 'Trouble psychiatrique severe', 'Addiction (alcool, drogues)',
-      'Insuffisance cardiaque', 'BPCO', 'Asthme severe', 'Maladie coronarienne', 'AVC ancien',
-      'Maladie renale chronique', 'Demence', 'Immunodepression (VIH/SIDA)', 'Maladie auto-immune', 'Obesite severe'
-    ];
+    function addPlaceholder(select){
+      const ph = document.createElement('option');
+      ph.value = '';
+      ph.textContent = '-- Selectionner --';
+      ph.disabled = true;
+      ph.selected = true;
+      select.appendChild(ph);
+    }
 
     function fillSelectFromObject(select, obj){
       select.innerHTML = '';
+      addPlaceholder(select);
       Object.keys(obj).forEach(k => {
         const opt = document.createElement('option');
         opt.value = k; opt.textContent = obj[k];
@@ -239,16 +231,19 @@
     }
     function fillSelectFromArray(select, arr){
       select.innerHTML = '';
+      addPlaceholder(select);
       arr.forEach(v => { const opt = document.createElement('option'); opt.value = v; opt.textContent = v; select.appendChild(opt); });
     }
 
     // Init menus
     fillSelectFromObject(immCat, IMM_CATEGORIES);
-    function refreshImmDetail(){ fillSelectFromArray(immDetail, IMM_DETAILS[immCat.value] || []); }
+    function refreshImmDetail(){
+      const list = IMM_DETAILS[immCat.value] || [];
+      fillSelectFromArray(immDetail, list);
+    }
     immCat.addEventListener('change', () => { refreshImmDetail(); refreshPreview(); });
+    immDetail.addEventListener('change', refreshPreview);
     refreshImmDetail();
-
-    fillSelectFromArray(antDetail, ANTECEDENTS);
 
     // Date/heure par defaut
     (function initDates(){
@@ -260,17 +255,22 @@
       tod.value = `${hh}:${mm}`;
     })();
 
+    function currentImmText(){
+      const cat = IMM_CATEGORIES[immCat.value] || '';
+      const det = immDetail.value || '';
+      if (!cat && !det) return '-';
+      if (cat && det) return `${cat} - ${det}`;
+      return cat || det || '-';
+    }
+
     function refreshPreview(){
       pvName.textContent = deceased.value || '-';
       pvDob.textContent = dob.value || '-';
-      pvDod.textContent = `${dod.value || '-'} ${tod.value || ''}`;
+      pvDod.textContent = `${dod.value || '-'} ${tod.value || ''}`.trim();
       pvPlace.textContent = place.value || '-';
       const ref = refJJMMHHMM(new Date());
       pvRef.textContent = ref;
-      const cat = IMM_CATEGORIES[immCat.value] || '-';
-      const det = immDetail.value || '';
-      pvImm.textContent = det ? `${cat} - ${det}` : cat;
-      pvAnt.textContent = antDetail.value || '-';
+      pvImm.textContent = currentImmText();
       pvDoctor.textContent = doctor.value || '-';
       updateQR(ref);
     }
@@ -285,7 +285,7 @@
     }
 
     ['change','keyup','input'].forEach(evt => {
-      [deceased, dob, dod, tod, place, immCat, immDetail, antDetail, doctor].forEach(c => c.addEventListener(evt, refreshPreview));
+      [deceased, dob, dod, tod, place, doctor].forEach(c => c.addEventListener(evt, refreshPreview));
     });
 
     refreshPreview();
@@ -330,8 +330,7 @@
           `**Certificat de deces - Ref ${ref}**`,
           `Defunt : ${name}`,
           `Deces : ${dod.value || '-'} ${tod.value || ''} - Lieu : ${place.value || '-'}`,
-          `Cause immediate : ${pvImm.textContent || '-'}`,
-          `Cause antecedente : ${antDetail.value || '-'}`,
+          `Cause immediate : ${currentImmText()}`,
           `Medecin : ${doctor.value || '-'}`
         ];
 
@@ -356,7 +355,11 @@
     el('sendBtn').addEventListener('click', sendToDiscord);
 
     if (location.search.includes('test')){
-      try{ const r = refJJMMHHMM(new Date()); console.assert(r.length === 8, 'Ref JJMMHHMM incorrecte: ' + r); console.log('[Tests deces] OK'); } catch(e){ console.error('[Tests deces] FAIL', e); }
+      try{
+        const r = refJJMMHHMM(new Date());
+        console.assert(r.length === 8, 'Ref JJMMHHMM incorrecte: ' + r);
+        console.log('[Tests deces] OK');
+      } catch(e){ console.error('[Tests deces] FAIL', e); }
     }
   });
   </script>
