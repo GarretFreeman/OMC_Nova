@@ -76,12 +76,15 @@
 
         <div class="field"><label>Lieu du deces</label><input id="place" placeholder="OMC - Service Urgences"></div>
 
-        <!-- Causes immediates -->
-        <div class="field"><label>Cause immediate</label>
-          <select id="immType"></select>
+        <!-- Cause immediate: type + detail dependants -->
+        <div class="field"><label>Cause immediate - Type</label>
+          <select id="immCat"></select>
+        </div>
+        <div class="field"><label>Cause immediate - Precision</label>
+          <select id="immDetail"></select>
         </div>
 
-        <!-- Cause antecedente detail -->
+        <!-- Cause antecedente (on conserve la precision simple) -->
         <div class="field"><label>Cause antecedente - Precision</label>
           <select id="antDetail"></select>
         </div>
@@ -143,7 +146,6 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    // Remplacer par le webhook du salon texte cible
     const WEBHOOK_CHANNEL_URL = 'https://discord.com/api/webhooks/XXXXXXXX/XXXXXXXXXXXXXXXX';
 
     const el = id => document.getElementById(id);
@@ -152,7 +154,7 @@
 
     // Champs
     const deceased = el('deceased'), dob = el('dob'), dod = el('dod'), tod = el('tod'), place = el('place');
-    const immType = el('immType');
+    const immCat = el('immCat'), immDetail = el('immDetail');
     const antDetail = el('antDetail');
     const doctor = el('doctor');
 
@@ -163,32 +165,90 @@
     const brandLogo = el('brandLogo');
     const sendBtn = el('sendBtn');
 
-    // Listes (ASCII only)
-    const IMMEDIATES = [
-      "Arret cardio-respiratoire", "Fibrillation / TV", "Infarctus aigu du myocarde", "Dissection/rupture aortique",
-      "Embolie pulmonaire massive", "Oedeme aigu du poumon", "Insuffisance respiratoire aigue", "Asphyxie mecanique", "Noyade",
-      "Hemorragie meningee", "Hemorragie intracerebrale massive", "Infarctus cerebral massif", "Traumatisme cranien severe", "Etat de mal epileptique",
-      "Hemorragie interne massive", "Hemorragie externe incontrolable", "Rupture d'anevrisme", "Hemorragie obstetricale severe",
-      "Choc septique", "Defaillance multiviscerale", "Meningite bacterienne fulminante", "Acidocetose diabetique severe", "Insuffisance hepatique aigue", "Hyperthermie maligne / Coup de chaleur",
-      "Intoxication medicamenteuse massive", "Overdose opioides / cocaine", "Intoxication monoxyde de carbone", "Empoisonnement chimique",
-      "Polytraumatisme avec choc hemorragique", "Ecrasement thoraco-abdominal", "Section medullaire haute", "Brulures etendues avec defaillance vitale"
-    ];
+    // Categories de cause immediate
+    const IMM_CATEGORIES = {
+      cardio: 'Cardio-respiratoire',
+      neuro: 'Neurologique',
+      hemo: 'Hemorragique',
+      infect: 'Infectieuse / Metabolique',
+      toxic: 'Toxique',
+      trauma: 'Traumatique'
+    };
+
+    const IMM_DETAILS = {
+      cardio: [
+        'Arret cardio-respiratoire',
+        'Fibrillation / TV',
+        'Infarctus aigu du myocarde',
+        'Dissection/rupture aortique',
+        'Embolie pulmonaire massive',
+        'Oedeme aigu du poumon',
+        'Insuffisance respiratoire aigue',
+        'Asphyxie mecanique',
+        'Noyade'
+      ],
+      neuro: [
+        'Hemorragie meningee',
+        'Hemorragie intracerebrale massive',
+        'Infarctus cerebral massif',
+        'Traumatisme cranien severe',
+        'Etat de mal epileptique'
+      ],
+      hemo: [
+        'Hemorragie interne massive',
+        'Hemorragie externe incontrolable',
+        "Rupture d'anevrisme",
+        'Hemorragie obstetricale severe'
+      ],
+      infect: [
+        'Choc septique',
+        'Defaillance multiviscerale',
+        'Meningite bacterienne fulminante',
+        'Acidocetose diabetique severe',
+        'Insuffisance hepatique aigue',
+        'Hyperthermie maligne / Coup de chaleur'
+      ],
+      toxic: [
+        'Intoxication medicamenteuse massive',
+        'Overdose opioides / cocaine',
+        'Intoxication monoxyde de carbone',
+        'Empoisonnement chimique'
+      ],
+      trauma: [
+        'Polytraumatisme avec choc hemorragique',
+        'Ecrasement thoraco-abdominal',
+        'Section medullaire haute',
+        'Brulures etendues avec defaillance vitale'
+      ]
+    };
 
     const ANTECEDENTS = [
-      "Cardiopathie chronique", "Hypertension arterielle", "Diabete sucre", "Pathologie respiratoire chronique", "Insuffisance renale",
-      "Cirrhose hepatique", "Cancer evolutif", "Polytraumatisme ancien", "Trouble psychiatrique severe", "Addiction (alcool, drogues)",
-      "Insuffisance cardiaque", "BPCO", "Asthme severe", "Maladie coronarienne", "AVC ancien",
-      "Maladie renale chronique", "Demence", "Immunodepression (VIH/SIDA)", "Maladie auto-immune", "Obesite severe"
+      'Cardiopathie chronique', 'Hypertension arterielle', 'Diabete sucre', 'Pathologie respiratoire chronique', 'Insuffisance renale',
+      'Cirrhose hepatique', 'Cancer evolutif', 'Polytraumatisme ancien', 'Trouble psychiatrique severe', 'Addiction (alcool, drogues)',
+      'Insuffisance cardiaque', 'BPCO', 'Asthme severe', 'Maladie coronarienne', 'AVC ancien',
+      'Maladie renale chronique', 'Demence', 'Immunodepression (VIH/SIDA)', 'Maladie auto-immune', 'Obesite severe'
     ];
 
-    function fillSelectOptions(select, arr){
+    function fillSelectFromObject(select, obj){
+      select.innerHTML = '';
+      Object.keys(obj).forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k; opt.textContent = obj[k];
+        select.appendChild(opt);
+      });
+    }
+    function fillSelectFromArray(select, arr){
       select.innerHTML = '';
       arr.forEach(v => { const opt = document.createElement('option'); opt.value = v; opt.textContent = v; select.appendChild(opt); });
     }
 
-    // Remplir les menus
-    fillSelectOptions(immType, IMMEDIATES);
-    fillSelectOptions(antDetail, ANTECEDENTS);
+    // Init menus
+    fillSelectFromObject(immCat, IMM_CATEGORIES);
+    function refreshImmDetail(){ fillSelectFromArray(immDetail, IMM_DETAILS[immCat.value] || []); }
+    immCat.addEventListener('change', () => { refreshImmDetail(); refreshPreview(); });
+    refreshImmDetail();
+
+    fillSelectFromArray(antDetail, ANTECEDENTS);
 
     // Date/heure par defaut
     (function initDates(){
@@ -207,7 +267,9 @@
       pvPlace.textContent = place.value || '-';
       const ref = refJJMMHHMM(new Date());
       pvRef.textContent = ref;
-      pvImm.textContent = immType.value || '-';
+      const cat = IMM_CATEGORIES[immCat.value] || '-';
+      const det = immDetail.value || '';
+      pvImm.textContent = det ? `${cat} - ${det}` : cat;
       pvAnt.textContent = antDetail.value || '-';
       pvDoctor.textContent = doctor.value || '-';
       updateQR(ref);
@@ -223,7 +285,7 @@
     }
 
     ['change','keyup','input'].forEach(evt => {
-      [deceased, dob, dod, tod, place, immType, antDetail, doctor].forEach(c => c.addEventListener(evt, refreshPreview));
+      [deceased, dob, dod, tod, place, immCat, immDetail, antDetail, doctor].forEach(c => c.addEventListener(evt, refreshPreview));
     });
 
     refreshPreview();
@@ -268,7 +330,7 @@
           `**Certificat de deces - Ref ${ref}**`,
           `Defunt : ${name}`,
           `Deces : ${dod.value || '-'} ${tod.value || ''} - Lieu : ${place.value || '-'}`,
-          `Cause immediate : ${immType.value || '-'}`,
+          `Cause immediate : ${pvImm.textContent || '-'}`,
           `Cause antecedente : ${antDetail.value || '-'}`,
           `Medecin : ${doctor.value || '-'}`
         ];
