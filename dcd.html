@@ -308,7 +308,7 @@
     }
 
     async function ensureAssetsLoaded(){
-      const logoFallback = 'https://i.ibb.co/LzwcCLfN/logo-omc-nord.png';
+      const logoFallback = 'assets/logo_omc.png';
       await Promise.all([
         ensureImageLoaded(brandLogo, logoFallback),
         ensureImageLoaded(qrImg, null)
