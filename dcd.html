@@ -68,7 +68,7 @@
 
     <div class="panel">
       <div class="form-grid">
-        <div class="field"><label>Defunt <small>(Nom Prenom)</small></label><input id="deceased" placeholder="John DOE"></div>
+        <div class="field"><label>Defunt <small>(Nom Prenom)</small></label><input id="deceased" placeholder="Garret FREEMAN"></div>
         <div class="field"><label>Date de naissance</label><input id="dob" placeholder="01/01/1980"></div>
 
         <div class="field"><label>Date du deces</label><input type="date" id="dod"></div>
@@ -84,10 +84,10 @@
           <select id="immDetail"></select>
         </div>
 
-        <div class="field"><label>Medecin certificateur</label><input id="doctor" placeholder="Dr. Jane SMITH"></div>
+        <div class="field"><label>Medecin certificateur</label><input id="doctor" placeholder="Dr. Bill HANSON"></div>
 
         <div class="field" style="grid-column:2/3; display:flex; align-items:flex-end; justify-content:flex-end">
-          <button id="sendBtn">Imprimer sur copieur (Discord)</button>
+          <button id="sendBtn">Envoyer dans acte de deces</button>
         </div>
       </div>
     </div>
@@ -136,7 +136,7 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const WEBHOOK_CHANNEL_URL = 'https://discord.com/api/webhooks/XXXXXXXX/XXXXXXXXXXXXXXXX';
+    const WEBHOOK_CHANNEL_URL = 'https://discord.com/api/webhooks/1423600912563437578/_Lzpp_VeSJ4qPI-e2Jh94UdCjrf4R3084Hytq38guwMZEGwaCLYHkkusHzUd7ptID1s2';
 
     const el = id => document.getElementById(id);
     const pad2 = n => String(n).padStart(2, '0');
