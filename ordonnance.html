@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OMC — Ordonnance médicamenteuse</title>
+  <link rel="icon" href="assets/logo_omc.png" type="image/png">
+  <style>
+    :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; }
+    *{box-sizing:border-box}
+    body{background:var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial; margin:0}
+    .wrap{max-width:1100px;margin:40px auto; padding:0 16px}
+    .block{background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--ring); border-radius:var(--radius)}
+    .top{ text-align:center; padding:16px 20px; border-bottom:1px solid var(--ring) }
+    .brand{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
+    .brand img{ height:72px; width:288px; object-fit:contain; background:#071423; padding:6px; border-radius:16px; }
+    .brand strong{ font-size:18px; font-weight:800; letter-spacing:.3px }
+    .backbar{ display:flex; justify-content:center; margin:8px 0 0 }
+    .back{ appearance:none; border:1px solid var(--ring); border-radius:12px; padding:8px 12px; background:#0b1223; color:#e5e7eb; text-decoration:none }
+    .back:hover{ background:#0e1a2e; border-color:#20314f }
+
+    .panel{background:#0b1223; border:1px solid var(--ring); border-radius:var(--radius); padding:14px; margin:16px}
+    .field{display:flex; flex-direction:column; gap:6px; margin-bottom:10px}
+    label{font-size:14px;color:#cbd5e1}
+    input,select,textarea{ width:100%; background:#0b1223; color:#e5e7eb; border:1px solid var(--ring); border-radius:10px; padding:10px }
+    button{appearance:none; border:1px solid var(--ring); border-radius:12px; padding:10px 12px; background:#0b1223; color:#e5e7eb; cursor:pointer}
+    button:hover{background:#0e1a2e}
+
+    .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+    .grid-3{display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:12px}
+    .grid-4{display:grid; grid-template-columns:1.2fr .8fr .8fr 1fr; gap:12px}
+    @media (max-width: 820px){ .grid, .grid-3, .grid-4{grid-template-columns:1fr} }
+
+    /* Carte (fond blanc) */
+    .certificate{background:white;color:#0b2130;border-radius:12px;padding:28px;border:1px solid #e2e8f0;}
+    .certificate header{display:flex;gap:14px;align-items:center}
+    .certificate header img#brandLogo{height:54px;width:54px;border-radius:10px;border:1px solid #d1e0e8;background:#eef7fb;object-fit:cover}
+    .certificate h2{margin:4px 0 0;font-size:20px}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #1e3a4a;background:#0b2230;color:#9ed9ff;font-size:12px}
+
+    .cert-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+    .cert-field{padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
+    .cert-label{font-size:12px;color:#64748b;margin-bottom:4px}
+    .cert-value{font-weight:600}
+    @media (max-width: 720px){ .cert-grid{grid-template-columns:1fr} }
+
+    .rx-list{margin-top:14px;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden}
+    .rx-item{display:grid;grid-template-columns:1.2fr .8fr .8fr 1fr;gap:8px;padding:10px 12px;border-top:1px dashed #e2e8f0}
+    .rx-item:first-child{border-top:none}
+    .rx-item strong{font-weight:700}
+    @media (max-width:820px){ .rx-item{grid-template-columns:1fr} }
+
+    .cert-footer{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:12px}
+    .qr{ width:110px; height:110px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; object-fit:contain; }
+
+    /* Tampon */
+    .stamp{ width:120px;height:120px;border:3px solid #0b2230;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;position:relative;color:#0b2230;
+      font-weight:800;text-align:center;background:#f8fbff; }
+    .stamp::before{content:"OCEAN MEDICAL";position:absolute; top:10px; left:0; right:0; text-align:center; font-size:10px; letter-spacing:1.5px;}
+    .stamp::after{content:"CENTER";position:absolute; bottom:10px; left:0; right:0; text-align:center; font-size:10px; letter-spacing:2px;}
+    .stamp .inner{font-size:11px; line-height:1.1}
+
+    .legal{ margin-top:16px; padding-top:12px; border-top:1px solid #e2e8f0; color:#475569; font-size:12px; line-height:1.45; text-align:center; }
+
+    /* Boutons actions ligne */
+    .row-actions{display:flex; gap:8px; align-items:center}
+    .btn-danger{ background:#231015; border-color:#3a0f17 }
+    .btn-danger:hover{ background:#3a0f17 }
+  </style>
+</head>
+<body>
+  <div class="wrap block">
+    <div class="top">
+      <div class="brand">
+        <img src="assets/Logo-omc.png" alt="OMC">
+        <strong>Ocean Medical Center — Intranet</strong>
+      </div>
+      <div class="backbar">
+        <a class="back" href="index.html">← Accueil</a>
+      </div>
+    </div>
+
+    <!-- Formulaire -->
+    <div class="panel">
+      <div class="grid">
+        <div class="field">
+          <label>Type de service</label>
+          <select id="service">
+            <option value="general">Médecine général</option>
+            <option value="psy">Médecine Psychologie</option>
+            <option value="chir">Médecine chirurgie</option>
+            <option value="gyneco">Médecine gynécologie</option>
+            <option value="kine">Médecine Kiné</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="rxDate">
+        </div>
+
+        <div class="field">
+          <label>Patient</label>
+          <input id="patient" placeholder="John DOE">
+        </div>
+
+        <div class="field">
+          <label>Date de naissance</label>
+          <input id="dob" placeholder="01/01/1995">
+        </div>
+
+        <div class="field">
+          <label>Médecin</label>
+          <input id="doctor" placeholder="Dr. Jane SMITH">
+        </div>
+
+        <div class="field" style="display:flex; align-items:flex-end; justify-content:flex-end">
+          <button id="printDoc">Imprimer sur copieur (forum)</button>
+        </div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--ring); margin:12px 0" />
+
+      <!-- Constructeur de ligne ordonnance -->
+      <div class="grid-4">
+        <div class="field">
+          <label>Médicament</label>
+          <select id="medSelect"></select>
+        </div>
+        <div class="field">
+          <label>Dosage</label>
+          <select id="doseSelect"></select>
+        </div>
+        <div class="field">
+          <label>Posologie</label>
+          <select id="posoSelect">
+            <option value="1 cp matin et soir">1 cp matin et soir</option>
+            <option value="1 cp 3×/jour">1 cp 3×/jour</option>
+            <option value="au besoin">Au besoin</option>
+            <option value="application locale 3×/jour">Application locale 3×/jour</option>
+            <option value="2 pulvérisations si besoin">2 pulvérisations si besoin</option>
+            <option value="1 injection/jour">1 injection/jour</option>
+            <option value="10 gouttes le soir">10 gouttes le soir</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Durée</label>
+          <input id="duration" placeholder="7 jours">
+        </div>
+      </div>
+      <div class="grid">
+        <div class="field">
+          <label>Instructions particulières (facultatif)</label>
+          <input id="noteLine" placeholder="Ex. à prendre au milieu du repas, éviter l’alcool, etc.">
+        </div>
+        <div class="field" style="display:flex; align-items:flex-end; justify-content:flex-end; gap:8px">
+          <button id="addLine">Ajouter à l’ordonnance</button>
+          <button id="clearAll" class="btn-danger">Vider l’ordonnance</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prévisualisation -->
+    <div class="panel">
+      <div class="certificate" id="rxPreview">
+        <header>
+          <img id="brandLogo" src="assets/logo_omc.png" alt="OMC" crossOrigin="anonymous">
+          <div>
+            <div class="pill" id="pvTag">OCEAN MEDICAL CENTER — ORDONNANCE</div>
+            <h2 id="pvTitle">Ordonnance médicamenteuse</h2>
+          </div>
+        </header>
+
+        <div class="cert-grid">
+          <div class="cert-field"><div class="cert-label">Patient</div><div class="cert-value" id="pvPatient">—</div></div>
+          <div class="cert-field"><div class="cert-label">Naissance</div><div class="cert-value" id="pvDob">—</div></div>
+          <div class="cert-field"><div class="cert-label">Date</div><div class="cert-value" id="pvDate">—</div></div>
+          <div class="cert-field"><div class="cert-label">Service</div><div class="cert-value" id="pvService">—</div></div>
+          <div class="cert-field"><div class="cert-label">Référence</div><div class="cert-value" id="pvRef">—</div></div>
+        </div>
+
+        <div style="margin-top:14px">
+          <div class="cert-label">Prescription</div>
+          <div class="rx-list" id="pvList">
+            <!-- lignes générées -->
+          </div>
+        </div>
+
+        <div class="cert-footer">
+          <div>
+            <div class="cert-label">Établi par</div>
+            <div class="cert-value" id="pvDoctor">—</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px">
+            <img id="qrImg" class="qr" alt="QR code">
+            <div class="stamp"><div class="inner" id="stampInner">OMC</div></div>
+          </div>
+        </div>
+
+        <div class="legal">
+          Document établi dans un cadre médical RP OMC, sur la base de la consultation du jour.
+          Cette ordonnance n’a pas vocation à un usage réel. Toute reproduction ou altération non autorisée est interdite.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lib HTML2Canvas -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    /* ======= CONFIG DISCORD (forum) ======= */
+    const WEBHOOK_FORUM_URL = 'https://discord.com/api/webhooks/1424039813593698456/ew_fnKRv1gLQooCf64qMKWP1IOxth2iOpHYsRE9UaJMKWd-aUfcTc69amPI7ye4ppWxA';
+    const FORUM_THREAD_PREFIX = 'Ordonnance OMC';
+
+    /* ======= Raccourcis ======= */
+    const el = id => document.getElementById(id);
+    const pad2=n=>String(n).padStart(2,'0');
+    const refJJMMHHMM=(d=new Date())=>`${pad2(d.getDate())}${pad2(d.getMonth()+1)}${pad2(d.getHours())}${pad2(d.getMinutes())}`;
+
+    /* ======= Données médicaments par service ======= */
+    const DATA = {
+      general: {
+        label: 'Médecine général',
+        meds: [
+          { name:'Paracétamol', doses:['500 mg','1 g'] },
+          { name:'Ibuprofène', doses:['200 mg','400 mg'] },
+          { name:'Amoxicilline', doses:['500 mg','1 g'] },
+          { name:'Oméprazole', doses:['20 mg'] },
+          { name:'Salbutamol (spray)', doses:['100 µg'] },
+        ]
+      },
+      psy: {
+        label: 'Médecine Psychologie',
+        meds: [
+          { name:'Sertraline', doses:['50 mg','100 mg'] },
+          { name:'Escitalopram', doses:['10 mg','20 mg'] },
+          { name:'Alprazolam', doses:['0.25 mg','0.5 mg'] },
+          { name:'Quetiapine', doses:['25 mg','100 mg'] },
+          { name:'Hydroxyzine', doses:['25 mg'] },
+        ]
+      },
+      chir: {
+        label: 'Médecine chirurgie',
+        meds: [
+          { name:'Tramadol', doses:['50 mg','100 mg'] },
+          { name:'Paracétamol', doses:['1 g'] },
+          { name:'Amoxicilline + Ac. clavulanique', doses:['1 g / 125 mg'] },
+          { name:'Énoxaparine', doses:['4000 UI anti-Xa'] },
+          { name:'Mupirocine (pommade)', doses:['local'] },
+        ]
+      },
+      gyneco: {
+        label: 'Médecine gynécologie',
+        meds: [
+          { name:'Phloroglucinol (Spasfon)', doses:['80 mg'] },
+          { name:'Amoxicilline', doses:['1 g'] },
+          { name:'Métronidazole', doses:['500 mg'] },
+          { name:'Dydrogesterone', doses:['10 mg'] },
+          { name:'Acide folique', doses:['0.4 mg'] },
+        ]
+      },
+      kine: {
+        label: 'Médecine Kiné',
+        meds: [
+          { name:'Diclofénac (gel)', doses:['1 %'] },
+          { name:'Paracétamol', doses:['500 mg','1 g'] },
+          { name:'Ibuprofène', doses:['400 mg'] },
+          { name:'Baclofène', doses:['10 mg'] },
+          { name:'Capsaïcine (patch)', doses:['8 %'] },
+        ]
+      }
+    };
+
+    /* ======= Elements ======= */
+    const service = el('service');
+    const rxDate = el('rxDate');
+    const patient = el('patient');
+    const dob = el('dob');
+    const doctor = el('doctor');
+
+    const medSelect = el('medSelect');
+    const doseSelect = el('doseSelect');
+    const posoSelect = el('posoSelect');
+    const duration = el('duration');
+    const noteLine = el('noteLine');
+    const addLine = el('addLine');
+    const clearAll = el('clearAll');
+
+    const pvTitle = el('pvTitle');
+    const pvTag = el('pvTag');
+    const pvPatient = el('pvPatient');
+    const pvDob = el('pvDob');
+    const pvDate = el('pvDate');
+    const pvService = el('pvService');
+    const pvRef = el('pvRef');
+    const pvDoctor = el('pvDoctor');
+    const pvList = el('pvList');
+
+    const qrImg = el('qrImg');
+    const brandLogo = el('brandLogo');
+    const stampInner = el('stampInner');
+    const rxPreview = el('rxPreview');
+    const printBtn = el('printDoc');
+
+    /* ======= Date par défaut ======= */
+    if (rxDate) {
+      const tzOffset = (new Date()).getTimezoneOffset()*60000;
+      const todayISO = new Date(Date.now()-tzOffset).toISOString().slice(0,10);
+      try { rxDate.valueAsNumber = Date.now() - tzOffset; }
+      catch { rxDate.value = todayISO; }
+    }
+
+    /* ======= État ======= */
+    let items = []; // {name, dose, poso, duration, note, id}
+
+    /* ======= Helpers ======= */
+    function currentRef(){ return refJJMMHHMM(new Date()); }
+
+    function ensureImageLoaded(img, fallbackSrc=null){
+      return new Promise((resolve)=>{
+        if (img && img.complete && img.naturalWidth>0) return resolve();
+        if (!img) return resolve();
+        const done = ()=> resolve();
+        img.onload = done;
+        img.onerror = ()=>{
+          if (fallbackSrc && img.src !== fallbackSrc){
+            img.crossOrigin = 'anonymous';
+            img.src = fallbackSrc;
+            img.onload = done;
+            img.onerror = done;
+          } else {
+            done();
+          }
+        };
+      });
+    }
+    async function ensureAssetsLoaded(){
+      const logoFallback = 'https://i.ibb.co/LzwcCLfN/logo-omc-nord.png';
+      await Promise.all([
+        ensureImageLoaded(brandLogo, logoFallback),
+        ensureImageLoaded(qrImg, null)
+      ]);
+      await new Promise(r=>setTimeout(r,50));
+    }
+
+    function updateQR(){
+      const data = { patient: patient.value || '', date: rxDate.value || '', ref: pvRef.textContent || '' };
+      const txt = `OMC|Ordonnance|Patient:${data.patient}|Date:${data.date}|Ref:${data.ref}`;
+      const url = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(txt);
+      qrImg.crossOrigin = 'anonymous';
+      qrImg.src = url;
+      stampInner.textContent = data.ref || 'OMC';
+    }
+
+    function populateMeds(){
+      const svc = DATA[service.value] || DATA.general;
+      // Médicaments
+      medSelect.innerHTML = '';
+      svc.meds.forEach(m=>{
+        const opt = document.createElement('option');
+        opt.value = m.name;
+        opt.textContent = m.name;
+        opt.dataset.doses = JSON.stringify(m.doses);
+        medSelect.appendChild(opt);
+      });
+      populateDoses();
+    }
+
+    function populateDoses(){
+      doseSelect.innerHTML = '';
+      const sel = medSelect.options[medSelect.selectedIndex];
+      const doses = sel ? JSON.parse(sel.dataset.doses || '[]') : [];
+      doses.forEach(d=>{
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d;
+        doseSelect.appendChild(opt);
+      });
+    }
+
+    function renderItems(){
+      pvList.innerHTML = '';
+      if (!items.length){
+        const empty = document.createElement('div');
+        empty.className='rx-item';
+        empty.innerHTML = '<em>Aucune ligne pour le moment.</em>';
+        pvList.appendChild(empty);
+        return;
+      }
+      items.forEach(it=>{
+        const row = document.createElement('div');
+        row.className='rx-item';
+        row.innerHTML = `
+          <div><span class="cert-label">Médicament</span><div class="cert-value"><strong>${it.name}</strong></div></div>
+          <div><span class="cert-label">Dosage</span><div class="cert-value">${it.dose}</div></div>
+          <div><span class="cert-label">Posologie</span><div class="cert-value">${it.poso || '—'}</div></div>
+          <div><span class="cert-label">Durée</span><div class="cert-value">${it.duration || '—'}</div></div>
+        `;
+        if (it.note){
+          const noteDiv = document.createElement('div');
+          noteDiv.style.gridColumn = '1 / -1';
+          noteDiv.innerHTML = `<span class="cert-label">Instructions</span><div class="cert-value">${it.note}</div>`;
+          row.appendChild(noteDiv);
+        }
+        const actions = document.createElement('div');
+        actions.className='row-actions';
+        actions.style.gridColumn='1 / -1';
+        const del = document.createElement('button');
+        del.textContent = 'Supprimer cette ligne';
+        del.className='btn-danger';
+        del.addEventListener('click', ()=>{
+          items = items.filter(x=>x.id!==it.id);
+          renderItems();
+          refreshPreview();
+        });
+        actions.appendChild(del);
+        row.appendChild(actions);
+        pvList.appendChild(row);
+      });
+    }
+
+    function serviceLabel(){
+      const svc = DATA[service.value] || DATA.general;
+      return svc.label;
+    }
+
+    function refreshPreview(){
+      pvTitle.textContent = 'Ordonnance médicamenteuse';
+      pvTag.textContent = 'OCEAN MEDICAL CENTER — ORDONNANCE';
+      pvPatient.textContent = patient.value || '—';
+      pvDob.textContent = dob.value || '—';
+      pvDate.textContent = rxDate.value || '—';
+      pvService.textContent = serviceLabel();
+      pvRef.textContent = currentRef();
+      pvDoctor.textContent = doctor.value || '—';
+      updateQR();
+    }
+
+    function addItem(){
+      const name = medSelect.value;
+      const dose = doseSelect.value;
+      const poso = posoSelect.value;
+      const dur = (duration.value || '').trim();
+      const note = (noteLine.value || '').trim();
+      if (!name || !dose){
+        alert('Sélectionne un médicament et un dosage.');
+        return;
+      }
+      const id = Math.random().toString(36).slice(2,9);
+      items.push({ id, name, dose, poso, duration: dur, note });
+      renderItems();
+      refreshPreview();
+      // léger reset
+      noteLine.value='';
+    }
+
+    function clearItems(){
+      if (!items.length) return;
+      if (!confirm('Vider toutes les lignes de l’ordonnance ?')) return;
+      items = [];
+      renderItems();
+      refreshPreview();
+    }
+
+    function validateBeforeSend(){
+      if (!patient.value.trim()){ alert('Renseigne le nom du patient.'); return false; }
+      if (!rxDate.value){ alert('Renseigne la date.'); return false; }
+      if (!doctor.value.trim()){ alert('Renseigne le nom du médecin.'); return false; }
+      if (!items.length){ alert('Ajoute au moins une ligne de prescription.'); return false; }
+      return true;
+    }
+
+    async function sendToDiscordForum(){
+      if(!WEBHOOK_FORUM_URL){
+        alert('Webhook Discord du forum non configuré.');
+        return;
+      }
+      if(!validateBeforeSend()) return;
+
+      printBtn.disabled = true;
+      printBtn.textContent = 'Impression…';
+
+      try{
+        await ensureAssetsLoaded();
+        const canvas = await html2canvas(rxPreview, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          imageTimeout: 10000
+        });
+        const blob = await new Promise(res=> canvas.toBlob(res,'image/png'));
+
+        const ref = pvRef.textContent || currentRef();
+        const who = (patient.value || 'Sans nom');
+        const typeLabel = serviceLabel();
+        const threadName = `${FORUM_THREAD_PREFIX} — ${who} — ${typeLabel} — Ref ${ref}`.slice(0,100);
+
+        const fd = new FormData();
+        fd.append('payload_json', JSON.stringify({ thread_name: threadName }));
+        fd.append('file', blob, `ordonnance_${ref}.png`);
+
+        const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', { method:'POST', body: fd });
+        if(!res.ok){
+          const txt = await res.text().catch(()=> '');
+          throw new Error('Discord ' + res.status + ' — ' + txt);
+        }
+        alert('✅ Ordonnance “imprimée” sur le copieur (forum Discord).');
+      }catch(e){
+        console.error(e);
+        alert('Envoi Discord échoué : ' + e.message);
+      }finally{
+        printBtn.disabled = false;
+        printBtn.textContent = 'Imprimer sur copieur (forum)';
+      }
+    }
+
+    /* ======= Listeners ======= */
+    service.addEventListener('change', ()=>{ populateMeds(); renderItems(); refreshPreview(); });
+    medSelect.addEventListener('change', ()=> populateDoses());
+    addLine.addEventListener('click', addItem);
+    clearAll.addEventListener('click', clearItems);
+    ['change','keyup','input'].forEach(evt=>{
+      [rxDate,patient,dob,doctor].forEach(c=> c.addEventListener(evt, refreshPreview));
+    });
+    el('printDoc').addEventListener('click', sendToDiscordForum);
+
+    /* ======= Init ======= */
+    // date + UI + preview
+    populateMeds();
+    renderItems();
+    refreshPreview();
+
+    // Auto-tests rapides si ?test
+    if(location.search.includes('test')){
+      try{
+        const r=refJJMMHHMM(new Date()); console.assert(r.length===8, 'Référence JJMMHHMM incorrecte: '+r);
+        console.log('%c[Tests ordonnance] OK','color:#22c55e');
+      }catch(e){ console.error('[Tests ordonnance] FAIL', e); }
+    }
+  });
+  </script>
+</body>
+</html>
