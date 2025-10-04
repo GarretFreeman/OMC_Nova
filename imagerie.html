@@ -939,6 +939,59 @@
       return await new Promise(res=> canvas.toBlob(b=>res(b),'image/png'));
     }
 
+    /* ========= TEXTE DISCORD (Markdown) AU-DESSUS DE L’IMAGE ========= */
+    function makeDiscordContent() {
+      const p = patientId.value?.trim() || '—';
+      const d = doctorName.value?.trim() || '—';
+      const dateStr = new Date().toLocaleString();
+      const lines = [];
+
+      // Titre et meta
+      lines.push(`**🩺 OMC — Imagerie**`);
+      lines.push(`**Patient :** ${p}  •  **Médecin :** ${d}  •  **Date :** ${dateStr}`);
+      lines.push(``);
+
+      // Constat lésionnel
+      lines.push(`**🧾 Constat lésionnel**`);
+      if (!markers.length) {
+        lines.push(`— Aucune lésion renseignée`);
+      } else {
+        const perTypeIndex = {};
+        markers.forEach(m => {
+          perTypeIndex[m.type] = (perTypeIndex[m.type] || 0) + 1;
+          const idx = perTypeIndex[m.type];
+          lines.push(`• **${LMAP[m.type].label} — N°${idx}** — ${markerText(m)}`);
+        });
+      }
+      if (comments.value?.trim()) {
+        lines.push(``);
+        lines.push(`_Notes : ${comments.value.trim()}_`);
+      }
+
+      // Traitement médicamenteux
+      lines.push(``);
+      lines.push(`**💊 Traitement médicamenteux**`);
+      if (selectedMeds.size) {
+        [...selectedMeds].forEach(t => lines.push(`• ${t}`));
+      } else {
+        lines.push(`—`);
+      }
+
+      // Préconisations
+      lines.push(``);
+      lines.push(`**🧭 Préconisations**`);
+      if (selectedRecs.size) {
+        [...selectedRecs].forEach(t => lines.push(`• ${t}`));
+      } else {
+        lines.push(`—`);
+      }
+
+      // Limite Discord ~2000 caractères
+      let out = lines.join('\n');
+      if (out.length > 1990) out = out.slice(0, 1985) + '…';
+      return out;
+    }
+
     async function sendToDiscordForum(){
       if(!WEBHOOK_FORUM_URL){ alert('Webhook Discord non configuré.'); return; }
       try{
@@ -946,14 +999,18 @@
         const threadName = `${FORUM_THREAD_PREFIX} — ${patientId.value || 'Sans nom'} — ${new Date().toLocaleDateString()}`;
 
         const fd = new FormData();
-        fd.append('payload_json', JSON.stringify({ thread_name: threadName }));
+        // ➜ Texte (Markdown) AU-DESSUS de l'image dans le même message
+        fd.append('payload_json', JSON.stringify({
+          thread_name: threadName,
+          content: makeDiscordContent()
+        }));
         fd.append('file', imgBlob, `imagerie-omc-${Date.now()}.png`);
 
         const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', { method:'POST', body: fd });
         if(!res.ok){
           const txt = await res.text().catch(()=> ''); throw new Error('HTTP '+res.status+' '+txt);
         }
-        logH('Canevas envoyé sur Discord (forum “imagerie”).');
+        logH('Canevas + texte envoyés sur Discord (forum “imagerie”).');
         alert('Canevas envoyé sur le copieur imagerie (Discord).');
       }catch(e){
         console.error(e);
@@ -1001,7 +1058,7 @@
     [patientId, doctorName, comments].forEach(el => el.addEventListener('input', updateReport));
 
     /* ========= Init ========= */
-     function init(){
+    function init(){
       buildPalette();
       redrawLegend();
       updateReport();
