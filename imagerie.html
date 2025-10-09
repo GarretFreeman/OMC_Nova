@@ -82,6 +82,28 @@
     @media (max-width: 800px){ .choices{grid-template-columns:1fr} }
   </style>
 </head>
+<script>
+(function(){
+  const es = new EventSource('https://img.ocean-medical-center.ovh/events');
+  es.onmessage = (ev)=>{
+    try {
+      const data = JSON.parse(ev.data);
+      if (data?.type === 'image' && data.url) showPopup(data.url);
+    } catch(e){}
+  };
+  es.onopen  = ()=>console.log('SSE ouvert');
+  es.onerror = (e)=>console.log('SSE erreur', e);
+
+  function showPopup(url){
+    const box = document.createElement('div');
+    box.style.cssText='position:fixed;right:16px;bottom:16px;background:#111;color:#fff;padding:12px 14px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.3);max-width:340px;z-index:9999;font:14px/1.4 system-ui';
+    box.innerHTML = `<b>Nouvelle image</b><br><a href="${url}" target="_blank" style="color:#9cf;word-break:break-all">${url}</a><br><img src="${url}" style="max-width:100%;margin-top:8px;border-radius:8px">`;
+    document.body.appendChild(box);
+    setTimeout(()=>box.remove(), 12000);
+  }
+})();
+</script>
+
 <body>
   <div class="wrap block">
     <!-- Top identique Certificats -->
