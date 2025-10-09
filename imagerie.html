@@ -244,6 +244,7 @@
     es.onopen   = () => console.log('[OMC] SSE ouvert');
     es.onerror  = (e) => console.warn('[OMC] SSE erreur', e);
     es.onmessage= (ev) => {
+      
       try {
         const data = JSON.parse(ev.data);
         // tolérant: url | href | image | link, et "type" optionnel
@@ -258,6 +259,20 @@
         console.warn('[OMC] Erreur parsing SSE:', err, ev.data);
       }
     };
+    es.addEventListener('mirrorSaved', (ev) => {
+  try {
+    const data = JSON.parse(ev.data);
+    const u = data?.url || data?.href || data?.image || data?.link;
+    if (u && /^https:\/\//i.test(u)) {
+      console.log('[OMC] mirrorSaved:', u);
+      showPopup(u);
+    } else {
+      console.log('[OMC] mirrorSaved reçu sans URL exploitable:', data);
+    }
+  } catch (err) {
+    console.warn('[OMC] mirrorSaved parse error', err, ev.data);
+  }
+});
   } else {
     console.warn('[OMC] Aucun EventSource actif');
   }
