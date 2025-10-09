@@ -1086,30 +1086,29 @@
     }
 
     async function sendToDiscordForum(){
-      if(!WEBHOOK_FORUM_URL){ alert('Webhook Discord non configuré.'); return; }
-      try{
-        const imgBlob = await exportReportPNG(2);
-        const threadName = `${FORUM_THREAD_PREFIX} — ${patientId.value || 'Sans nom'} — ${new Date().toLocaleDateString()}`;
+  if(!WEBHOOK_FORUM_URL){ console.warn('Webhook Discord non configuré.'); return; }
+  try{
+    const imgBlob = await exportReportPNG(2);
+    const threadName = `${FORUM_THREAD_PREFIX} — ${patientId.value || 'Sans nom'} — ${new Date().toLocaleDateString()}`;
 
-        const fd = new FormData();
-        // ➜ Texte (Markdown) AU-DESSUS de l'image dans le même message
-        fd.append('payload_json', JSON.stringify({
-          thread_name: threadName,
-          content: makeDiscordContent()
-        }));
-        fd.append('file', imgBlob, `imagerie-omc-${Date.now()}.png`);
+    const fd = new FormData();
+    fd.append('payload_json', JSON.stringify({
+      thread_name: threadName,
+      content: makeDiscordContent()
+    }));
+    fd.append('file', imgBlob, `imagerie-omc-${Date.now()}.png`);
 
-        const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', { method:'POST', body: fd });
-        if(!res.ok){
-          const txt = await res.text().catch(()=> ''); throw new Error('HTTP '+res.status+' '+txt);
-        }
-        logH('Canevas + texte envoyés sur Discord (forum “imagerie”).');
-        alert('Canevas envoyé sur le copieur imagerie (Discord).');
-      }catch(e){
-        console.error(e);
-        alert('Envoi Discord échoué. Vérifie le webhook et le logo.');
-      }
+    const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', { method:'POST', body: fd });
+    if(!res.ok){
+      const txt = await res.text().catch(()=> ''); throw new Error('HTTP '+res.status+' '+txt);
     }
+    logH('Canevas + texte envoyés sur Discord (forum “imagerie”).');
+    // pas d’alert()
+  }catch(e){
+    console.error(e);
+    // pas d’alert()
+  }
+}
 
     /* ========= Interactions ========= */
     overlay.addEventListener('click', (e)=> addMarker(svgPoint(e), activeType));
