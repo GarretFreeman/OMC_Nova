@@ -181,94 +181,92 @@
 
   <!-- ===== Nouveau script SSE unifié (remplace l'ancien) ===== -->
   <script>
-  (function(){
-    // Empêche une double installation au cas où
-    if (window.__omcPopupInstalled) return;
-    window.__omcPopupInstalled = true;
+(function(){
+  if (window.__omcPopupInstalled) return;
+  window.__omcPopupInstalled = true;
 
-    const ES_URL = 'https://img.ocean-medical-center.ovh/events';
+  const ES_URL = 'https://img.ocean-medical-center.ovh/events';
 
-    // Un seul EventSource global
-    if (!window.__omcES) {
-      try {
-        window.__omcES = new EventSource(ES_URL);
-        console.log('[OMC] SSE connecté à', ES_URL);
-      } catch (e) {
-        console.warn('[OMC] Échec EventSource:', e);
-      }
+  if (!window.__omcES) {
+    try {
+      window.__omcES = new EventSource(ES_URL);
+      console.log('[OMC] SSE connecté à', ES_URL);
+    } catch (e) {
+      console.warn('[OMC] Échec EventSource:', e);
     }
-    const es = window.__omcES;
+  }
+  const es = window.__omcES;
 
-    // Anti-doublons d'URL
-    const shown = (window.__omcShown = window.__omcShown || new Set());
+  const shown = (window.__omcShown = window.__omcShown || new Set());
 
-    function showPopup(url){
-      if (!url || shown.has(url)) return;
-      shown.add(url);
+  function showPopup(url){
+    if (!url || shown.has(url)) return;
+    shown.add(url);
+    const box = document.createElement('div');
+    box.setAttribute('role', 'status');
+    box.style.cssText = [
+      'position:fixed','right:16px','bottom:16px','z-index:9999',
+      'background:#0b1223','color:#e5e7eb','padding:12px 14px',
+      'border-radius:12px','border:1px solid #1f2937',
+      'box-shadow:0 8px 24px rgba(0,0,0,.35)','max-width:360px',
+      'font:14px/1.4 system-ui','opacity:0','transform:translateY(8px)',
+      'transition:opacity .25s ease, transform .25s ease'
+    ].join(';');
 
-      const box = document.createElement('div');
-      box.setAttribute('role', 'status');
-      box.style.cssText = [
-        'position:fixed','right:16px','bottom:16px','z-index:9999',
-        'background:#0b1223','color:#e5e7eb','padding:12px 14px',
-        'border-radius:12px','border:1px solid #1f2937',
-        'box-shadow:0 8px 24px rgba(0,0,0,.35)','max-width:360px',
-        'font:14px/1.4 system-ui','opacity:0','transform:translateY(8px)',
-        'transition:opacity .25s ease, transform .25s ease'
-      ].join(';');
-
-      box.innerHTML = `
-        <div style="display:flex;gap:12px;align-items:flex-start">
-          <div style="font-size:18px">🖼️</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:700;margin-bottom:4px">Nouvelle image reçue</div>
-            <a href="${url}" target="_blank" rel="noopener" style="color:#93c5fd;word-break:break-all">${url}</a>
-            <img src="${url}" alt="Image envoyée" style="max-width:100%;margin-top:8px;border-radius:8px;display:block">
-          </div>
-          <button aria-label="Fermer" style="all:unset;cursor:pointer;color:#9ca3af;font-size:16px;line-height:1;padding:2px 4px">✖</button>
+    box.innerHTML = `
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="font-size:18px">🖼️</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;margin-bottom:4px">Nouvelle image reçue</div>
+          <a href="${url}" target="_blank" rel="noopener" style="color:#93c5fd;word-break:break-all">${url}</a>
+          <img src="${url}" alt="Image envoyée" style="max-width:100%;margin-top:8px;border-radius:8px;display:block">
         </div>
-      `;
-
-      const closeBtn = box.querySelector('button');
-      closeBtn.onclick = hide;
-
-      document.body.appendChild(box);
-      // apparition
-      requestAnimationFrame(() => {
-        box.style.opacity = '1';
-        box.style.transform = 'translateY(0)';
-      });
-
-      // auto-hide
-      const t = setTimeout(hide, 12000);
-
-      function hide(){
-        clearTimeout(t);
-        box.style.opacity = '0';
-        box.style.transform = 'translateY(8px)';
-        setTimeout(() => box.remove(), 250);
-      }
+        <button aria-label="Fermer" style="all:unset;cursor:pointer;color:#9ca3af;font-size:16px;line-height:1;padding:2px 4px">✖</button>
+      </div>
+    `;
+    const closeBtn = box.querySelector('button');
+    function hide(){
+      box.style.opacity = '0';
+      box.style.transform = 'translateY(8px)';
+      setTimeout(() => box.remove(), 250);
     }
+    closeBtn.onclick = hide;
 
-    if (es) {
-      es.onopen   = () => console.log('[OMC] SSE ouvert');
-      es.onerror  = (e) => console.warn('[OMC] SSE erreur', e);
-      es.onmessage= (ev) => {
-        try {
-          const data = JSON.parse(ev.data);
-          if (data && data.type === 'image' && data.url) {
-            console.log('[OMC] Nouvelle image :', data.url);
-            showPopup(data.url);
-          }
-        } catch (err) {
-          console.warn('[OMC] Erreur parsing SSE:', err);
+    document.body.appendChild(box);
+    requestAnimationFrame(() => {
+      box.style.opacity = '1';
+      box.style.transform = 'translateY(0)';
+    });
+    setTimeout(hide, 12000);
+  }
+
+  if (es) {
+    es.onopen   = () => console.log('[OMC] SSE ouvert');
+    es.onerror  = (e) => console.warn('[OMC] SSE erreur', e);
+    es.onmessage= (ev) => {
+      try {
+        const data = JSON.parse(ev.data);
+        // tolérant: url | href | image | link, et "type" optionnel
+        const u = data?.url || data?.href || data?.image || data?.link;
+        if (u && /^https:\/\//i.test(u) && (!data.type || data.type === 'image')) {
+          console.log('[OMC] Image SSE:', u);
+          showPopup(u);
+        } else {
+          console.log('[OMC] SSE reçu (ignoré):', data);
         }
-      };
-    } else {
-      console.warn('[OMC] Aucun EventSource actif');
-    }
-  })();
-  </script>
+      } catch (err) {
+        console.warn('[OMC] Erreur parsing SSE:', err, ev.data);
+      }
+    };
+  } else {
+    console.warn('[OMC] Aucun EventSource actif');
+  }
+
+  // petit hook de test côté console:
+  window.__omcTestPopup = (u)=>showPopup(u);
+})();
+</script>
+
 
   <!-- ===== Script applicatif existant (inchangé) ===== -->
   <script>
