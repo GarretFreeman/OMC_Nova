@@ -413,5 +413,175 @@
     }
   });
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  /* ========= CONFIG ========= */
+  const API_UPLOAD_URL   = 'https://api.ocean-medical-center.ovh/api/upload';
+  const API_TOKEN        = 'super-secret-token'; // idéalement via proxy côté serveur
+  const WEBHOOK_FORUM_URL = 'https://discord.com/api/webhooks/1421827797965471855/aBgwIgdIRP3TO0Qp_culr5GJHVLDRnwtKnxjv7N62ThG8L_bRQ1gwsqV_aYXhu4eCHa2';
+  const FORUM_THREAD_PREFIX = 'Certificat OMC';
+
+  const el=id=>document.getElementById(id);
+  const pad2=n=>String(n).padStart(2,'0');
+  const refJJMMHHMM=(d=new Date())=>`${pad2(d.getDate())}${pad2(d.getMonth()+1)}${pad2(d.getHours())}${pad2(d.getMinutes())}`;
+
+  /* === sélecteurs déjà présents dans ta page (inchangé) === */
+  const certType=el('certType'), certDate=el('certDate'), patient=el('patient'), dob=el('dob');
+  const companyWrap=el('companyWrap'), company=el('company');
+  const conclusionWrap=el('conclusionWrap'), reserveWrap=el('reserveWrap');
+  const reserveText=el('reserveText'), reserveLabel=el('reserveLabel'), reserveQuick=el('reserveQuick'), clearReserve=el('clearReserve');
+  const notesWrap=el('notesWrap'), notes=el('notes'), doctor=el('doctor');
+  const pvTitle=el('certTitle'), pvTag=el('certTag'), pvPatient=el('pvPatient'), pvDob=el('pvDob');
+  const pvDate=el('pvDate'), pvRef=el('pvRef'), pvCompanyWrap=el('pvCompanyWrap'), pvCompany=el('pvCompany');
+  const pvNotes=el('pvNotes'), pvDoctor=el('pvDoctor');
+  const qrImg=el('qrImg'), stampInner=el('stampInner'), certPreview=el('certPreview');
+  const printBtn=el('printDoc');
+  const brandLogo = el('brandLogo');
+
+  /* === (tout le code de mise à jour d’UI “certificat” que tu as déjà) === */
+  // ... rien à changer ici (dates par défaut, updateVisibility, currentConclusion, refreshCert, etc.)
+  // Assure-toi juste que qrImg et brandLogo se chargent bien (crossOrigin).
+
+  function ensureImageLoaded(img, fallbackSrc=null){
+    return new Promise((resolve)=>{
+      if (img && img.complete && img.naturalWidth>0) return resolve();
+      if (!img) return resolve();
+      const done = ()=> resolve();
+      img.onload = done;
+      img.onerror = ()=>{
+        if (fallbackSrc && img.src !== fallbackSrc){
+          img.crossOrigin = 'anonymous';
+          img.src = fallbackSrc;
+          img.onload = done;
+          img.onerror = done;
+        } else {
+          done();
+        }
+      };
+    });
+  }
+  async function ensureAssetsLoaded(){
+    const logoFallback = 'https://i.ibb.co/LzwcCLfN/logo-omc-nord.png';
+    await Promise.all([
+      ensureImageLoaded(brandLogo, logoFallback),
+      ensureImageLoaded(qrImg, null)
+    ]);
+    await new Promise(r=>setTimeout(r,50));
+  }
+
+  async function canvasToPngBlob(node){
+    const canvas = await html2canvas(node, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      imageTimeout: 10000
+    });
+    return await new Promise(res=> canvas.toBlob(res,'image/png'));
+  }
+
+  async function uploadToVps(blob, ref){
+    const fd = new FormData();
+    fd.append('file', blob, `certificat_${ref}.png`);
+    const res = await fetch(API_UPLOAD_URL, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${API_TOKEN}` },
+      body: fd
+    });
+    if(!res.ok){
+      const txt = await res.text().catch(()=> '');
+      throw new Error('Upload VPS ' + res.status + ' — ' + txt);
+    }
+    const data = await res.json().catch(()=> ({}));
+    if(!data?.url) throw new Error('Réponse API VPS inattendue (pas d’url).');
+    return data.url;
+  }
+
+  async function postToDiscord(blob, threadName, publicUrl){
+    if(!WEBHOOK_FORUM_URL) throw new Error('Webhook Discord non configuré.');
+    const contentLines = [
+      `**${threadName}**`,
+      publicUrl ? `URL image (VPS): ${publicUrl}` : null,
+      '',
+      `• Patient : ${patient.value || '—'}`,
+      `• Date : ${certDate.value || '—'}`,
+      `• Réf : ${pvRef.textContent || '—'}`,
+      `• Médecin : ${doctor.value || '—'}`,
+      `• Objet : ${pvNotes.textContent || '—'}`
+    ].filter(Boolean);
+    const content = contentLines.join('\n');
+
+    const fd = new FormData();
+    fd.append('payload_json', JSON.stringify({ thread_name: threadName, content }));
+    fd.append('file', blob, `${threadName.replaceAll(' ','_')}.png`);
+
+    const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', { method:'POST', body: fd });
+    if(!res.ok){
+      const txt = await res.text().catch(()=> '');
+      throw new Error('Discord ' + res.status + ' — ' + txt);
+    }
+  }
+
+  async function printAndSendAll(){
+    printBtn.disabled = true;
+    printBtn.textContent = 'Génération…';
+
+    try{
+      // s’assurer que logos/QR sont prêts
+      await ensureAssetsLoaded();
+
+      // 1) image
+      const blob = await canvasToPngBlob(certPreview);
+      if(!blob) throw new Error('Impossible de générer l’image.');
+
+      // 2) infos pour nommage
+      const ref = pvRef.textContent || refJJMMHHMM(new Date());
+      const who = (patient.value || 'Sans nom');
+      const typeLabel = (certType.value==='pro'?'Aptitude pro':certType.value==='ppa'?'PPA':'Divers');
+      const threadName = `${FORUM_THREAD_PREFIX} — ${who} — ${typeLabel} — Ref ${ref}`.slice(0,100);
+
+      // 3) upload VPS d’abord (pour récupérer l’URL publique)
+      printBtn.textContent = 'Envoi vers le serveur…';
+      let publicUrl = null;
+      try {
+        publicUrl = await uploadToVps(blob, ref);   // -> https://img.ocean-medical-center.ovh/....
+      } catch (e) {
+        console.error('Upload VPS échoué:', e);
+        // On continue quand même pour Discord, mais on indiquera l’échec dans l’alerte finale.
+      }
+
+      // 4) post Discord (toujours joindre l’image en fichier, et inclure l’URL si dispo)
+      printBtn.textContent = 'Publication Discord…';
+      try {
+        await postToDiscord(blob, threadName, publicUrl);
+      } catch (e) {
+        console.error('Discord échoué:', e);
+        if (!publicUrl) throw e; // si rien n’a marché, on remonte l’erreur
+      }
+
+      // 5) popup + presse-papiers (avec l’URL VPS si dispo, sinon rien)
+      if (publicUrl) {
+        try { await navigator.clipboard.writeText(publicUrl); } catch {}
+        alert(`✅ Document envoyé.\n\nURL : ${publicUrl}\n\n(L’URL est copiée dans le presse-papiers)`);
+      } else {
+        alert('✅ Document publié sur Discord.\n⚠️ Upload VPS indisponible (aucune URL publique).');
+      }
+
+    } catch(e) {
+      console.error(e);
+      alert('❌ Échec : ' + e.message);
+    } finally {
+      printBtn.disabled = false;
+      printBtn.textContent = 'Imprimer le document';
+    }
+  }
+
+  // branche le bouton
+  document.getElementById('printDoc').addEventListener('click', printAndSendAll);
+
+  // (tu conserves le reste de ta logique d’UI déjà en place : updateVisibility(), refreshCert(), etc.)
+});
+</script>
+
 </body>
 </html>
