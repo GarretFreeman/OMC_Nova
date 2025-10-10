@@ -6,204 +6,582 @@
   <title>OMC — Certificats</title>
   <link rel="icon" href="assets/logo_omc.png" type="image/png">
   <style>
-    :root {
-      --bg: #0f172a;
-      --panel: #111827;
-      --panel2: #0b1223;
-      --text: #e5e7eb;
-      --muted: #9ca3af;
-      --accent: #3b82f6;
-      --radius: 14px;
+    :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; }
+    *{box-sizing:border-box}
+    body{background:var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial; margin:0}
+    .wrap{max-width:1100px;margin:40px auto; padding:0 16px}
+    .block{background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--ring); border-radius:var(--radius)}
+
+    /* ======= Top identique au calcul des coûts (2x plus petit) ======= */
+    .top{ text-align:center; padding:16px 20px; border-bottom:1px solid var(--ring) }
+    .brand{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
+    .brand img{
+      height:72px;              /* 144 -> 72 */
+      width:288px;              /* 576 -> 288 */
+      object-fit:contain;
+      background:#071423; padding:6px; border-radius:16px;
+    }
+    .brand strong{ font-size:18px; font-weight:800; letter-spacing:.3px }
+    .backbar{ display:flex; justify-content:center; margin:8px 0 0 }
+    .back{ appearance:none; border:1px solid var(--ring); border-radius:12px; padding:8px 12px; background:#0b1223; color:#e5e7eb; text-decoration:none }
+    .back:hover{ background:#0e1a2e; border-color:#20314f }
+
+    .panel{background:#0b1223; border:1px solid var(--ring); border-radius:var(--radius); padding:14px; margin:16px}
+    .field{display:flex; flex-direction:column; gap:6px; margin-bottom:10px}
+    button{appearance:none; border:1px solid var(--ring); border-radius:12px; padding:10px 12px; background:#0b1223; color:#e5e7eb; cursor:pointer}
+
+    /* Carte certificat (fond blanc pour export Discord) */
+    .certificate{background:white;color:#0b2130;border-radius:12px;padding:28px;border:1px solid #e2e8f0;}
+    .certificate header{display:flex;gap:14px;align-items:center}
+    .certificate header img#brandLogo{height:54px;width:54px;border-radius:10px;border:1px solid #d1e0e8;background:#eef7fb;object-fit:cover}
+    .certificate h2{margin:4px 0 0;font-size:20px}
+    .cert-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+    .cert-field{padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
+    .cert-label{font-size:12px;color:#64748b;margin-bottom:4px}
+    .cert-value{font-weight:600}
+
+    .cert-footer{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:12px}
+
+    /* Tampon rond */
+    .stamp{
+      width:120px;height:120px;border:3px solid #0b2230;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;position:relative;color:#0b2230;
+      font-weight:800;text-align:center;background:#f8fbff;
+    }
+    .stamp::before{content:"OCEAN MEDICAL";position:absolute; top:10px; left:0; right:0; text-align:center; font-size:10px; letter-spacing:1.5px;}
+    .stamp::after{content:"CENTER";position:absolute; bottom:10px; left:0; right:0; text-align:center; font-size:10px; letter-spacing:2px;}
+    .stamp .inner{font-size:11px; line-height:1.1}
+
+    .legal{
+      margin-top:16px; padding-top:12px; border-top:1px solid #e2e8f0;
+      color:#475569; font-size:12px; line-height:1.45; text-align:center;
     }
 
-    * { box-sizing: border-box; }
+    .qr{ width:110px; height:110px; border:1px solid #cbd5e1; border-radius:8px; background:#fff; object-fit:contain; }
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial;
-      margin: 0;
-      padding: 40px;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-    }
-
-    .wrap {
-      width: 100%;
-      max-width: 800px;
-      background: linear-gradient(180deg, var(--panel), var(--panel2));
-      border: 1px solid #1f2937;
-      border-radius: var(--radius);
-      padding: 24px;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.25);
-    }
-
-    h1 {
-      text-align: center;
-      color: var(--accent);
-      margin-bottom: 20px;
-      font-size: 1.6em;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    th, td {
-      padding: 10px;
-      text-align: left;
-    }
-
-    th {
-      color: var(--muted);
-      font-weight: 500;
-      border-bottom: 1px solid #1f2937;
-    }
-
-    td {
-      border-bottom: 1px solid #1f2937;
-    }
-
-    tr:hover {
-      background: rgba(255,255,255,0.05);
-    }
-
-    button {
-      background: var(--accent);
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 8px 14px;
-      cursor: pointer;
-      font-weight: 500;
-      transition: background 0.2s ease-in-out;
-    }
-
-    button:hover {
-      background: #2563eb;
-    }
-
-    /* Popup */
-    .popup {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.6);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 999;
-      visibility: hidden;
-      opacity: 0;
-      transition: all 0.2s ease-in-out;
-    }
-
-    .popup.active {
-      visibility: visible;
-      opacity: 1;
-    }
-
-    .popup-content {
-      background: var(--panel);
-      padding: 24px;
-      border-radius: var(--radius);
-      max-width: 500px;
-      width: 90%;
-      text-align: center;
-      box-shadow: 0 0 20px rgba(0,0,0,0.4);
-    }
-
-    .popup-content p {
-      word-break: break-all;
-      background: var(--panel2);
-      border-radius: 8px;
-      padding: 12px;
-      font-size: 0.9em;
-      color: var(--muted);
-    }
-
-    .popup-buttons {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      margin-top: 20px;
+    .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+    @media (max-width: 720px){
+      .cert-grid, .form-grid{grid-template-columns:1fr}
+      .cert-footer{flex-direction:column; align-items:flex-start}
     }
   </style>
 </head>
-
 <body>
-  <div class="wrap">
-    <h1>🔐 Certificats actifs</h1>
+  <div class="wrap block">
+    <!-- Haut harmonisé -->
+    <div class="top">
+      <div class="brand">
+        <img src="assets/Logo-omc.png" alt="OMC">
+        <strong>Ocean Medical Center — Intranet</strong>
+      </div>
+      <div class="backbar">
+        <a class="back" href="index.html">← Accueil</a>
+      </div>
+    </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Domaine</th>
-          <th>Émis le</th>
-          <th>Expire le</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="certTable">
-        <!-- Remplissage dynamique -->
-      </tbody>
-    </table>
-  </div>
+    <!-- (le reste de la page est inchangé) -->
+    <div class="panel">
+      <div class="form-grid">
+        <div class="field"><label>Type de certificat</label>
+          <select id="certType">
+            <option value="pro">Aptitude professionnelle</option>
+            <option value="ppa">Capacité examen PPA</option>
+            <option value="divers">Divers</option>
+          </select>
+        </div>
 
-  <div id="popup" class="popup">
-    <div class="popup-content">
-      <h2>Adresse d’hébergement</h2>
-      <p id="popupText"></p>
-      <div class="popup-buttons">
-        <button id="copyBtn">Copier</button>
-        <button id="okBtn">OK</button>
+        <div class="field"><label>Date</label><input type="date" id="certDate"></div>
+
+        <div class="field"><label>Patient</label><input id="patient" placeholder="John DOE"></div>
+        <div class="field"><label>Date de naissance</label><input id="dob" placeholder="01/01/1995"></div>
+
+        <div class="field" id="companyWrap"><label>Entreprise</label><input id="company" placeholder="Gruppe Sechs, LTD"></div>
+
+        <div class="field" id="conclusionWrap" style="grid-column:1/3">
+          <label>Conclusion</label>
+          <label><input type="radio" name="concl" value="ok" checked> Apte</label>
+          <label><input type="radio" name="concl" value="reserve"> Apte avec réserve</label>
+          <label><input type="radio" name="concl" value="inapte"> Inapte</label>
+        </div>
+
+        <!-- Bouton à droite -->
+        <div class="field" style="grid-column:2/3; display:flex; align-items:flex-end; justify-content:flex-end">
+          <button id="printDoc">Imprimer le document</button>
+        </div>
+
+        <!-- Détails + motifs rapides -->
+        <div class="field" id="reserveWrap" style="display:none; grid-column:1/3">
+          <label id="reserveLabel">Réserves</label>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:6px">
+            <select id="reserveQuick" style="flex:1; min-width:280px; display:none">
+              <option value="">— Ajouter un motif rapide —</option>
+            </select>
+            <button id="clearReserve" type="button" style="display:none">Effacer le texte</button>
+          </div>
+          <textarea id="reserveText" rows="3" placeholder="Précisez les réserves ou le motif"></textarea>
+        </div>
+
+        <div class="field" id="notesWrap" style="display:none; grid-column:1/3"><label>Texte du certificat</label><textarea id="notes" rows="5"></textarea></div>
+
+        <div class="field"><label>Médecin</label><input id="doctor" placeholder="Dr. Jane SMITH"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="certificate" id="certPreview">
+        <header>
+          <img id="brandLogo" src="assets/logo_omc.png" alt="OMC" crossOrigin="anonymous">
+          <div>
+            <div id="certTag" style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #1e3a4a;background:#0b2230;color:#9ed9ff;font-size:12px">OCEAN MEDICAL CENTER</div>
+            <h2 id="certTitle">Certificat</h2>
+          </div>
+        </header>
+
+        <div class="cert-grid">
+          <div class="cert-field"><div class="cert-label">Patient</div><div class="cert-value" id="pvPatient">—</div></div>
+          <div class="cert-field"><div class="cert-label">Naissance</div><div class="cert-value" id="pvDob">—</div></div>
+          <div class="cert-field"><div class="cert-label">Date</div><div class="cert-value" id="pvDate">—</div></div>
+          <div class="cert-field"><div class="cert-label">Référence dossier</div><div class="cert-value" id="pvRef">—</div></div>
+          <div class="cert-field" id="pvCompanyWrap" style="display:none"><div class="cert-label">Entreprise</div><div class="cert-value" id="pvCompany">—</div></div>
+        </div>
+
+        <div class="cert-field" style="margin-top:14px">
+          <div class="cert-label">Objet / Conclusion</div>
+          <div class="cert-value" id="pvNotes">—</div>
+        </div>
+
+        <div class="cert-footer">
+          <div>
+            <div class="cert-label">Établi par</div>
+            <div class="cert-value" id="pvDoctor">—</div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:12px">
+            <img id="qrImg" class="qr" alt="QR code">
+            <div class="stamp"><div class="inner" id="stampInner">OMC</div></div>
+          </div>
+        </div>
+
+        <div class="legal">
+          Ce document est établi sur la base des éléments fournis par le patient et de l’examen clinique réalisé à la date indiquée.
+          Il ne constitue pas un diagnostic global de santé et n’est valable qu’au jour de son établissement. Toute reproduction
+          ou altération sans autorisation est interdite. Le titulaire peut demander rectification des informations nominatives
+          conformément à la réglementation applicable.
+        </div>
       </div>
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
-    const certs = [
-      { domaine: 'img.ocean-medical-center.ovh', emis: '2025-09-30', expire: '2026-09-30', url: 'https://img.ocean-medical-center.ovh' },
-      { domaine: 'ocean-medical-center.ovh', emis: '2025-09-28', expire: '2026-09-28', url: 'https://ocean-medical-center.ovh' },
-    ];
+  document.addEventListener('DOMContentLoaded', () => {
+    /* ========= CONFIG DISCORD (forum) ========= */
+    const WEBHOOK_FORUM_URL = 'https://discord.com/api/webhooks/1421827797965471855/aBgwIgdIRP3TO0Qp_culr5GJHVLDRnwtKnxjv7N62ThG8L_bRQ1gwsqV_aYXhu4eCHa2';
+    const FORUM_THREAD_PREFIX = 'Certificat OMC';
 
-    const table = document.getElementById('certTable');
-    certs.forEach(cert => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${cert.domaine}</td>
-        <td>${cert.emis}</td>
-        <td>${cert.expire}</td>
-        <td><button onclick="openPopup('${cert.url}')">Voir</button></td>
-      `;
-      table.appendChild(tr);
-    });
+    const el=id=>document.getElementById(id);
+    const pad2=n=>String(n).padStart(2,'0');
+    const refJJMMHHMM=(d=new Date())=>`${pad2(d.getDate())}${pad2(d.getMonth()+1)}${pad2(d.getHours())}${pad2(d.getMinutes())}`;
 
-    const popup = document.getElementById('popup');
-    const popupText = document.getElementById('popupText');
-    const copyBtn = document.getElementById('copyBtn');
-    const okBtn = document.getElementById('okBtn');
+    const certType=el('certType'), certDate=el('certDate'), patient=el('patient'), dob=el('dob');
+    const companyWrap=el('companyWrap'), company=el('company');
+    const conclusionWrap=el('conclusionWrap'), reserveWrap=el('reserveWrap');
+    const reserveText=el('reserveText'), reserveLabel=el('reserveLabel'), reserveQuick=el('reserveQuick'), clearReserve=el('clearReserve');
+    const notesWrap=el('notesWrap'), notes=el('notes'), doctor=el('doctor');
+    const pvTitle=el('certTitle'), pvTag=el('certTag'), pvPatient=el('pvPatient'), pvDob=el('pvDob');
+    const pvDate=el('pvDate'), pvRef=el('pvRef'), pvCompanyWrap=el('pvCompanyWrap'), pvCompany=el('pvCompany');
+    const pvNotes=el('pvNotes'), pvDoctor=el('pvDoctor');
+    const qrImg=el('qrImg'), stampInner=el('stampInner'), certPreview=el('certPreview');
+    const printBtn=el('printDoc');
+    const brandLogo = el('brandLogo');
 
-    function openPopup(url) {
-      popupText.textContent = url;
-      popup.classList.add('active');
-
-      copyBtn.onclick = () => {
-        navigator.clipboard.writeText(url);
-        copyBtn.textContent = "Copié ✅";
-        setTimeout(() => copyBtn.textContent = "Copier", 2000);
-      };
-
-      okBtn.onclick = () => {
-        popup.classList.remove('active');
-      };
+    // Date par défaut
+    if (certDate) {
+      const tzOffset = (new Date()).getTimezoneOffset()*60000;
+      const todayISO = new Date(Date.now()-tzOffset).toISOString().slice(0,10);
+      try { certDate.valueAsNumber = Date.now() - tzOffset; }
+      catch { certDate.value = todayISO; }
     }
 
-    window.__omcTestPopup = openPopup; // Pour tests rapides en console
+    const QUICK_RESERVE = [
+      "Port de charges limité à 10 kg",
+      "Travail en hauteur déconseillé",
+      "Poste sans exposition au bruit >85 dB(A)",
+      "Pas de travail de nuit",
+      "Aménagement du poste recommandé",
+      "Port d’EPI obligatoire",
+      "Éviter manutentions répétées bras en l’air",
+      "Conduite d’engins sous supervision"
+    ];
+    const QUICK_INAPTE = [
+      "Pathologie incompatible avec le poste",
+      "Risque cardio-respiratoire non contrôlé",
+      "Limitation fonctionnelle majeure",
+      "Contre-indication temporaire (réévaluation nécessaire)",
+      "Non-conformité au référentiel médical du poste",
+      "Inaptitude psychologique au poste sensible"
+    ];
+
+    function fillQuickOptions(kind){
+      reserveQuick.innerHTML = '<option value="">— Ajouter un motif rapide —</option>';
+      const list = (kind==='reserve') ? QUICK_RESERVE : QUICK_INAPTE;
+      list.forEach(txt=>{
+        const opt = document.createElement('option');
+        opt.value = txt; opt.textContent = txt;
+        reserveQuick.appendChild(opt);
+      });
+    }
+
+    function updateReserveVisibility(){
+      const type = certType.value;
+      if (type==='divers'){
+        reserveWrap.style.display='none';
+        reserveQuick.style.display='none';
+        clearReserve.style.display='none';
+        return;
+      }
+      const choice=(document.querySelector('input[name="concl"]:checked')||{}).value||'ok';
+      if (choice==='reserve'){
+        reserveLabel.textContent='Réserves';
+        fillQuickOptions('reserve');
+        reserveWrap.style.display='';
+        reserveQuick.style.display='';
+        clearReserve.style.display='';
+      } else if (choice==='inapte'){
+        reserveLabel.textContent='Motif d’inaptitude';
+        fillQuickOptions('inapte');
+        reserveWrap.style.display='';
+        reserveQuick.style.display='';
+        clearReserve.style.display='';
+      } else {
+        reserveWrap.style.display='none';
+        reserveQuick.style.display='none';
+        clearReserve.style.display='none';
+      }
+    }
+
+    function updateVisibility(){
+      const type=certType.value;
+      if(type==='pro'){ companyWrap.style.display=''; conclusionWrap.style.display=''; notesWrap.style.display='none'; }
+      if(type==='ppa'){ companyWrap.style.display='none'; conclusionWrap.style.display=''; notesWrap.style.display='none'; }
+      if(type==='divers'){ companyWrap.style.display='none'; conclusionWrap.style.display='none'; reserveWrap.style.display='none'; notesWrap.style.display=''; }
+      updateReserveVisibility();
+    }
+
+    function currentConclusion(){
+      const type=certType.value;
+      if(type==='divers') return (notes.value||'—');
+      const choice=(document.querySelector('input[name="concl"]:checked')||{}).value||'ok';
+      const detail=(reserveText.value||'').trim();
+
+      if(choice==='ok') return 'Apte — examen clinique sans contre-indication.';
+      if(choice==='reserve') return 'Apte avec réserve' + (detail ? ' — '+detail : '');
+      if(choice==='inapte') return 'Inapte' + (detail ? ' — '+detail : '');
+      return '—';
+    }
+
+    function currentRef(){ return refJJMMHHMM(new Date()); }
+
+    // Génère un QR
+    function updateQR(){
+      const data = { patient: patient.value || '', date: certDate.value || '', ref: pvRef.textContent || '' };
+      const txt = `OMC|Patient:${data.patient}|Date:${data.date}|Ref:${data.ref}`;
+      const url = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(txt);
+      qrImg.crossOrigin = 'anonymous';
+      qrImg.src = url;
+      stampInner.textContent = data.ref || 'OMC';
+    }
+
+    function refreshCert(){
+      if(certType.value==='pro'){ pvTitle.textContent='Certificat médical d’aptitude professionnelle'; pvTag.textContent='OCEAN MEDICAL CENTER — APTITUDE PRO'; }
+      else if(certType.value==='ppa'){ pvTitle.textContent='Certificat de capacité à passer l’examen du PPA'; pvTag.textContent='OCEAN MEDICAL CENTER — PPA'; }
+      else { pvTitle.textContent='Certificat — Divers'; pvTag.textContent='OCEAN MEDICAL CENTER'; }
+      pvPatient.textContent=patient.value||'—';
+      pvDob.textContent=dob.value||'—';
+      pvDate.textContent=certDate.value||'—';
+      pvRef.textContent=currentRef();
+      if(certType.value==='pro'){ pvCompanyWrap.style.display=''; pvCompany.textContent=company.value||'—'; }
+      else { pvCompanyWrap.style.display='none'; pvCompany.textContent='—'; }
+      pvNotes.textContent=currentConclusion();
+      pvDoctor.textContent=doctor.value||'—';
+      updateQR();
+    }
+
+    function appendReason(txt){
+      if(!txt) return;
+      if(reserveText.value.trim()){
+        reserveText.value = reserveText.value.trim() + ' ; ' + txt;
+      } else {
+        reserveText.value = txt;
+      }
+      reserveQuick.value = '';
+      refreshCert();
+      reserveText.focus();
+    }
+
+    reserveQuick.addEventListener('change', ()=> appendReason(reserveQuick.value));
+    clearReserve.addEventListener('click', ()=>{ reserveText.value=''; refreshCert(); });
+
+    ['change','keyup','input'].forEach(evt=>{
+      [certType,certDate,patient,dob,company,notes,doctor,reserveText].forEach(c=>{
+        c.addEventListener(evt, ()=>{ updateVisibility(); refreshCert(); });
+      });
+    });
+
+    document.querySelectorAll('input[name="concl"]').forEach(r=>{
+      r.addEventListener('change', ()=>{ updateReserveVisibility(); refreshCert(); });
+    });
+
+    updateVisibility(); refreshCert();
+
+    function ensureImageLoaded(img, fallbackSrc=null){
+      return new Promise((resolve)=>{
+        if (img && img.complete && img.naturalWidth>0) return resolve();
+        if (!img) return resolve();
+        const done = ()=> resolve();
+        img.onload = done;
+        img.onerror = ()=>{
+          if (fallbackSrc && img.src !== fallbackSrc){
+            img.crossOrigin = 'anonymous';
+            img.src = fallbackSrc;
+            img.onload = done;
+            img.onerror = done;
+          } else {
+            done();
+          }
+        };
+      });
+    }
+    async function ensureAssetsLoaded(){
+      const logoFallback = 'https://i.ibb.co/LzwcCLfN/logo-omc-nord.png';
+      await Promise.all([
+        ensureImageLoaded(brandLogo, logoFallback),
+        ensureImageLoaded(qrImg, null)
+      ]);
+      await new Promise(r=>setTimeout(r,50));
+    }
+
+    async function sendToDiscordForum(){
+      if(!WEBHOOK_FORUM_URL){
+        alert('Webhook Discord du forum non configuré.');
+        return;
+      }
+      printBtn.disabled = true;
+      printBtn.textContent = 'Impression…';
+
+      try{
+        await ensureAssetsLoaded();
+        const canvas = await html2canvas(certPreview, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          imageTimeout: 10000
+        });
+        const blob = await new Promise(res=> canvas.toBlob(res,'image/png'));
+
+        const ref = pvRef.textContent || currentRef();
+        const who = (patient.value || 'Sans nom');
+        const typeLabel = (certType.value==='pro'?'Aptitude pro':certType.value==='ppa'?'PPA':'Divers');
+        const threadName = `${FORUM_THREAD_PREFIX} — ${who} — ${typeLabel} — Ref ${ref}`.slice(0,100);
+
+        const fd = new FormData();
+        fd.append('payload_json', JSON.stringify({ thread_name: threadName }));
+        fd.append('file', blob, `certificat_${ref}.png`);
+
+        const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', { method:'POST', body: fd });
+        if(!res.ok){
+          const txt = await res.text().catch(()=> '');
+          throw new Error('Discord ' + res.status + ' — ' + txt);
+        }
+        alert('✅ Document “imprimé” sur le copieur (forum Discord).');
+      }catch(e){
+        console.error(e);
+        alert('Envoi Discord échoué : ' + e.message);
+      }finally{
+        printBtn.disabled = false;
+        printBtn.textContent = 'Imprimer le document';
+      }
+    }
+
+    document.getElementById('printDoc').addEventListener('click', sendToDiscordForum);
+
+    if(location.search.includes('test')){
+      try{
+        const r=refJJMMHHMM(new Date()); console.assert(r.length===8, 'Référence JJMMHHMM incorrecte: '+r);
+        console.log('%c[Tests cert] OK','color:#22c55e');
+      }catch(e){ console.error('[Tests cert] FAIL', e); }
+    }
+  });
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  /* ========= CONFIG ========= */
+  const API_UPLOAD_URL   = 'https://api.ocean-medical-center.ovh/api/upload';
+  const API_TOKEN        = 'super-secret-token'; // idéalement via proxy côté serveur
+  const WEBHOOK_FORUM_URL = 'https://discord.com/api/webhooks/1421827797965471855/aBgwIgdIRP3TO0Qp_culr5GJHVLDRnwtKnxjv7N62ThG8L_bRQ1gwsqV_aYXhu4eCHa2';
+  const FORUM_THREAD_PREFIX = 'Certificat OMC';
+
+  const el=id=>document.getElementById(id);
+  const pad2=n=>String(n).padStart(2,'0');
+  const refJJMMHHMM=(d=new Date())=>`${pad2(d.getDate())}${pad2(d.getMonth()+1)}${pad2(d.getHours())}${pad2(d.getMinutes())}`;
+
+  /* === sélecteurs déjà présents dans ta page (inchangé) === */
+  const certType=el('certType'), certDate=el('certDate'), patient=el('patient'), dob=el('dob');
+  const companyWrap=el('companyWrap'), company=el('company');
+  const conclusionWrap=el('conclusionWrap'), reserveWrap=el('reserveWrap');
+  const reserveText=el('reserveText'), reserveLabel=el('reserveLabel'), reserveQuick=el('reserveQuick'), clearReserve=el('clearReserve');
+  const notesWrap=el('notesWrap'), notes=el('notes'), doctor=el('doctor');
+  const pvTitle=el('certTitle'), pvTag=el('certTag'), pvPatient=el('pvPatient'), pvDob=el('pvDob');
+  const pvDate=el('pvDate'), pvRef=el('pvRef'), pvCompanyWrap=el('pvCompanyWrap'), pvCompany=el('pvCompany');
+  const pvNotes=el('pvNotes'), pvDoctor=el('pvDoctor');
+  const qrImg=el('qrImg'), stampInner=el('stampInner'), certPreview=el('certPreview');
+  const printBtn=el('printDoc');
+  const brandLogo = el('brandLogo');
+
+  /* === (tout le code de mise à jour d’UI “certificat” que tu as déjà) === */
+  // ... rien à changer ici (dates par défaut, updateVisibility, currentConclusion, refreshCert, etc.)
+  // Assure-toi juste que qrImg et brandLogo se chargent bien (crossOrigin).
+
+  function ensureImageLoaded(img, fallbackSrc=null){
+    return new Promise((resolve)=>{
+      if (img && img.complete && img.naturalWidth>0) return resolve();
+      if (!img) return resolve();
+      const done = ()=> resolve();
+      img.onload = done;
+      img.onerror = ()=>{
+        if (fallbackSrc && img.src !== fallbackSrc){
+          img.crossOrigin = 'anonymous';
+          img.src = fallbackSrc;
+          img.onload = done;
+          img.onerror = done;
+        } else {
+          done();
+        }
+      };
+    });
+  }
+  async function ensureAssetsLoaded(){
+    const logoFallback = 'https://i.ibb.co/LzwcCLfN/logo-omc-nord.png';
+    await Promise.all([
+      ensureImageLoaded(brandLogo, logoFallback),
+      ensureImageLoaded(qrImg, null)
+    ]);
+    await new Promise(r=>setTimeout(r,50));
+  }
+
+  async function canvasToPngBlob(node){
+    const canvas = await html2canvas(node, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      imageTimeout: 10000
+    });
+    return await new Promise(res=> canvas.toBlob(res,'image/png'));
+  }
+
+  async function uploadToVps(blob, ref){
+    const fd = new FormData();
+    fd.append('file', blob, `certificat_${ref}.png`);
+    const res = await fetch(API_UPLOAD_URL, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${API_TOKEN}` },
+      body: fd
+    });
+    if(!res.ok){
+      const txt = await res.text().catch(()=> '');
+      throw new Error('Upload VPS ' + res.status + ' — ' + txt);
+    }
+    const data = await res.json().catch(()=> ({}));
+    if(!data?.url) throw new Error('Réponse API VPS inattendue (pas d’url).');
+    return data.url;
+  }
+
+  async function postToDiscord(blob, threadName, publicUrl){
+    if(!WEBHOOK_FORUM_URL) throw new Error('Webhook Discord non configuré.');
+    const contentLines = [
+      `**${threadName}**`,
+      publicUrl ? `URL image (VPS): ${publicUrl}` : null,
+      '',
+      `• Patient : ${patient.value || '—'}`,
+      `• Date : ${certDate.value || '—'}`,
+      `• Réf : ${pvRef.textContent || '—'}`,
+      `• Médecin : ${doctor.value || '—'}`,
+      `• Objet : ${pvNotes.textContent || '—'}`
+    ].filter(Boolean);
+    const content = contentLines.join('\n');
+
+    const fd = new FormData();
+    fd.append('payload_json', JSON.stringify({ thread_name: threadName, content }));
+    fd.append('file', blob, `${threadName.replaceAll(' ','_')}.png`);
+
+    const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', { method:'POST', body: fd });
+    if(!res.ok){
+      const txt = await res.text().catch(()=> '');
+      throw new Error('Discord ' + res.status + ' — ' + txt);
+    }
+  }
+
+  async function printAndSendAll(){
+    printBtn.disabled = true;
+    printBtn.textContent = 'Génération…';
+
+    try{
+      // s’assurer que logos/QR sont prêts
+      await ensureAssetsLoaded();
+
+      // 1) image
+      const blob = await canvasToPngBlob(certPreview);
+      if(!blob) throw new Error('Impossible de générer l’image.');
+
+      // 2) infos pour nommage
+      const ref = pvRef.textContent || refJJMMHHMM(new Date());
+      const who = (patient.value || 'Sans nom');
+      const typeLabel = (certType.value==='pro'?'Aptitude pro':certType.value==='ppa'?'PPA':'Divers');
+      const threadName = `${FORUM_THREAD_PREFIX} — ${who} — ${typeLabel} — Ref ${ref}`.slice(0,100);
+
+      // 3) upload VPS d’abord (pour récupérer l’URL publique)
+      printBtn.textContent = 'Envoi vers le serveur…';
+      let publicUrl = null;
+      try {
+        publicUrl = await uploadToVps(blob, ref);   // -> https://img.ocean-medical-center.ovh/....
+      } catch (e) {
+        console.error('Upload VPS échoué:', e);
+        // On continue quand même pour Discord, mais on indiquera l’échec dans l’alerte finale.
+      }
+
+      // 4) post Discord (toujours joindre l’image en fichier, et inclure l’URL si dispo)
+      printBtn.textContent = 'Publication Discord…';
+      try {
+        await postToDiscord(blob, threadName, publicUrl);
+      } catch (e) {
+        console.error('Discord échoué:', e);
+        if (!publicUrl) throw e; // si rien n’a marché, on remonte l’erreur
+      }
+
+      // 5) popup + presse-papiers (avec l’URL VPS si dispo, sinon rien)
+      if (publicUrl) {
+        try { await navigator.clipboard.writeText(publicUrl); } catch {}
+        alert(`✅ Document envoyé.\n\nURL : ${publicUrl}\n\n(L’URL est copiée dans le presse-papiers)`);
+      } else {
+        alert('✅ Document publié sur Discord.\n⚠️ Upload VPS indisponible (aucune URL publique).');
+      }
+
+    } catch(e) {
+      console.error(e);
+      alert('❌ Échec : ' + e.message);
+    } finally {
+      printBtn.disabled = false;
+      printBtn.textContent = 'Imprimer le document';
+    }
+  }
+
+  // branche le bouton
+  document.getElementById('printDoc').addEventListener('click', printAndSendAll);
+
+  // (tu conserves le reste de ta logique d’UI déjà en place : updateVisibility(), refreshCert(), etc.)
+});
+</script>
+
 </body>
 </html>
