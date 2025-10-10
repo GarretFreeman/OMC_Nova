@@ -6,7 +6,7 @@
   <title>OMC — Certificats</title>
   <link rel="icon" href="assets/logo_omc.png" type="image/png">
   <style>
-    :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; }
+    :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; --accent:#3b82f6; }
     *{box-sizing:border-box}
     body{background:var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial; margin:0}
     .wrap{max-width:1100px;margin:40px auto; padding:0 16px}
@@ -16,9 +16,7 @@
     .top{ text-align:center; padding:16px 20px; border-bottom:1px solid var(--ring) }
     .brand{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; }
     .brand img{
-      height:72px;              /* 144 -> 72 */
-      width:288px;              /* 576 -> 288 */
-      object-fit:contain;
+      height:72px; width:288px; object-fit:contain;
       background:#071423; padding:6px; border-radius:16px;
     }
     .brand strong{ font-size:18px; font-weight:800; letter-spacing:.3px }
@@ -29,6 +27,7 @@
     .panel{background:#0b1223; border:1px solid var(--ring); border-radius:var(--radius); padding:14px; margin:16px}
     .field{display:flex; flex-direction:column; gap:6px; margin-bottom:10px}
     button{appearance:none; border:1px solid var(--ring); border-radius:12px; padding:10px 12px; background:#0b1223; color:#e5e7eb; cursor:pointer}
+    button:hover{background:#0e1a2e}
 
     /* Carte certificat (fond blanc pour export Discord) */
     .certificate{background:white;color:#0b2130;border-radius:12px;padding:28px;border:1px solid #e2e8f0;}
@@ -39,7 +38,6 @@
     .cert-field{padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
     .cert-label{font-size:12px;color:#64748b;margin-bottom:4px}
     .cert-value{font-weight:600}
-
     .cert-footer{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:12px}
 
     /* Tampon rond */
@@ -64,6 +62,33 @@
       .cert-grid, .form-grid{grid-template-columns:1fr}
       .cert-footer{flex-direction:column; align-items:flex-start}
     }
+
+    /* ===== Popup (Copier / OK) ===== */
+    .popup {
+      position: fixed; inset: 0; z-index: 999;
+      display: flex; justify-content: center; align-items: center;
+      background: rgba(0,0,0,0.6);
+      visibility: hidden; opacity: 0; transition: all .2s ease-in-out;
+    }
+    .popup.active { visibility: visible; opacity: 1; }
+    .popup-content {
+      background: var(--panel); border:1px solid var(--ring); border-radius:16px;
+      width: 90%; max-width: 520px; padding: 20px; text-align:center;
+      box-shadow: 0 0 20px rgba(0,0,0,.35);
+    }
+    .popup-content h2 { margin: 0 0 10px; color: var(--accent); font-size: 18px; }
+    .popup-content p {
+      word-break: break-all; background: var(--panel-2);
+      border-radius: 10px; padding: 12px; font-size: .92em; color: var(--muted);
+    }
+    .popup-buttons { display:flex; justify-content:center; gap:10px; margin-top:14px; }
+    .btn {
+      background: var(--accent); border:none; color:#fff; padding:10px 14px;
+      border-radius:10px; cursor:pointer; font-weight:600;
+    }
+    .btn:hover { filter: brightness(0.95); }
+    .btn-secondary { background:#0b1223; border:1px solid var(--ring); color:var(--text); }
+    .btn-secondary:hover { background:#0e1a2e; }
   </style>
 </head>
 <body>
@@ -79,7 +104,7 @@
       </div>
     </div>
 
-    <!-- (le reste de la page est inchangé) -->
+    <!-- Formulaire -->
     <div class="panel">
       <div class="form-grid">
         <div class="field"><label>Type de certificat</label>
@@ -127,6 +152,7 @@
       </div>
     </div>
 
+    <!-- Aperçu -->
     <div class="panel">
       <div class="certificate" id="certPreview">
         <header>
@@ -172,17 +198,35 @@
     </div>
   </div>
 
+  <!-- Popup URL hébergement -->
+  <div id="popup" class="popup" aria-hidden="true">
+    <div class="popup-content" role="dialog" aria-modal="true" aria-labelledby="popupTitle">
+      <h2 id="popupTitle">Adresse d’hébergement</h2>
+      <p id="popupText"></p>
+      <div class="popup-buttons">
+        <button id="copyBtn" class="btn">Copier</button>
+        <button id="okBtn" class="btn btn-secondary">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lib -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <!-- App -->
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    /* ========= CONFIG DISCORD (forum) ========= */
-    const WEBHOOK_FORUM_URL = 'https://discord.com/api/webhooks/1421827797965471855/aBgwIgdIRP3TO0Qp_culr5GJHVLDRnwtKnxjv7N62ThG8L_bRQ1gwsqV_aYXhu4eCHa2';
-    const FORUM_THREAD_PREFIX = 'Certificat OMC';
+    /* ========= CONFIG ========= */
+    const API_UPLOAD_URL     = 'https://api.ocean-medical-center.ovh/api/upload';
+    const API_TOKEN          = 'super-secret-token'; // à gérer côté serveur idéalement
+    const WEBHOOK_FORUM_URL  = 'https://discord.com/api/webhooks/1421827797965471855/aBgwIgdIRP3TO0Qp_culr5GJHVLDRnwtKnxjv7N62ThG8L_bRQ1gwsqV_aYXhu4eCHa2';
+    const FORUM_THREAD_PREFIX= 'Certificat OMC';
 
     const el=id=>document.getElementById(id);
     const pad2=n=>String(n).padStart(2,'0');
     const refJJMMHHMM=(d=new Date())=>`${pad2(d.getDate())}${pad2(d.getMonth()+1)}${pad2(d.getHours())}${pad2(d.getMinutes())}`;
 
+    // Éléments
     const certType=el('certType'), certDate=el('certDate'), patient=el('patient'), dob=el('dob');
     const companyWrap=el('companyWrap'), company=el('company');
     const conclusionWrap=el('conclusionWrap'), reserveWrap=el('reserveWrap');
@@ -192,10 +236,22 @@
     const pvDate=el('pvDate'), pvRef=el('pvRef'), pvCompanyWrap=el('pvCompanyWrap'), pvCompany=el('pvCompany');
     const pvNotes=el('pvNotes'), pvDoctor=el('pvDoctor');
     const qrImg=el('qrImg'), stampInner=el('stampInner'), certPreview=el('certPreview');
-    const printBtn=el('printDoc');
-    const brandLogo = el('brandLogo');
+    const printBtn=el('printDoc'); const brandLogo = el('brandLogo');
 
-    // Date par défaut
+    // Popup
+    const popup=el('popup'), popupText=el('popupText'), copyBtn=el('copyBtn'), okBtn=el('okBtn');
+    function openPopup(url){
+      popupText.textContent = url || '—';
+      popup.classList.add('active'); popup.setAttribute('aria-hidden','false');
+      copyBtn.onclick = async ()=>{
+        try { await navigator.clipboard.writeText(url||''); copyBtn.textContent='Copié ✅'; setTimeout(()=>copyBtn.textContent='Copier',1600); } catch {}
+      };
+      okBtn.onclick = ()=>{ popup.classList.remove('active'); popup.setAttribute('aria-hidden','true'); };
+    }
+    // Utilitaire de test console : __omcTestPopup('https://via.placeholder.com/400')
+    window.__omcTestPopup = openPopup;
+
+    // Date par défaut (locale sans TZ shift visuel)
     if (certDate) {
       const tzOffset = (new Date()).getTimezoneOffset()*60000;
       const todayISO = new Date(Date.now()-tzOffset).toISOString().slice(0,10);
@@ -203,6 +259,7 @@
       catch { certDate.value = todayISO; }
     }
 
+    // Quick motifs
     const QUICK_RESERVE = [
       "Port de charges limité à 10 kg",
       "Travail en hauteur déconseillé",
@@ -221,45 +278,29 @@
       "Non-conformité au référentiel médical du poste",
       "Inaptitude psychologique au poste sensible"
     ];
-
     function fillQuickOptions(kind){
       reserveQuick.innerHTML = '<option value="">— Ajouter un motif rapide —</option>';
-      const list = (kind==='reserve') ? QUICK_RESERVE : QUICK_INAPTE;
-      list.forEach(txt=>{
-        const opt = document.createElement('option');
-        opt.value = txt; opt.textContent = txt;
-        reserveQuick.appendChild(opt);
+      (kind==='reserve'?QUICK_RESERVE:QUICK_INAPTE).forEach(txt=>{
+        const opt=document.createElement('option'); opt.value=txt; opt.textContent=txt; reserveQuick.appendChild(opt);
       });
     }
-
     function updateReserveVisibility(){
-      const type = certType.value;
+      const type=certType.value;
       if (type==='divers'){
-        reserveWrap.style.display='none';
-        reserveQuick.style.display='none';
-        clearReserve.style.display='none';
+        reserveWrap.style.display='none'; reserveQuick.style.display='none'; clearReserve.style.display='none';
         return;
       }
       const choice=(document.querySelector('input[name="concl"]:checked')||{}).value||'ok';
       if (choice==='reserve'){
-        reserveLabel.textContent='Réserves';
-        fillQuickOptions('reserve');
-        reserveWrap.style.display='';
-        reserveQuick.style.display='';
-        clearReserve.style.display='';
+        reserveLabel.textContent='Réserves'; fillQuickOptions('reserve');
+        reserveWrap.style.display=''; reserveQuick.style.display=''; clearReserve.style.display='';
       } else if (choice==='inapte'){
-        reserveLabel.textContent='Motif d’inaptitude';
-        fillQuickOptions('inapte');
-        reserveWrap.style.display='';
-        reserveQuick.style.display='';
-        clearReserve.style.display='';
+        reserveLabel.textContent='Motif d’inaptitude'; fillQuickOptions('inapte');
+        reserveWrap.style.display=''; reserveQuick.style.display=''; clearReserve.style.display='';
       } else {
-        reserveWrap.style.display='none';
-        reserveQuick.style.display='none';
-        clearReserve.style.display='none';
+        reserveWrap.style.display='none'; reserveQuick.style.display='none'; clearReserve.style.display='none';
       }
     }
-
     function updateVisibility(){
       const type=certType.value;
       if(type==='pro'){ companyWrap.style.display=''; conclusionWrap.style.display=''; notesWrap.style.display='none'; }
@@ -267,31 +308,23 @@
       if(type==='divers'){ companyWrap.style.display='none'; conclusionWrap.style.display='none'; reserveWrap.style.display='none'; notesWrap.style.display=''; }
       updateReserveVisibility();
     }
-
     function currentConclusion(){
       const type=certType.value;
       if(type==='divers') return (notes.value||'—');
       const choice=(document.querySelector('input[name="concl"]:checked')||{}).value||'ok';
       const detail=(reserveText.value||'').trim();
-
       if(choice==='ok') return 'Apte — examen clinique sans contre-indication.';
       if(choice==='reserve') return 'Apte avec réserve' + (detail ? ' — '+detail : '');
       if(choice==='inapte') return 'Inapte' + (detail ? ' — '+detail : '');
       return '—';
     }
-
-    function currentRef(){ return refJJMMHHMM(new Date()); }
-
-    // Génère un QR
+    const pvRefGen = ()=> refJJMMHHMM(new Date());
     function updateQR(){
       const data = { patient: patient.value || '', date: certDate.value || '', ref: pvRef.textContent || '' };
       const txt = `OMC|Patient:${data.patient}|Date:${data.date}|Ref:${data.ref}`;
       const url = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' + encodeURIComponent(txt);
-      qrImg.crossOrigin = 'anonymous';
-      qrImg.src = url;
-      stampInner.textContent = data.ref || 'OMC';
+      qrImg.crossOrigin = 'anonymous'; qrImg.src = url; stampInner.textContent = data.ref || 'OMC';
     }
-
     function refreshCert(){
       if(certType.value==='pro'){ pvTitle.textContent='Certificat médical d’aptitude professionnelle'; pvTag.textContent='OCEAN MEDICAL CENTER — APTITUDE PRO'; }
       else if(certType.value==='ppa'){ pvTitle.textContent='Certificat de capacité à passer l’examen du PPA'; pvTag.textContent='OCEAN MEDICAL CENTER — PPA'; }
@@ -299,26 +332,18 @@
       pvPatient.textContent=patient.value||'—';
       pvDob.textContent=dob.value||'—';
       pvDate.textContent=certDate.value||'—';
-      pvRef.textContent=currentRef();
+      pvRef.textContent=pvRefGen();
       if(certType.value==='pro'){ pvCompanyWrap.style.display=''; pvCompany.textContent=company.value||'—'; }
       else { pvCompanyWrap.style.display='none'; pvCompany.textContent='—'; }
       pvNotes.textContent=currentConclusion();
       pvDoctor.textContent=doctor.value||'—';
       updateQR();
     }
-
     function appendReason(txt){
       if(!txt) return;
-      if(reserveText.value.trim()){
-        reserveText.value = reserveText.value.trim() + ' ; ' + txt;
-      } else {
-        reserveText.value = txt;
-      }
-      reserveQuick.value = '';
-      refreshCert();
-      reserveText.focus();
+      reserveText.value = (reserveText.value.trim()? reserveText.value.trim()+' ; ' : '') + txt;
+      reserveQuick.value = ''; refreshCert(); reserveText.focus();
     }
-
     reserveQuick.addEventListener('change', ()=> appendReason(reserveQuick.value));
     clearReserve.addEventListener('click', ()=>{ reserveText.value=''; refreshCert(); });
 
@@ -327,13 +352,12 @@
         c.addEventListener(evt, ()=>{ updateVisibility(); refreshCert(); });
       });
     });
-
     document.querySelectorAll('input[name="concl"]').forEach(r=>{
       r.addEventListener('change', ()=>{ updateReserveVisibility(); refreshCert(); });
     });
-
     updateVisibility(); refreshCert();
 
+    // Chargement images/QR fiable
     function ensureImageLoaded(img, fallbackSrc=null){
       return new Promise((resolve)=>{
         if (img && img.complete && img.naturalWidth>0) return resolve();
@@ -342,69 +366,103 @@
         img.onload = done;
         img.onerror = ()=>{
           if (fallbackSrc && img.src !== fallbackSrc){
-            img.crossOrigin = 'anonymous';
-            img.src = fallbackSrc;
-            img.onload = done;
-            img.onerror = done;
-          } else {
-            done();
-          }
+            img.crossOrigin = 'anonymous'; img.src = fallbackSrc; img.onload = done; img.onerror = done;
+          } else { done(); }
         };
       });
     }
     async function ensureAssetsLoaded(){
       const logoFallback = 'https://i.ibb.co/LzwcCLfN/logo-omc-nord.png';
-      await Promise.all([
-        ensureImageLoaded(brandLogo, logoFallback),
-        ensureImageLoaded(qrImg, null)
-      ]);
+      await Promise.all([ ensureImageLoaded(brandLogo, logoFallback), ensureImageLoaded(qrImg, null) ]);
       await new Promise(r=>setTimeout(r,50));
     }
+    async function canvasToPngBlob(node){
+      const canvas = await html2canvas(node, { scale:2, backgroundColor:'#ffffff', useCORS:true, imageTimeout:10000 });
+      return await new Promise(res=> canvas.toBlob(res,'image/png'));
+    }
+    async function uploadToVps(blob, ref){
+      const fd = new FormData(); fd.append('file', blob, `certificat_${ref}.png`);
+      const res = await fetch(API_UPLOAD_URL, { method:'POST', headers:{ 'Authorization':`Bearer ${API_TOKEN}` }, body: fd });
+      if(!res.ok){ const txt = await res.text().catch(()=> ''); throw new Error('Upload VPS ' + res.status + ' — ' + txt); }
+      const data = await res.json().catch(()=> ({}));
+      if(!data?.url) throw new Error('Réponse API VPS inattendue (pas d’url).');
+      return data.url; // ex: https://img.ocean-medical-center.ovh/...
+    }
+    async function postToDiscord(blob, threadName, publicUrl){
+      if(!WEBHOOK_FORUM_URL) throw new Error('Webhook Discord non configuré.');
+      const contentLines = [
+        `**${threadName}**`,
+        publicUrl ? `URL image (VPS): ${publicUrl}` : null,
+        '',
+        `• Patient : ${patient.value || '—'}`,
+        `• Date : ${certDate.value || '—'}`,
+        `• Réf : ${pvRef.textContent || '—'}`,
+        `• Médecin : ${doctor.value || '—'}`,
+        `• Objet : ${pvNotes.textContent || '—'}`
+      ].filter(Boolean);
+      const content = contentLines.join('\n');
 
-    async function sendToDiscordForum(){
-      if(!WEBHOOK_FORUM_URL){
-        alert('Webhook Discord du forum non configuré.');
-        return;
-      }
-      printBtn.disabled = true;
-      printBtn.textContent = 'Impression…';
+      const fd = new FormData();
+      fd.append('payload_json', JSON.stringify({ thread_name: threadName, content }));
+      fd.append('file', blob, `${threadName.replaceAll(' ','_')}.png`);
+
+      const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', { method:'POST', body: fd });
+      if(!res.ok){ const txt = await res.text().catch(()=> ''); throw new Error('Discord ' + res.status + ' — ' + txt); }
+    }
+
+    // ===== Action principale (protégée contre double envoi) =====
+    let busy = false;
+    async function printAndSendAll(){
+      if (busy) return;
+      busy = true;
+      printBtn.disabled = true; printBtn.textContent = 'Génération…';
 
       try{
         await ensureAssetsLoaded();
-        const canvas = await html2canvas(certPreview, {
-          scale: 2,
-          backgroundColor: '#ffffff',
-          useCORS: true,
-          imageTimeout: 10000
-        });
-        const blob = await new Promise(res=> canvas.toBlob(res,'image/png'));
 
-        const ref = pvRef.textContent || currentRef();
+        const blob = await canvasToPngBlob(certPreview);
+        if(!blob) throw new Error('Impossible de générer l’image.');
+
+        const ref = pvRef.textContent || refJJMMHHMM(new Date());
         const who = (patient.value || 'Sans nom');
         const typeLabel = (certType.value==='pro'?'Aptitude pro':certType.value==='ppa'?'PPA':'Divers');
         const threadName = `${FORUM_THREAD_PREFIX} — ${who} — ${typeLabel} — Ref ${ref}`.slice(0,100);
 
-        const fd = new FormData();
-        fd.append('payload_json', JSON.stringify({ thread_name: threadName }));
-        fd.append('file', blob, `certificat_${ref}.png`);
+        // Upload VPS d’abord (pour URL)
+        printBtn.textContent = 'Envoi vers le serveur…';
+        let publicUrl = null;
+        try { publicUrl = await uploadToVps(blob, ref); }
+        catch (e) { console.error('Upload VPS échoué:', e); }
 
-        const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', { method:'POST', body: fd });
-        if(!res.ok){
-          const txt = await res.text().catch(()=> '');
-          throw new Error('Discord ' + res.status + ' — ' + txt);
+        // Discord (toujours joindre l’image, inclure l’URL si dispo)
+        printBtn.textContent = 'Publication Discord…';
+        try { await postToDiscord(blob, threadName, publicUrl); }
+        catch (e) {
+          console.error('Discord échoué:', e);
+          if (!publicUrl) throw e; // si rien n’a marché, on escalade
         }
-        alert('✅ Document “imprimé” sur le copieur (forum Discord).');
-      }catch(e){
+
+        // Popup avec URL + bouton Copier/OK (si URL dispo)
+        if (publicUrl) {
+          try { await navigator.clipboard.writeText(publicUrl); } catch {}
+          openPopup(publicUrl);
+        } else {
+          openPopup('Publication Discord OK. (Pas d’URL publique — upload VPS indisponible)');
+        }
+
+      } catch(e) {
         console.error(e);
-        alert('Envoi Discord échoué : ' + e.message);
-      }finally{
-        printBtn.disabled = false;
-        printBtn.textContent = 'Imprimer le document';
+        openPopup('❌ Échec : ' + e.message);
+      } finally {
+        busy = false;
+        printBtn.disabled = false; printBtn.textContent = 'Imprimer le document';
       }
     }
 
-    document.getElementById('printDoc').addEventListener('click', sendToDiscordForum);
+    // Écouteur UNIQ (supprime les doublons de ton ancienne page)
+    printBtn.addEventListener('click', printAndSendAll);
 
+    // Petit auto-test si besoin
     if(location.search.includes('test')){
       try{
         const r=refJJMMHHMM(new Date()); console.assert(r.length===8, 'Référence JJMMHHMM incorrecte: '+r);
@@ -413,175 +471,5 @@
     }
   });
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-  /* ========= CONFIG ========= */
-  const API_UPLOAD_URL   = 'https://api.ocean-medical-center.ovh/api/upload';
-  const API_TOKEN        = 'super-secret-token'; // idéalement via proxy côté serveur
-  const WEBHOOK_FORUM_URL = 'https://discord.com/api/webhooks/1421827797965471855/aBgwIgdIRP3TO0Qp_culr5GJHVLDRnwtKnxjv7N62ThG8L_bRQ1gwsqV_aYXhu4eCHa2';
-  const FORUM_THREAD_PREFIX = 'Certificat OMC';
-
-  const el=id=>document.getElementById(id);
-  const pad2=n=>String(n).padStart(2,'0');
-  const refJJMMHHMM=(d=new Date())=>`${pad2(d.getDate())}${pad2(d.getMonth()+1)}${pad2(d.getHours())}${pad2(d.getMinutes())}`;
-
-  /* === sélecteurs déjà présents dans ta page (inchangé) === */
-  const certType=el('certType'), certDate=el('certDate'), patient=el('patient'), dob=el('dob');
-  const companyWrap=el('companyWrap'), company=el('company');
-  const conclusionWrap=el('conclusionWrap'), reserveWrap=el('reserveWrap');
-  const reserveText=el('reserveText'), reserveLabel=el('reserveLabel'), reserveQuick=el('reserveQuick'), clearReserve=el('clearReserve');
-  const notesWrap=el('notesWrap'), notes=el('notes'), doctor=el('doctor');
-  const pvTitle=el('certTitle'), pvTag=el('certTag'), pvPatient=el('pvPatient'), pvDob=el('pvDob');
-  const pvDate=el('pvDate'), pvRef=el('pvRef'), pvCompanyWrap=el('pvCompanyWrap'), pvCompany=el('pvCompany');
-  const pvNotes=el('pvNotes'), pvDoctor=el('pvDoctor');
-  const qrImg=el('qrImg'), stampInner=el('stampInner'), certPreview=el('certPreview');
-  const printBtn=el('printDoc');
-  const brandLogo = el('brandLogo');
-
-  /* === (tout le code de mise à jour d’UI “certificat” que tu as déjà) === */
-  // ... rien à changer ici (dates par défaut, updateVisibility, currentConclusion, refreshCert, etc.)
-  // Assure-toi juste que qrImg et brandLogo se chargent bien (crossOrigin).
-
-  function ensureImageLoaded(img, fallbackSrc=null){
-    return new Promise((resolve)=>{
-      if (img && img.complete && img.naturalWidth>0) return resolve();
-      if (!img) return resolve();
-      const done = ()=> resolve();
-      img.onload = done;
-      img.onerror = ()=>{
-        if (fallbackSrc && img.src !== fallbackSrc){
-          img.crossOrigin = 'anonymous';
-          img.src = fallbackSrc;
-          img.onload = done;
-          img.onerror = done;
-        } else {
-          done();
-        }
-      };
-    });
-  }
-  async function ensureAssetsLoaded(){
-    const logoFallback = 'https://i.ibb.co/LzwcCLfN/logo-omc-nord.png';
-    await Promise.all([
-      ensureImageLoaded(brandLogo, logoFallback),
-      ensureImageLoaded(qrImg, null)
-    ]);
-    await new Promise(r=>setTimeout(r,50));
-  }
-
-  async function canvasToPngBlob(node){
-    const canvas = await html2canvas(node, {
-      scale: 2,
-      backgroundColor: '#ffffff',
-      useCORS: true,
-      imageTimeout: 10000
-    });
-    return await new Promise(res=> canvas.toBlob(res,'image/png'));
-  }
-
-  async function uploadToVps(blob, ref){
-    const fd = new FormData();
-    fd.append('file', blob, `certificat_${ref}.png`);
-    const res = await fetch(API_UPLOAD_URL, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${API_TOKEN}` },
-      body: fd
-    });
-    if(!res.ok){
-      const txt = await res.text().catch(()=> '');
-      throw new Error('Upload VPS ' + res.status + ' — ' + txt);
-    }
-    const data = await res.json().catch(()=> ({}));
-    if(!data?.url) throw new Error('Réponse API VPS inattendue (pas d’url).');
-    return data.url;
-  }
-
-  async function postToDiscord(blob, threadName, publicUrl){
-    if(!WEBHOOK_FORUM_URL) throw new Error('Webhook Discord non configuré.');
-    const contentLines = [
-      `**${threadName}**`,
-      publicUrl ? `URL image (VPS): ${publicUrl}` : null,
-      '',
-      `• Patient : ${patient.value || '—'}`,
-      `• Date : ${certDate.value || '—'}`,
-      `• Réf : ${pvRef.textContent || '—'}`,
-      `• Médecin : ${doctor.value || '—'}`,
-      `• Objet : ${pvNotes.textContent || '—'}`
-    ].filter(Boolean);
-    const content = contentLines.join('\n');
-
-    const fd = new FormData();
-    fd.append('payload_json', JSON.stringify({ thread_name: threadName, content }));
-    fd.append('file', blob, `${threadName.replaceAll(' ','_')}.png`);
-
-    const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', { method:'POST', body: fd });
-    if(!res.ok){
-      const txt = await res.text().catch(()=> '');
-      throw new Error('Discord ' + res.status + ' — ' + txt);
-    }
-  }
-
-  async function printAndSendAll(){
-    printBtn.disabled = true;
-    printBtn.textContent = 'Génération…';
-
-    try{
-      // s’assurer que logos/QR sont prêts
-      await ensureAssetsLoaded();
-
-      // 1) image
-      const blob = await canvasToPngBlob(certPreview);
-      if(!blob) throw new Error('Impossible de générer l’image.');
-
-      // 2) infos pour nommage
-      const ref = pvRef.textContent || refJJMMHHMM(new Date());
-      const who = (patient.value || 'Sans nom');
-      const typeLabel = (certType.value==='pro'?'Aptitude pro':certType.value==='ppa'?'PPA':'Divers');
-      const threadName = `${FORUM_THREAD_PREFIX} — ${who} — ${typeLabel} — Ref ${ref}`.slice(0,100);
-
-      // 3) upload VPS d’abord (pour récupérer l’URL publique)
-      printBtn.textContent = 'Envoi vers le serveur…';
-      let publicUrl = null;
-      try {
-        publicUrl = await uploadToVps(blob, ref);   // -> https://img.ocean-medical-center.ovh/....
-      } catch (e) {
-        console.error('Upload VPS échoué:', e);
-        // On continue quand même pour Discord, mais on indiquera l’échec dans l’alerte finale.
-      }
-
-      // 4) post Discord (toujours joindre l’image en fichier, et inclure l’URL si dispo)
-      printBtn.textContent = 'Publication Discord…';
-      try {
-        await postToDiscord(blob, threadName, publicUrl);
-      } catch (e) {
-        console.error('Discord échoué:', e);
-        if (!publicUrl) throw e; // si rien n’a marché, on remonte l’erreur
-      }
-
-      // 5) popup + presse-papiers (avec l’URL VPS si dispo, sinon rien)
-      if (publicUrl) {
-        try { await navigator.clipboard.writeText(publicUrl); } catch {}
-        alert(`✅ Document envoyé.\n\nURL : ${publicUrl}\n\n(L’URL est copiée dans le presse-papiers)`);
-      } else {
-        alert('✅ Document publié sur Discord.\n⚠️ Upload VPS indisponible (aucune URL publique).');
-      }
-
-    } catch(e) {
-      console.error(e);
-      alert('❌ Échec : ' + e.message);
-    } finally {
-      printBtn.disabled = false;
-      printBtn.textContent = 'Imprimer le document';
-    }
-  }
-
-  // branche le bouton
-  document.getElementById('printDoc').addEventListener('click', printAndSendAll);
-
-  // (tu conserves le reste de ta logique d’UI déjà en place : updateVisibility(), refreshCert(), etc.)
-});
-</script>
-
 </body>
 </html>
