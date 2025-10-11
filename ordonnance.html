@@ -6,7 +6,7 @@
   <title>OMC — Ordonnance médicamenteuse</title>
   <link rel="icon" href="assets/logo_omc.png" type="image/png">
   <style>
-    :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; }
+    :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; --accent:#3b82f6; }
     *{box-sizing:border-box}
     body{background:var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial; margin:0}
     .wrap{max-width:1100px;margin:40px auto; padding:0 16px}
@@ -67,6 +67,18 @@
     .row-actions{display:flex; gap:8px; align-items:center}
     .btn-danger{ background:#231015; border-color:#3a0f17 }
     .btn-danger:hover{ background:#3a0f17 }
+
+    /* Popup (Copier / OK) */
+    .popup { position: fixed; inset: 0; z-index: 999; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.6); visibility: hidden; opacity: 0; transition: all .2s; }
+    .popup.active { visibility: visible; opacity: 1; }
+    .popup-content { background: var(--panel); border:1px solid var(--ring); border-radius:16px; width: 90%; max-width: 520px; padding: 20px; text-align:center; box-shadow: 0 0 20px rgba(0,0,0,.35); }
+    .popup-content h2 { margin: 0 0 10px; color: var(--accent); font-size: 18px; }
+    .popup-content p { word-break: break-all; background: var(--panel-2); border-radius: 10px; padding: 12px; font-size: .92em; color: var(--muted); }
+    .popup-buttons { display:flex; justify-content:center; gap:10px; margin-top:14px; }
+    .btn { background: var(--accent); border:none; color:#fff; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; }
+    .btn:hover { filter: brightness(0.95); }
+    .btn-secondary { background:#0b1223; border:1px solid var(--ring); color:var(--text); }
+    .btn-secondary:hover { background:#0e1a2e; }
   </style>
 </head>
 <body>
@@ -206,12 +218,26 @@
     </div>
   </div>
 
+  <!-- Popup URL hébergement -->
+  <div id="popup" class="popup" aria-hidden="true">
+    <div class="popup-content" role="dialog" aria-modal="true" aria-labelledby="popupTitle">
+      <h2 id="popupTitle">Adresse d’hébergement</h2>
+      <p id="popupText"></p>
+      <div class="popup-buttons">
+        <button id="copyBtn" class="btn">Copier</button>
+        <button id="okBtn" class="btn btn-secondary">OK</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Lib HTML2Canvas -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    /* ======= CONFIG DISCORD (forum) ======= */
-    const WEBHOOK_FORUM_URL = 'https://discord.com/api/webhooks/1424039813593698456/ew_fnKRv1gLQooCf64qMKWP1IOxth2iOpHYsRE9UaJMKWd-aUfcTc69amPI7ye4ppWxA';
+    /* ======= CONFIG API + DISCORD ======= */
+    const API_UPLOAD_URL      = 'https://api.ocean-medical-center.ovh/api/upload';
+    const API_TOKEN           = 'super-secret-token'; // à sécuriser côté serveur
+    const WEBHOOK_FORUM_URL   = 'https://discord.com/api/webhooks/1424039813593698456/ew_fnKRv1gLQooCf64qMKWP1IOxth2iOpHYsRE9UaJMKWd-aUfcTc69amPI7ye4ppWxA';
     const FORUM_THREAD_PREFIX = 'Ordonnance OMC';
 
     /* ======= Raccourcis ======= */
@@ -303,6 +329,16 @@
     const stampInner = el('stampInner');
     const rxPreview = el('rxPreview');
     const printBtn = el('printDoc');
+
+    // Popup
+    const popup = el('popup'), popupText = el('popupText'), copyBtn = el('copyBtn'), okBtn = el('okBtn');
+    function openPopup(url){
+      popupText.textContent = url || '—';
+      popup.classList.add('active'); popup.setAttribute('aria-hidden','false');
+      copyBtn.onclick = async ()=>{ try{ await navigator.clipboard.writeText(url||''); copyBtn.textContent='Copié ✅'; setTimeout(()=>copyBtn.textContent='Copier',1600);}catch{} };
+      okBtn.onclick = ()=>{ popup.classList.remove('active'); popup.setAttribute('aria-hidden','true'); };
+    }
+    window.__omcTestPopup = openPopup;
 
     /* ======= Date par défaut ======= */
     if (rxDate) {
@@ -472,11 +508,57 @@
       return true;
     }
 
-    async function sendToDiscordForum(){
-      if(!WEBHOOK_FORUM_URL){
-        alert('Webhook Discord du forum non configuré.');
-        return;
+    /* ======= UPLOAD VPS + Discord (TEXTE + LIEN) ======= */
+    async function canvasToPngBlob(node){
+      const canvas = await html2canvas(node, { scale:2, backgroundColor:'#ffffff', useCORS:true, imageTimeout:10000 });
+      return await new Promise(res=> canvas.toBlob(res,'image/png'));
+    }
+
+    async function uploadToVps(blob, ref){
+      const fd = new FormData();
+      fd.append('file', blob, `ordonnance_${ref}.png`);
+      const res = await fetch(API_UPLOAD_URL, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${API_TOKEN}` },
+        body: fd
+      });
+      if (!res.ok){
+        const txt = await res.text().catch(()=> '');
+        throw new Error('Upload VPS ' + res.status + ' — ' + txt);
       }
+      const data = await res.json().catch(()=> ({}));
+      if (!data?.url) throw new Error('Réponse API VPS inattendue (pas d’url).');
+      return data.url; // https://img.ocean-medical-center.ovh/...
+    }
+
+    async function postTextToDiscord(threadName, publicUrl){
+      if(!WEBHOOK_FORUM_URL) throw new Error('Webhook Discord non configuré.');
+      if(!publicUrl) throw new Error('URL publique absente — upload requis avant envoi Discord.');
+
+      const contentLines = [
+        `**${threadName}**`,
+        publicUrl,
+        '',
+        `• Patient : ${patient.value || '—'}`,
+        `• Date : ${rxDate.value || '—'}`,
+        `• Réf : ${pvRef.textContent || '—'}`,
+        `• Médecin : ${doctor.value || '—'}`,
+        `• Service : ${serviceLabel()}`
+      ];
+      const payload = { thread_name: threadName, content: contentLines.join('\n') };
+
+      const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if(!res.ok){
+        const txt = await res.text().catch(()=> '');
+        throw new Error('Discord ' + res.status + ' — ' + txt);
+      }
+    }
+
+    async function sendToDiscordForum(){
       if(!validateBeforeSend()) return;
 
       printBtn.disabled = true;
@@ -484,32 +566,26 @@
 
       try{
         await ensureAssetsLoaded();
-        const canvas = await html2canvas(rxPreview, {
-          scale: 2,
-          backgroundColor: '#ffffff',
-          useCORS: true,
-          imageTimeout: 10000
-        });
-        const blob = await new Promise(res=> canvas.toBlob(res,'image/png'));
+
+        const blob = await canvasToPngBlob(rxPreview);
+        if(!blob) throw new Error('Impossible de générer l’image.');
 
         const ref = pvRef.textContent || currentRef();
         const who = (patient.value || 'Sans nom');
         const typeLabel = serviceLabel();
         const threadName = `${FORUM_THREAD_PREFIX} — ${who} — ${typeLabel} — Ref ${ref}`.slice(0,100);
 
-        const fd = new FormData();
-        fd.append('payload_json', JSON.stringify({ thread_name: threadName }));
-        fd.append('file', blob, `ordonnance_${ref}.png`);
+        printBtn.textContent = 'Envoi vers le serveur…';
+        const publicUrl = await uploadToVps(blob, ref);   // ← URL HTTPS
 
-        const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', { method:'POST', body: fd });
-        if(!res.ok){
-          const txt = await res.text().catch(()=> '');
-          throw new Error('Discord ' + res.status + ' — ' + txt);
-        }
-        alert('✅ Ordonnance “imprimée” sur le copieur (forum Discord).');
+        printBtn.textContent = 'Publication Discord (texte)…';
+        await postTextToDiscord(threadName, publicUrl);   // ← texte + lien seulement
+
+        try { await navigator.clipboard.writeText(publicUrl); } catch {}
+        openPopup(publicUrl);
       }catch(e){
         console.error(e);
-        alert('Envoi Discord échoué : ' + e.message);
+        openPopup('❌ Échec : ' + e.message);
       }finally{
         printBtn.disabled = false;
         printBtn.textContent = 'Imprimer sur copieur (forum)';
@@ -527,7 +603,6 @@
     el('printDoc').addEventListener('click', sendToDiscordForum);
 
     /* ======= Init ======= */
-    // date + UI + preview
     populateMeds();
     renderItems();
     refreshPreview();
