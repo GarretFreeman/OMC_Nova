@@ -114,7 +114,7 @@
 
         <div class="field">
           <label>Patient</label>
-          <input id="patient" placeholder="John DOE">
+          <input id="patient" placeholder="Garret FREEMAN">
         </div>
 
         <div class="field">
@@ -124,11 +124,11 @@
 
         <div class="field">
           <label>Médecin</label>
-          <input id="doctor" placeholder="Dr. Jane SMITH">
+          <input id="doctor" placeholder="Dr. Bill HANSON">
         </div>
 
         <div class="field" style="display:flex; align-items:flex-end; justify-content:flex-end">
-          <button id="printDoc">Imprimer sur copieur (forum)</button>
+          <button id="printDoc">Imprimer sur copieur</button>
         </div>
       </div>
 
@@ -508,6 +508,20 @@
       return true;
     }
 
+    function formatRxLines(){
+  if (!items || !items.length) return ['(aucune ligne)'];
+  return items.map((it, i) => {
+    const parts = [
+      `${i+1}. ${it.name}`.trim(),
+      it.dose ? `${it.dose}` : null,
+      it.poso ? `${it.poso}` : null,
+      it.duration ? `${it.duration}` : null
+    ].filter(Boolean).join(' — ');
+    const note = it.note ? ` (note: ${it.note})` : '';
+    return `• ${parts}${note}`;
+  });
+}
+
     /* ======= UPLOAD VPS + Discord (TEXTE + LIEN) ======= */
     async function canvasToPngBlob(node){
       const canvas = await html2canvas(node, { scale:2, backgroundColor:'#ffffff', useCORS:true, imageTimeout:10000 });
@@ -532,31 +546,41 @@
     }
 
     async function postTextToDiscord(threadName, publicUrl){
-      if(!WEBHOOK_FORUM_URL) throw new Error('Webhook Discord non configuré.');
-      if(!publicUrl) throw new Error('URL publique absente — upload requis avant envoi Discord.');
+  if(!WEBHOOK_FORUM_URL) throw new Error('Webhook Discord non configuré.');
+  if(!publicUrl) throw new Error('URL publique absente — upload requis avant envoi Discord.');
 
-      const contentLines = [
-        `**${threadName}**`,
-        publicUrl,
-        '',
-        `• Patient : ${patient.value || '—'}`,
-        `• Date : ${rxDate.value || '—'}`,
-        `• Réf : ${pvRef.textContent || '—'}`,
-        `• Médecin : ${doctor.value || '—'}`,
-        `• Service : ${serviceLabel()}`
-      ];
-      const payload = { thread_name: threadName, content: contentLines.join('\n') };
+  const header = [
+    `**${threadName}**`,
+    publicUrl,
+    '',
+    `• Patient : ${patient.value || '—'}`,
+    `• Date : ${rxDate.value || '—'}`,
+    `• Réf : ${pvRef.textContent || '—'}`,
+    `• Médecin : ${doctor.value || '—'}`,
+    `• Service : ${serviceLabel()}`
+  ];
 
-      const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if(!res.ok){
-        const txt = await res.text().catch(()=> '');
-        throw new Error('Discord ' + res.status + ' — ' + txt);
-      }
-    }
+  const recapBlock = [
+    '',
+    `**Récapitulatif de l’ordonnance :**`,
+    ...formatRxLines()
+  ];
+
+  const payload = {
+    thread_name: threadName,
+    content: [...header, ...recapBlock].join('\n')
+  };
+
+  const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if(!res.ok){
+    const txt = await res.text().catch(()=> '');
+    throw new Error('Discord ' + res.status + ' — ' + txt);
+  }
+}
 
     async function sendToDiscordForum(){
       if(!validateBeforeSend()) return;
