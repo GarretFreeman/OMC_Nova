@@ -5,49 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>OMC — Accueil</title>
 
-<!-- Favicon -->
 <link rel="icon" type="image/png" href="assets/logo_omc.png" />
 <link rel="apple-touch-icon" href="assets/logo_omc.png" />
 <link rel="shortcut icon" href="assets/logo_omc.png" />
 
 <style>
   :root{
-    --bg:#0b1220;
-    --grad-a:#0b1220;
-    --grad-b:#0e1a33;
-    --text:#e5e7eb;
-    --muted:#9ca3af;
-    --primary:#38bdf8;
-    --radius:18px;
-    --shadow:0 20px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
+    --bg:#0b1220; --grad-a:#0b1220; --grad-b:#0e1a33; --text:#e5e7eb; --muted:#9ca3af;
+    --primary:#38bdf8; --radius:18px; --shadow:0 20px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
   }
-
   *{box-sizing:border-box}
   html,body{height:100%}
   body{
     margin:0; color:var(--text);
     font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,Cantarell,"Noto Sans","Helvetica Neue",Arial;
-    background: radial-gradient(1200px 900px at 10% 10%, #0f1d38 0%, transparent 60%),
-                radial-gradient(900px 700px at 90% 30%, #0a2440 0%, transparent 60%),
-                linear-gradient(180deg,var(--grad-a),var(--grad-b));
+    background:
+      radial-gradient(1200px 900px at 10% 10%, #0f1d38 0%, transparent 60%),
+      radial-gradient(900px 700px at 90% 30%, #0a2440 0%, transparent 60%),
+      linear-gradient(180deg,var(--grad-a),var(--grad-b));
     overflow-x:hidden;
   }
 
   .wrap{max-width:1200px;margin:40px auto; padding:0 16px; text-align:center}
 
+  /* Barre de contrôle (verrou) */
+  .topbar{display:flex;justify-content:flex-end;align-items:center;margin-bottom:12px;gap:8px}
+  .lock-badge{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:8px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.08);
+    background:rgba(13,24,46,.6); box-shadow:var(--shadow); font-size:14px;
+  }
+  .lock-badge button{
+    cursor:pointer; border:1px solid rgba(255,255,255,.12);
+    background:#0e203d; color:var(--text); padding:6px 10px; border-radius:10px;
+  }
+  .lock-badge .dot{width:8px;height:8px;border-radius:50%}
+  .dot.locked{background:#f43f5e}
+  .dot.unlocked{background:#22c55e}
+
   /* Logo et titre */
-  .brand{
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:20px; margin-bottom:40px;
-  }
-  .brand img{
-    height:144px;   /* hauteur fixe */
-    width:576px;    /* largeur x4 */
-    object-fit:contain;
-    background:#071423;
-    padding:8px;
-    border-radius:24px;
-  }
+  .brand{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; margin-bottom:40px;}
+  .brand img{height:144px; width:576px; object-fit:contain; background:#071423; padding:8px; border-radius:24px;}
   .brand strong{ font-size:32px; font-weight:800; letter-spacing:.5px }
 
   .hero{
@@ -58,25 +56,57 @@
   .choice-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:8px;}
   @media (max-width:960px){ .choice-grid{ grid-template-columns:1fr } }
 
-  .choice{display:flex; flex-direction:column; gap:16px; text-decoration:none; color:var(--text);
+  .choice{
+    display:flex; flex-direction:column; gap:16px; text-decoration:none; color:var(--text);
     padding:28px; border-radius:18px; background:rgba(13,24,46,.75); border:1px solid rgba(255,255,255,.06);
-    box-shadow:var(--shadow); transition:.2s;}
+    box-shadow:var(--shadow); transition:.2s; position:relative;
+  }
   .choice:hover{ transform:translateY(-3px); background:#0e203d; border-color:#1b3a63 }
+  .choice[aria-disabled="true"]{ opacity:.6; cursor:not-allowed }
+  .choice[aria-disabled="true"]::after{
+    content:"🔒"; position:absolute; top:12px; right:12px; font-size:18px; opacity:.9;
+  }
 
   .choice-figure{
-    width:140px; height:140px;
-    display:grid; place-items:center; border-radius:20px;
-    background:#071423; border:1px solid rgba(255,255,255,.08);
-    margin:0 auto;
+    width:140px; height:140px; display:grid; place-items:center; border-radius:20px;
+    background:#071423; border:1px solid rgba(255,255,255,.08); margin:0 auto;
   }
   .choice-figure img{ width:96px; height:96px; object-fit:contain }
 
   .choice-title{ font-size:18px; font-weight:800; text-align:center }
   .choice-desc{ color:var(--muted); font-size:14px; text-align:center }
+
+  /* Modal */
+  .modal-backdrop{
+    position:fixed; inset:0; display:none; place-items:center; background:rgba(0,0,0,.55); z-index:50;
+  }
+  .modal{ width:min(480px,92vw); background:#0e203d; border:1px solid rgba(255,255,255,.1); border-radius:16px; box-shadow:var(--shadow); padding:20px; }
+  .modal h3{ margin:0 0 12px; font-size:18px }
+  .modal p{ margin:0 0 16px; color:var(--muted); font-size:14px }
+  .modal .row{ display:flex; gap:10px }
+  .modal input{
+    flex:1; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.12);
+    background:#0b162b; color:var(--text); outline:none;
+  }
+  .modal button{
+    padding:10px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.12);
+    background:#11274a; color:var(--text); cursor:pointer;
+  }
+  .modal .hint{ margin-top:10px; font-size:12px; color:#94a3b8 }
+  .modal .err{ color:#fda4af; margin-top:8px; min-height:1lh; font-size:13px }
 </style>
 </head>
 <body>
   <div class="wrap">
+    <div class="topbar">
+      <div class="lock-badge" id="lockBadge" aria-live="polite">
+        <span class="dot locked" id="lockDot" aria-hidden="true"></span>
+        <span id="lockText">Accès verrouillé</span>
+        <button id="unlockBtn" type="button">Déverrouiller</button>
+        <button id="lockBtn" type="button" style="display:none">Reverrouiller</button>
+      </div>
+    </div>
+
     <div class="brand">
       <img src="assets/Logo-omc.png" alt="OMC">
       <strong>Ocean Medical Center — Intranet</strong>
@@ -84,60 +114,207 @@
 
     <section class="hero">
       <div class="choice-grid">
-        <!-- Calculs des coûts -->
-        <a class="choice" href="calc.html">
-          <div class="choice-figure">
-            <img src="assets/calc.png" alt="Calculs des coûts">
-          </div>
-          <div>
-            <div class="choice-title">Calculs des coûts</div>
-            <div class="choice-desc">Estimez et standardisez les coûts des prestations.</div>
-          </div>
-        </a>
-        <!-- Acte de deces -->
-        <a class="choice" href="dcd.html">
-          <div class="choice-figure">
-            <img src="assets/dcd.png" alt="Acte de Décés">
-          </div>
-          <div>
-            <div class="choice-title">Acte de décés</div>
-            <div class="choice-desc">Rédigez votre acte de décés pour l'envoyer en publication</div>
-          </div>
-        </a>
-        <!-- Ordonnance -->
-        <a class="choice" href="ordonnance.html">
-          <div class="choice-figure">
-            <img src="assets/ordonnance.png" alt="ordonnance">
-          </div>
-          <div>
-            <div class="choice-title">Rédaction ordonnance</div>
-            <div class="choice-desc">Rédigez et imprimez votre ordonnance</div>
-          </div>
+        <!-- Chaque lien a un verrou "global" (modifiable) -->
+        <a class="choice" href="calc.html" data-lock="global" aria-disabled="true">
+          <div class="choice-figure"><img src="assets/calc.png" alt="Calculs des coûts"></div>
+          <div><div class="choice-title">Calculs des coûts</div><div class="choice-desc">Estimez et standardisez les coûts des prestations.</div></div>
         </a>
 
-        <!-- Certificats -->
-        <a class="choice" href="cert.html">
-          <div class="choice-figure">
-            <img src="assets/cert.png" alt="Certificats">
-          </div>
-          <div>
-            <div class="choice-title">Certificats</div>
-            <div class="choice-desc">Générez, signez et envoyez les certificats.</div>
-          </div>
+        <a class="choice" href="dcd.html" data-lock="global" aria-disabled="true">
+          <div class="choice-figure"><img src="assets/dcd.png" alt="Acte de Décés"></div>
+          <div><div class="choice-title">Acte de décés</div><div class="choice-desc">Rédigez votre acte de décés pour l'envoyer en publication</div></div>
         </a>
 
-        <!-- Imagerie -->
-        <a class="choice" href="imagerie.html">
-          <div class="choice-figure">
-            <img src="assets/imagerie.png" alt="Imagerie">
-          </div>
-          <div>
-            <div class="choice-title">Constats lesionnels</div>
-            <div class="choice-desc">Rédigez et partagez vos constats lésionnels, vos préconisations de soins ainsi que le suivi post-traitement.</div>
-          </div>
+        <a class="choice" href="ordonnance.html" data-lock="global" aria-disabled="true">
+          <div class="choice-figure"><img src="assets/ordonnance.png" alt="Ordonnance"></div>
+          <div><div class="choice-title">Rédaction ordonnance</div><div class="choice-desc">Rédigez et imprimez votre ordonnance</div></div>
+        </a>
+
+        <a class="choice" href="cert.html" data-lock="global" aria-disabled="true">
+          <div class="choice-figure"><img src="assets/cert.png" alt="Certificats"></div>
+          <div><div class="choice-title">Certificats</div><div class="choice-desc">Générez, signez et envoyez les certificats.</div></div>
+        </a>
+
+        <a class="choice" href="imagerie.html" data-lock="global" aria-disabled="true">
+          <div class="choice-figure"><img src="assets/imagerie.png" alt="Imagerie"></div>
+          <div><div class="choice-title">Constats lésionnels</div><div class="choice-desc">Rédigez et partagez vos constats lésionnels, vos préconisations de soins ainsi que le suivi post-traitement.</div></div>
         </a>
       </div>
     </section>
   </div>
+
+  <!-- Modal -->
+  <div class="modal-backdrop" id="pwdModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pwdTitle">
+      <h3 id="pwdTitle">Déverrouiller l’accès</h3>
+      <p id="pwdDesc">Saisissez le mot de passe pour accéder aux onglets.</p>
+      <div class="row">
+        <input id="pwdInput" type="password" placeholder="Mot de passe" aria-describedby="pwdHelp" />
+        <button id="pwdSubmit" type="button">Valider</button>
+      </div>
+      <div class="hint" id="pwdHelp">Astuce : vous pouvez reverrouiller depuis la pastille en haut à droite.</div>
+      <div class="err" id="pwdErr" aria-live="polite"></div>
+      <div class="row" style="margin-top:8px;justify-content:flex-end">
+        <button id="pwdCancel" type="button">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* =========================
+   Verrouillage côté client
+   =========================
+   - Par défaut, 1 code "global" pour tous les onglets
+   - Pour des codes par onglet : ajouter data-lock="calc" etc. sur les <a> et
+     ajouter une entrée "calc" ci-dessous.
+   - Stockage: sessionStorage (disparaît quand l'onglet est fermé).
+*/
+
+// ⚠️ Change ces mots de passe
+const PASSWORDS = {
+  global: 'omc2025!',         // 1 mot de passe pour tout
+  // calc: 'calc-omc!',
+  // imagerie: 'img-omc!',
+};
+
+const STORAGE_KEY = 'omc_unlocks_v1';   // stockage des verrous ouverts
+const unlockState = (() => {
+  try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}'); }
+  catch { return {}; }
+})();
+
+const $badge = document.getElementById('lockBadge');
+const $dot   = document.getElementById('lockDot');
+const $text  = document.getElementById('lockText');
+const $unlock= document.getElementById('unlockBtn');
+const $lock  = document.getElementById('lockBtn');
+const $modal = document.getElementById('pwdModal');
+const $input = document.getElementById('pwdInput');
+const $submit= document.getElementById('pwdSubmit');
+const $cancel= document.getElementById('pwdCancel');
+const $err   = document.getElementById('pwdErr');
+
+const links = Array.from(document.querySelectorAll('a.choice[data-lock]'));
+
+// Un lien est-il autorisé ?
+function isAllowed(lockName) {
+  if (!lockName) return true;
+  return !!unlockState[lockName];
+}
+
+// Met à jour l’UI (badges + liens)
+function refreshUI() {
+  const allLocks = new Set(links.map(a => a.dataset.lock));
+  const allOpen = Array.from(allLocks).every(name => isAllowed(name));
+
+  $dot.className = 'dot ' + (allOpen ? 'unlocked' : 'locked');
+  $text.textContent = allOpen ? 'Accès déverrouillé' : 'Accès verrouillé';
+  $unlock.style.display = allOpen ? 'none' : '';
+  $lock.style.display   = allOpen ? '' : 'none';
+
+  links.forEach(a => {
+    const ok = isAllowed(a.dataset.lock);
+    a.setAttribute('aria-disabled', ok ? 'false' : 'true');
+    if (ok) a.removeAttribute('tabindex'); else a.setAttribute('tabindex','-1');
+  });
+}
+
+// Ouvre le modal, retourne une Promise du code saisi
+function askPassword() {
+  return new Promise(resolve => {
+    $err.textContent = '';
+    $input.value = '';
+    $modal.style.display = 'grid';
+    $input.focus();
+
+    function cleanup() {
+      $modal.style.display = 'none';
+      $submit.removeEventListener('click', onSubmit);
+      $cancel.removeEventListener('click', onCancel);
+      document.removeEventListener('keydown', onKey);
+    }
+    function onSubmit() { const v = $input.value.trim(); cleanup(); resolve(v); }
+    function onCancel() { cleanup(); resolve(null); }
+    function onKey(e){ if (e.key === 'Enter') onSubmit(); if (e.key === 'Escape') onCancel(); }
+
+    $submit.addEventListener('click', onSubmit);
+    $cancel.addEventListener('click', onCancel);
+    document.addEventListener('keydown', onKey, { once:false });
+  });
+}
+
+// Tente de déverrouiller en testant tous les locks (global + spécifiques)
+async function tryUnlock(pwd) {
+  if (!pwd) return false;
+  let unlocked = 0;
+  // Vérifie "global"
+  if (PASSWORDS.global && pwd === PASSWORDS.global) {
+    for (const name of new Set(links.map(a => a.dataset.lock))) {
+      unlockState[name] = true;
+    }
+    unlocked++;
+  }
+  // Vérifie verrous spécifiques
+  for (const [name, secret] of Object.entries(PASSWORDS)) {
+    if (name === 'global') continue;
+    if (pwd === secret) {
+      unlockState[name] = true;
+      unlocked++;
+    }
+  }
+  if (unlocked > 0) {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(unlockState));
+    return true;
+  }
+  return false;
+}
+
+// Interception des clics si verrouillé
+links.forEach(a => {
+  a.addEventListener('click', async (e) => {
+    const lockName = a.dataset.lock;
+    if (isAllowed(lockName)) return; // ok
+
+    e.preventDefault();
+    const pwd = await askPassword();
+    if (!pwd) return;
+
+    const ok = await tryUnlock(pwd);
+    if (!ok) {
+      // Affiche l’erreur et rouvre le modal pour ressaisir
+      $err.textContent = 'Mot de passe invalide.';
+      $modal.style.display = 'grid';
+      $input.focus();
+      return;
+    }
+    refreshUI();
+    // si ce lien est à présent autorisé, on y va
+    if (isAllowed(lockName)) window.location.href = a.href;
+  });
+});
+
+// Boutons de la pastille
+$unlock.addEventListener('click', async () => {
+  const pwd = await askPassword();
+  if (!pwd) return;
+  const ok = await tryUnlock(pwd);
+  if (!ok) {
+    $err.textContent = 'Mot de passe invalide.';
+    $modal.style.display = 'grid';
+    $input.focus();
+    return;
+  }
+  refreshUI();
+});
+
+$lock.addEventListener('click', () => {
+  for (const k of Object.keys(unlockState)) delete unlockState[k];
+  sessionStorage.removeItem(STORAGE_KEY);
+  refreshUI();
+});
+
+// Init
+refreshUI();
+</script>
 </body>
 </html>
