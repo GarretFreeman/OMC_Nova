@@ -6,7 +6,10 @@
   <title>OMC — Imagerie (Discord uniquement)</title>
   <link rel="icon" href="assets/logo_omc.png" type="image/png">
   <style>
-    :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; --accent:#3b82f6; }
+    :root{
+      --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af;
+      --ring:#1f2937; --radius:16px; --accent:#3b82f6;
+    }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{background:var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial; margin:0}
@@ -75,9 +78,17 @@
     .btn-plain:hover { filter: brightness(0.95); }
     .btn-secondary { background:#0b1223; border:1px solid var(--ring); color:var(--text); padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; }
     .btn-secondary:hover { background:#0e1a2e; }
+
+    /* Badge PAF */
+    .paf-badge{
+      display:inline-flex; align-items:center; gap:8px; padding:6px 10px;
+      background:rgba(185,28,28,.15); border:1px solid rgba(185,28,28,.35);
+      color:#fecaca; border-radius:999px; font-size:12px; font-weight:700;
+    }
+    .paf-badge .bd{ width:8px; height:8px; border-radius:50%; background:#b91c1c; }
+    .paf-hidden{ display:none; }
   </style>
 </head>
-
 <body>
   <div class="wrap block">
     <div class="top">
@@ -131,8 +142,24 @@
           </div>
 
           <div class="options" id="optionsBox">
-            <h4 style="margin:0 0 10px">Options de la lésion <span id="activeMarkerLabel">—</span></h4>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap">
+              <h4 style="margin:0 0 10px">Options de la lésion <span id="activeMarkerLabel">—</span></h4>
+              <!-- Badge PAF (auto-visible si PAF détectée) -->
+              <div id="pafBadge" class="paf-badge paf-hidden" title="Au moins une lésion PAF est présente">
+                <span class="bd"></span> PAF détectée — pensez à la déclaration
+              </div>
+            </div>
             <div id="lesionOptions" class="choices"></div>
+          </div>
+
+          <!-- Déclaration LSPD/BCSO -->
+          <div class="options">
+            <h4 style="margin:0 0 8px">Déclaration inter-services</h4>
+            <label class="check" style="margin-top:6px">
+              <input id="chkDecl" type="checkbox">
+              <span><strong>Déclaration LSPD / BCSO pour blessure par arme à feu</strong> — enverra une copie de l’acte aux salons concernés si au moins une PAF est renseignée.</span>
+            </label>
+            <small class="label">Salons cibles : <code>#1383858830336720966</code> (LSPD) et <code>#1383858851719155842</code> (BCSO)</small>
           </div>
 
           <div class="actions">
@@ -182,872 +209,1038 @@
     </div>
   </div>
 
-  <!-- ===== Script SSE unifié (inchangé) ===== -->
+  <!-- ===== Script SSE (toast nouvelles images) ===== -->
   <script>
-  (function(){
-    if (window.__omcPopupInstalled) return;
-    window.__omcPopupInstalled = true;
+    (function(){
+      if (window.__omcPopupInstalled) return;
+      window.__omcPopupInstalled = true;
 
-    const ES_URL = 'https://img.ocean-medical-center.ovh/events';
-
-    if (!window.__omcES) {
-      try {
-        window.__omcES = new EventSource(ES_URL);
-        console.log('[OMC] SSE connecté à', ES_URL);
-      } catch (e) {
-        console.warn('[OMC] Échec EventSource:', e);
+      const ES_URL = 'https://img.ocean-medical-center.ovh/events';
+      if (!window.__omcES) {
+        try { window.__omcES = new EventSource(ES_URL); }
+        catch(e){ console.warn('[OMC] Échec EventSource:', e); }
       }
-    }
-    const es = window.__omcES;
-    const shown = (window.__omcShown = window.__omcShown || new Set());
+      const es = window.__omcES;
+      const shown = (window.__omcShown = window.__omcShown || new Set());
 
-    function showToast(url){
-      if (!url || shown.has(url)) return;
-      shown.add(url);
-      const box = document.createElement('div');
-      box.setAttribute('role', 'status');
-      box.style.cssText = [
-        'position:fixed','right:16px','bottom:16px','z-index:9999',
-        'background:#0b1223','color:#e5e7eb','padding:12px 14px',
-        'border-radius:12px','border:1px solid #1f2937',
-        'box-shadow:0 8px 24px rgba(0,0,0,.35)','max-width:360px',
-        'font:14px/1.4 system-ui','opacity:0','transform:translateY(8px)',
-        'transition:opacity .25s ease, transform .25s ease'
-      ].join(';');
+      function showToast(url){
+        if (!url || shown.has(url)) return;
+        shown.add(url);
 
-      box.innerHTML = `
-        <div style="display:flex;gap:12px;align-items:flex-start">
-          <div style="font-size:18px">🖼️</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:700;margin-bottom:4px">Nouvelle image reçue</div>
-            <a href="${url}" target="_blank" rel="noopener" style="color:#93c5fd;word-break:break-all">${url}</a>
-            <img src="${url}" alt="Image envoyée" style="max-width:100%;margin-top:8px;border-radius:8px;display:block">
+        const box = document.createElement('div');
+        box.setAttribute('role', 'status');
+        box.style.cssText = [
+          'position:fixed','right:16px','bottom:16px','z-index:9999',
+          'background:#0b1223','color:#e5e7eb','padding:12px 14px',
+          'border-radius:12px','border:1px solid #1f2937',
+          'box-shadow:0 8px 24px rgba(0,0,0,.35)','max-width:360px',
+          'font:14px/1.4 system-ui','opacity:0','transform:translateY(8px)',
+          'transition:opacity .25s ease, transform .25s ease'
+        ].join(';');
+
+        box.innerHTML = `
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="font-size:18px">🖼️</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;margin-bottom:4px">Nouvelle image reçue</div>
+              <a href="${url}" target="_blank" rel="noopener" style="color:#93c5fd;word-break:break-all">${url}</a>
+              <img src="${url}" alt="Image envoyée" style="max-width:100%;margin-top:8px;border-radius:8px;display:block">
+            </div>
+            <button aria-label="Fermer" style="all:unset;cursor:pointer;color:#9ca3af;font-size:16px;line-height:1;padding:2px 4px">✖</button>
           </div>
-          <button aria-label="Fermer" style="all:unset;cursor:pointer;color:#9ca3af;font-size:16px;line-height:1;padding:2px 4px">✖</button>
-        </div>
-      `;
-      const closeBtn = box.querySelector('button');
-      function hide(){ box.style.opacity='0'; box.style.transform='translateY(8px)'; setTimeout(()=>box.remove(),250); }
-      closeBtn.onclick = hide;
+        `;
 
-      document.body.appendChild(box);
-      requestAnimationFrame(()=>{ box.style.opacity='1'; box.style.transform='translateY(0)'; });
-      setTimeout(hide, 12000);
-    }
+        const closeBtn = box.querySelector('button');
+        function hide(){ box.style.opacity='0'; box.style.transform='translateY(8px)'; setTimeout(()=>box.remove(),250); }
+        closeBtn.onclick = hide;
 
-    if (es) {
-      es.onopen  = () => console.log('[OMC] SSE ouvert');
-      es.onerror = (e) => console.warn('[OMC] SSE erreur', e);
-      es.onmessage = (ev) => {
-        try {
-          const data = JSON.parse(ev.data);
-          const u = data?.url || data?.href || data?.image || data?.link;
-          if (u && /^https:\/\//i.test(u) && (!data.type || data.type === 'image')) {
-            showToast(u);
-          }
-        } catch {}
-      };
-      es.addEventListener('mirrorSaved', (ev) => {
-        try {
-          const data = JSON.parse(ev.data);
-          const u = data?.url || data?.href || data?.image || data?.link;
-          if (u && /^https:\/\//i.test(u)) showToast(u);
-        } catch {}
-      });
-    }
-    window.__omcTestPopup = (u)=>showToast(u);
-  })();
+        document.body.appendChild(box);
+        requestAnimationFrame(()=>{ box.style.opacity='1'; box.style.transform='translateY(0)'; });
+        setTimeout(hide, 12000);
+      }
+
+      if (es) {
+        es.onmessage = (ev) => {
+          try {
+            const data = JSON.parse(ev.data);
+            const u = data?.url || data?.href || data?.image || data?.link;
+            if (u && /^https:\/\//i.test(u) && (!data.type || data.type === 'image')) showToast(u);
+          } catch {}
+        };
+        es.addEventListener('mirrorSaved', (ev) => {
+          try {
+            const data = JSON.parse(ev.data);
+            const u = data?.url || data?.href || data?.image || data?.link;
+            if (u && /^https:\/\//i.test(u)) showToast(u);
+          } catch {}
+        });
+      }
+
+      window.__omcTestPopup = (u)=>showToast(u);
+    })();
   </script>
 
   <!-- ===== Script applicatif ===== -->
   <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    /* ======= CONFIG API + DISCORD ======= */
-    const API_UPLOAD_URL      = 'https://api.ocean-medical-center.ovh/api/upload';
-    const API_TOKEN           = 'super-secret-token'; // sécuriser côté serveur
-    const WEBHOOK_FORUM_URL   = "https://discord.com/api/webhooks/1421780761731928194/ZFSpiLTHfytIGT02QBf5SBOIEDzWMaf_PMHtDB9sd-GmF5chHnQqQic-9YpLnYHJIRPo";
-    const FORUM_THREAD_PREFIX = "Imagerie";
-    const LOGO_PATH = "assets/Logo-omc.png";
-    const LOGO_FALLBACK = "https://i.ibb.co/LzwcCLfN/logo-omc-nord.png";
+    document.addEventListener('DOMContentLoaded', () => {
+      /* ======= CONFIG API + DISCORD ======= */
+      const API_UPLOAD_URL = 'https://api.ocean-medical-center.ovh/api/upload';
+      const API_TOKEN = 'super-secret-token'; // sécuriser côté serveur
 
-    /* ======= Popup ======= */
-    const popup = document.getElementById('popup');
-    const popupText = document.getElementById('popupText');
-    const copyBtn = document.getElementById('copyBtn');
-    const okBtn = document.getElementById('okBtn');
-    function openPopup(url){
-      popupText.textContent = url || '—';
-      popup.classList.add('active'); popup.setAttribute('aria-hidden','false');
-      copyBtn.onclick = async ()=>{ try{ await navigator.clipboard.writeText(url||''); copyBtn.textContent='Copié ✅'; setTimeout(()=>copyBtn.textContent='Copier',1600);}catch{} };
-      okBtn.onclick = ()=>{ popup.classList.remove('active'); popup.setAttribute('aria-hidden','true'); };
-    }
+      // Forum / fil principal (inchangé)
+      const WEBHOOK_FORUM_URL = "https://discord.com/api/webhooks/1421780761731928194/ZFSpiLTHfytIGT02QBf5SBOIEDzWMaf_PMHtDB9sd-GmF5chHnQqQic-9YpLnYHJIRPo";
+      const FORUM_THREAD_PREFIX = "Imagerie";
 
-    /* ======= Données lésionnelles ======= */
-    const LESIONS = [
-      {key:'fracture',label:'Fracture',color:'#ef4444',code:'FX'},
-      {key:'entorse',label:'Entorse',color:'#f59e0b',code:'EN'},
-      {key:'luxation',label:'Luxation',color:'#10b981',code:'LX'},
-      {key:'contusion',label:'Contusion',color:'#3b82f6',code:'CT'},
-      {key:'plaie_blanche',label:'Plaie arme blanche',color:'#a855f7',code:'PB'},
-      {key:'plaie_feu',label:'Plaie arme à feu',color:'#b91c1c',code:'PAF'},
-      {key:'brulure',label:'Brûlure',color:'#eab308',code:'BR'}
-    ];
-    const LMAP = Object.fromEntries(LESIONS.map(l => [l.key, l]));
+      // Déclaration inter-services (PAF)
+      const LSPD_WEBHOOK_URL = "https://discord.com/api/webhooks/1430453882412208129/SpEVn_7BNqSrIwxuXyZLvKXChzXxIO6_M1hTkoIUZ1xXnHO8V1u3CTtuPMUnRLOnTHsM";
+      const BCSO_WEBHOOK_URL = "https://discord.com/api/webhooks/1430454984616575068/8z9kN8yzmkrVZmnXbE5fYFJeIIQjsEdsDZvfVkGqgGCAb824kS_mE6hagWHP0EhUqlZQ";
 
-    /* ⚠️ FORM_CFG global (rétabli) */
-    const FORM_CFG = {
-      fracture: [
-        {key:'type', label:'Type', kind:'radio', options:['transversale','oblique','comminutive']},
-        {key:'deplacement', label:'Déplacement', kind:'radio', options:['aucun','léger','marqué']},
-        {key:'ouverte', label:'Plaie ouverte', kind:'checkbox'}
-      ],
-      entorse: [
-        {key:'stade', label:'Stade', kind:'radio', options:['I','II','III']},
-        {key:'oedeme', label:'Œdème', kind:'radio', options:['absent','discret','important']},
-        {key:'instabilite', label:'Instabilité', kind:'checkbox'}
-      ],
-      luxation: [
-        {key:'reduction', label:'Réduction', kind:'radio', options:['spontanée','non réduite']},
-        {key:'douleur', label:'Douleur', kind:'radio', options:['faible','modérée','forte']}
-      ],
-      contusion: [
-        {key:'hematome', label:'Hématome', kind:'radio', options:['absent','discret','important']},
-        {key:'douleur', label:'Douleur', kind:'radio', options:['faible','modérée','forte']}
-      ],
-      plaie_blanche: [
-        {key:'longueur', label:'Longueur', kind:'radio', options:['~2 cm','~3 cm','~4 cm']},
-        {key:'berges', label:'Berges', kind:'radio', options:['régulières','irrégulières']},
-        {key:'saign', label:'Saignement actif', kind:'checkbox'}
-      ],
-      plaie_feu: [
-        {key:'orifice', label:'Orifice', kind:'radio', options:['entrée','entrée + sortie']},
-        {key:'traj', label:'Trajectoire', kind:'radio', options:['antéro-postérieure','oblique']},
-        {key:'hemorragie', label:'Hémorragie', kind:'checkbox'}
-      ],
-      brulure: [
-        {key:'degre', label:'Degré', kind:'radio', options:['1er','2e superficiel','2e profond']},
-        {key:'surface', label:'Surface', kind:'radio', options:['<1%','1–3%','>3%']},
-        {key:'phlyctenes', label:'Phlyctènes', kind:'radio', options:['absentes','présentes']}
-      ]
-    };
+      const LOGO_PATH = "assets/Logo-omc.png";
+      const LOGO_FALLBACK = "https://i.ibb.co/LzwcCLfN/logo-omc-nord.png";
 
-    const MEDS_CFG = {
-      fracture: ['Paracétamol 1g', 'Ibuprofène 400mg (si pas de CI)', 'Antalgique palier II si douleur forte', 'ATB si plaie ouverte', 'Rappel tétanos si statut inconnu'],
-      entorse:  ['Paracétamol 1g', 'Ibuprofène 400mg (si pas de CI)'],
-      luxation: ['Paracétamol 1g', 'Antalgique palier II si douleur forte'],
-      contusion:['Paracétamol 1g', 'Ibuprofène 400mg (si pas de CI)'],
-      plaie_blanche:['Analgésique PO', 'Antiseptique local', 'ATB prophylaxie (si plaie à risque)', 'Rappel tétanos si statut inconnu'],
-      plaie_feu:   ['Antalgique', 'ATB selon contexte', 'Rappel tétanos', 'Couverture anti-douleur'],
-      brulure:  ['Antalgique', 'Pansement gras/argent (local)', 'ATB si surinfection']
-    };
-    const RECS_CFG = {
-      fracture: ['Immobilisation (attelle/écharpe)', 'Glace 15 min/2h', 'Surélévation', 'Contrôle imagerie'],
-      entorse:  ['Protocole GREC (glace, repos, élévation, compression)', 'Immobilisation courte', 'Réévaluation 48–72h'],
-      luxation: ['Immobilisation post-réduction', 'Contrôle neurovasculaire', 'Imagerie de contrôle'],
-      contusion:['Glace 15 min/2h', 'Repos relatif', 'Surveillance hématome'],
-      plaie_blanche:['Nettoyage/Irrigation', 'Suture/Strips selon plaie', 'Surveillance signes infection', 'Consignes pansements'],
-      plaie_feu:   ['Compression si hémorragie', 'Orientation traçabilité/forensic', 'Surveillance choc', 'Imagerie selon siège'],
-      brulure:  ['Refroidissement 15 min', 'Pansement stérile', 'Surveillance douleur', 'Éviter exposition']
-    };
-    const EXTRA_REC = 'Suivi par un kinésithérapeute pour rééducation';
-
-    /* Zones anatomiques — garde la structure vide si tu n’as pas les polygones sous la main */
-    const REGIONS_RAW = [/* … tes polygones … */];
-    function polyArea(pts){ let a=0; for(let i=0,j=pts.length-1;i<pts.length;j=i++) a += (pts[j][0]*pts[i][1] - pts[i][0]*pts[j][1]); return Math.abs(a/2); }
-    const REGIONS = (REGIONS_RAW||[]).slice().sort((a,b)=> polyArea(a.points) - polyArea(b.points));
-
-    /* ======= Sélecteurs ======= */
-    const overlay = document.getElementById('overlay');
-    const markersLayer = document.getElementById('markersLayer');
-    const zonesDebugLayer = document.getElementById('zonesDebugLayer');
-    const frame = document.getElementById('frame');
-    const cursorTip = document.getElementById('cursorTip');
-
-    const legendBox = document.getElementById('legend');
-    const lesionsGrid = document.getElementById('lesionsGrid');
-    const historyBox = document.getElementById('history');
-    const patientId = document.getElementById('patientId');
-    const doctorName = document.getElementById('doctorName');
-    const comments = document.getElementById('comments');
-
-    const btnUndo = document.getElementById('btnUndo');
-    const btnClear = document.getElementById('btnClear');
-    const btnToggleNumbers = document.getElementById('btnToggleNumbers');
-    const btnPrint = document.getElementById('btnPrint');
-    const btnDebug = document.getElementById('btnDebug');
-
-    const reportMeta = document.getElementById('reportMeta');
-    const reportList = document.getElementById('reportList');
-    const reportSummary = document.getElementById('reportSummary');
-    const reportTreat = document.getElementById('reportTreat');
-    const reportRecs = document.getElementById('reportRecs');
-
-    const lesionOptions = document.getElementById('lesionOptions');
-    const activeMarkerLabel = document.getElementById('activeMarkerLabel');
-    const medsChoices = document.getElementById('medsChoices');
-    const recsChoices = document.getElementById('recsChoices');
-
-    /* ======= État ======= */
-    let activeType = LESIONS[0]?.key || 'fracture';
-    let showNumbers = true;
-    const markers = [];
-    let activeMarkerId = null;
-    let debugOn = false;
-    const selectedMeds = new Set();
-    const selectedRecs = new Set();
-
-    /* ======= Utils ======= */
-    function logH(msg){ try{ const t=new Date().toLocaleString(); const d=document.createElement('div'); d.innerHTML=`<b>[${t}]</b> ${msg}`; historyBox?.prepend(d);}catch{} }
-    function svgPoint(evt){
-      const pt = overlay.createSVGPoint();
-      pt.x = evt.clientX; pt.y = evt.clientY;
-      const out = pt.matrixTransform(overlay.getScreenCTM().inverse());
-      return { x: Math.max(0, Math.min(418, out.x)), y: Math.max(0, Math.min(940, out.y)) };
-    }
-    function inPoly(x,y, pts){
-      let inside=false;
-      for(let i=0,j=pts.length-1;i<pts.length;j=i++){
-        const xi=pts[i][0], yi=pts[i][1], xj=pts[j][0], yj=pts[j][1];
-        const intersect = ((yi>y)!==(yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi+1e-9) + xi);
-        if(intersect) inside=!inside;
+      /* ======= Popup ======= */
+      const popup = document.getElementById('popup');
+      const popupText = document.getElementById('popupText');
+      const copyBtn = document.getElementById('copyBtn');
+      const okBtn = document.getElementById('okBtn');
+      function openPopup(url){
+        popupText.textContent = url || '—';
+        popup.classList.add('active');
+        popup.setAttribute('aria-hidden','false');
+        copyBtn.onclick = async ()=>{
+          try{
+            await navigator.clipboard.writeText(url||'');
+            copyBtn.textContent='Copié ✅';
+            setTimeout(()=>copyBtn.textContent='Copier',1600);
+          }catch{}
+        };
+        okBtn.onclick = ()=>{
+          popup.classList.remove('active');
+          popup.setAttribute('aria-hidden','true');
+        };
       }
-      return inside;
-    }
-    function regionFrom(x,y){ for(const r of REGIONS){ if(inPoly(x,y,r.points)) return r.label; } return null; }
 
-    /* ======= UI: liste des lésions (chips) ======= */
-    function buildPalette(){
-      if(!lesionsGrid){ console.warn('lesionsGrid introuvable'); return; }
-      lesionsGrid.innerHTML='';
-      LESIONS.forEach(l=>{
-        const chip = document.createElement('div');
-        chip.className='chip' + (l.key===activeType?' active':'');
-        chip.innerHTML = `<span class="dot" style="background:${l.color}"></span><span>${l.label}</span>`;
-        chip.addEventListener('click', ()=>{
-          [...lesionsGrid.children].forEach(c=>c.classList.remove('active'));
-          chip.classList.add('active');
-          activeType = l.key;
-          if(frame) frame.style.cursor='crosshair';
-          logH(`Type sélectionné — ${l.label}. Cliquez sur l'image pour placer.`);
+      /* ======= Données lésionnelles ======= */
+      const LESIONS = [
+        {key:'fracture',label:'Fracture',color:'#ef4444',code:'FX'},
+        {key:'entorse',label:'Entorse',color:'#f59e0b',code:'EN'},
+        {key:'luxation',label:'Luxation',color:'#10b981',code:'LX'},
+        {key:'contusion',label:'Contusion',color:'#3b82f6',code:'CT'},
+        {key:'plaie_blanche',label:'Plaie arme blanche',color:'#a855f7',code:'PB'},
+        {key:'plaie_feu',label:'Plaie arme à feu',color:'#b91c1c',code:'PAF'},
+        {key:'brulure',label:'Brûlure',color:'#eab308',code:'BR'}
+      ];
+      const LMAP = Object.fromEntries(LESIONS.map(l => [l.key, l]));
+
+      const FORM_CFG = {
+        fracture: [
+          {key:'type', label:'Type', kind:'radio', options:['transversale','oblique','comminutive']},
+          {key:'deplacement', label:'Déplacement', kind:'radio', options:['aucun','léger','marqué']},
+          {key:'ouverte', label:'Plaie ouverte', kind:'checkbox'}
+        ],
+        entorse: [
+          {key:'stade', label:'Stade', kind:'radio', options:['I','II','III']},
+          {key:'oedeme', label:'Œdème', kind:'radio', options:['absent','discret','important']},
+          {key:'instabilite', label:'Instabilité', kind:'checkbox'}
+        ],
+        luxation: [
+          {key:'reduction', label:'Réduction', kind:'radio', options:['spontanée','non réduite']},
+          {key:'douleur', label:'Douleur', kind:'radio', options:['faible','modérée','forte']}
+        ],
+        contusion: [
+          {key:'hematome', label:'Hématome', kind:'radio', options:['absent','discret','important']},
+          {key:'douleur', label:'Douleur', kind:'radio', options:['faible','modérée','forte']}
+        ],
+        plaie_blanche: [
+          {key:'longueur', label:'Longueur', kind:'radio', options:['~2 cm','~3 cm','~4 cm']},
+          {key:'berges', label:'Berges', kind:'radio', options:['régulières','irrégulières']},
+          {key:'saign', label:'Saignement actif', kind:'checkbox'}
+        ],
+        plaie_feu: [
+          {key:'orifice', label:'Orifice', kind:'radio', options:['entrée','entrée + sortie']},
+          {key:'traj', label:'Trajectoire', kind:'radio', options:['antéro-postérieure','oblique']},
+          {key:'hemorragie', label:'Hémorragie', kind:'checkbox'}
+        ],
+        brulure: [
+          {key:'degre', label:'Degré', kind:'radio', options:['1er','2e superficiel','2e profond']},
+          {key:'surface', label:'Surface', kind:'radio', options:['<1%','1–3%','>3%']},
+          {key:'phlyctenes', label:'Phlyctènes', kind:'radio', options:['absentes','présentes']}
+        ]
+      };
+
+      const MEDS_CFG = {
+        fracture: ['Paracétamol 1g', 'Ibuprofène 400mg (si pas de CI)', 'Antalgique palier II si douleur forte', 'ATB si plaie ouverte', 'Rappel tétanos si statut inconnu'],
+        entorse: ['Paracétamol 1g', 'Ibuprofène 400mg (si pas de CI)'],
+        luxation: ['Paracétamol 1g', 'Antalgique palier II si douleur forte'],
+        contusion:['Paracétamol 1g', 'Ibuprofène 400mg (si pas de CI)'],
+        plaie_blanche:['Analgésique PO', 'Antiseptique local', 'ATB prophylaxie (si plaie à risque)', 'Rappel tétanos si statut inconnu'],
+        plaie_feu: ['Antalgique', 'ATB selon contexte', 'Rappel tétanos', 'Couverture anti-douleur'],
+        brulure: ['Antalgique', 'Pansement gras/argent (local)', 'ATB si surinfection']
+      };
+
+      const RECS_CFG = {
+        fracture: ['Immobilisation (attelle/écharpe)', 'Glace 15 min/2h', 'Surélévation', 'Contrôle imagerie'],
+        entorse: ['Protocole GREC (glace, repos, élévation, compression)', 'Immobilisation courte', 'Réévaluation 48–72h'],
+        luxation: ['Immobilisation post-réduction', 'Contrôle neurovasculaire', 'Imagerie de contrôle'],
+        contusion:['Glace 15 min/2h', 'Repos relatif', 'Surveillance hématome'],
+        plaie_blanche:['Nettoyage/Irrigation', 'Suture/Strips selon plaie', 'Surveillance signes infection', 'Consignes pansements'],
+        plaie_feu: ['Compression si hémorragie', 'Orientation traçabilité/forensic', 'Surveillance choc', 'Imagerie selon siège'],
+        brulure: ['Refroidissement 15 min', 'Pansement stérile', 'Surveillance douleur', 'Éviter exposition']
+      };
+
+      const EXTRA_REC = 'Suivi par un kinésithérapeute pour rééducation';
+
+      /* Zones anatomiques (si disponibles) */
+      const REGIONS_RAW = [];
+      function polyArea(pts){ let a=0; for(let i=0,j=pts.length-1;i<pts.length;j=i++) a += (pts[j][0]*pts[i][1] - pts[i][0]*pts[j][1]); return Math.abs(a/2); }
+      const REGIONS = (REGIONS_RAW||[]).slice().sort((a,b)=> polyArea(a.points) - polyArea(b.points));
+
+      /* ======= Sélecteurs ======= */
+      const overlay = document.getElementById('overlay');
+      const markersLayer = document.getElementById('markersLayer');
+      const zonesDebugLayer = document.getElementById('zonesDebugLayer');
+      const frame = document.getElementById('frame');
+      const cursorTip = document.getElementById('cursorTip');
+      const legendBox = document.getElementById('legend');
+      const lesionsGrid = document.getElementById('lesionsGrid');
+      const historyBox = document.getElementById('history');
+      const patientId = document.getElementById('patientId');
+      const doctorName = document.getElementById('doctorName');
+      const comments = document.getElementById('comments');
+      const btnUndo = document.getElementById('btnUndo');
+      const btnClear = document.getElementById('btnClear');
+      const btnToggleNumbers = document.getElementById('btnToggleNumbers');
+      const btnPrint = document.getElementById('btnPrint');
+      const btnDebug = document.getElementById('btnDebug');
+      const reportMeta = document.getElementById('reportMeta');
+      const reportList = document.getElementById('reportList');
+      const reportSummary = document.getElementById('reportSummary');
+      const reportTreat = document.getElementById('reportTreat');
+      const reportRecs = document.getElementById('reportRecs');
+      const lesionOptions = document.getElementById('lesionOptions');
+      const activeMarkerLabel = document.getElementById('activeMarkerLabel');
+      const medsChoices = document.getElementById('medsChoices');
+      const recsChoices = document.getElementById('recsChoices');
+
+      const chkDecl = document.getElementById('chkDecl');
+      const pafBadge = document.getElementById('pafBadge');
+
+      /* ======= État ======= */
+      let activeType = LESIONS[0]?.key || 'fracture';
+      let showNumbers = true;
+      const markers = [];
+      let activeMarkerId = null;
+      let debugOn = false;
+      const selectedMeds = new Set();
+      const selectedRecs = new Set();
+
+      /* ======= Utils ======= */
+      function logH(msg){
+        try{
+          const t=new Date().toLocaleString();
+          const d=document.createElement('div');
+          d.innerHTML=`<b>[${t}]</b> ${msg}`;
+          historyBox?.prepend(d);
+        }catch{}
+      }
+      function svgPoint(evt){
+        const pt = overlay.createSVGPoint();
+        pt.x = evt.clientX; pt.y = evt.clientY;
+        const out = pt.matrixTransform(overlay.getScreenCTM().inverse());
+        return { x: Math.max(0, Math.min(418, out.x)), y: Math.max(0, Math.min(940, out.y)) };
+      }
+      function inPoly(x,y, pts){
+        let inside=false;
+        for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+          const xi=pts[i][0], yi=pts[i][1], xj=pts[j][0], yj=pts[j][1];
+          const intersect = ((yi>y)!==(yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi+1e-9) + xi);
+          if(intersect) inside=!inside;
+        }
+        return inside;
+      }
+      function regionFrom(x,y){
+        for(const r of REGIONS){ if(inPoly(x,y,r.points)) return r.label; }
+        return null;
+      }
+
+      /* ======= UI: liste des lésions (chips) ======= */
+      function buildPalette(){
+        if(!lesionsGrid){ console.warn('lesionsGrid introuvable'); return; }
+        lesionsGrid.innerHTML='';
+        LESIONS.forEach(l=>{
+          const chip = document.createElement('div');
+          chip.className='chip' + (l.key===activeType?' active':'');
+          chip.innerHTML = `<span class="dot" style="background:${l.color}"></span><span>${l.label}</span>`;
+          chip.addEventListener('click', ()=>{
+            [...lesionsGrid.children].forEach(c=>c.classList.remove('active'));
+            chip.classList.add('active');
+            activeType = l.key;
+            if(frame) frame.style.cursor='crosshair';
+            logH(`Type sélectionné — ${l.label}. Cliquez sur l'image pour placer.`);
+          });
+          lesionsGrid.appendChild(chip);
         });
-        lesionsGrid.appendChild(chip);
-      });
-    }
-
-    function redrawLegend(){
-      if(!legendBox) return;
-      const counts = {};
-      markers.forEach(m => counts[m.type]=(counts[m.type]||0)+1);
-      legendBox.innerHTML='';
-      LESIONS.forEach(l => {
-        const item = document.createElement('div');
-        item.className='item';
-        item.innerHTML = `<span class="dot" style="background:${l.color}"></span><span>${l.label}${counts[l.key] ? ' — '+counts[l.key] : ''}</span>`;
-        legendBox.appendChild(item);
-      });
-    }
-
-    function setActiveMarker(id){
-      activeMarkerId = id;
-      markersLayer?.querySelectorAll('.marker').forEach(g=>g.classList.remove('active'));
-      if(id){
-        const node = markersLayer?.querySelector(`g.marker[data-id="${id}"]`);
-        if(node) node.classList.add('active');
       }
-      renderLesionOptions();
-    }
 
-    function renderLesionOptions(){
-      if(!lesionOptions) return;
-      lesionOptions.innerHTML = '';
-      if(!activeMarkerId){
-        activeMarkerLabel.textContent = '—';
-        lesionOptions.innerHTML = `<div class="label">Sélectionnez ou ajoutez une lésion pour voir ses options.</div>`;
-        return;
+      function redrawLegend(){
+        if(!legendBox) return;
+        const counts = {};
+        markers.forEach(m => counts[m.type]=(counts[m.type]||0)+1);
+        legendBox.innerHTML='';
+        LESIONS.forEach(l => {
+          const item = document.createElement('div');
+          item.className='item';
+          item.innerHTML = `<span class="dot" style="background:${l.color}"></span><span>${l.label}${counts[l.key] ? ' — '+counts[l.key] : ''}</span>`;
+          legendBox.appendChild(item);
+        });
       }
-      const m = markers.find(x=>x.id===activeMarkerId);
-      if(!m){ activeMarkerLabel.textContent='—'; return; }
-      const cfg = FORM_CFG[m.type] || [];
-      activeMarkerLabel.textContent = `(${LMAP[m.type].label})`;
 
-      cfg.forEach(group=>{
-        const wrap = document.createElement('div');
-        wrap.className='opt-group';
-        const h5 = document.createElement('h5'); h5.textContent = group.label; wrap.appendChild(h5);
+      function setActiveMarker(id){
+        activeMarkerId = id;
+        markersLayer?.querySelectorAll('.marker').forEach(g=>g.classList.remove('active'));
+        if(id){
+          const node = markersLayer?.querySelector(`g.marker[data-id="${id}"]`);
+          if(node) node.classList.add('active');
+        }
+        renderLesionOptions();
+      }
 
-        if(group.kind==='checkbox'){
-          const row = document.createElement('label'); row.className='check';
-          const input = document.createElement('input'); input.type='checkbox'; input.checked = !!m.opts[group.key];
-          const txt = document.createElement('span'); txt.textContent = group.label;
-          input.onchange = ()=>{ m.opts[group.key] = input.checked ? true : undefined; updateReport(); };
-          row.append(input, txt);
-          wrap.appendChild(row);
-        } else if(group.kind==='radio'){
-          (group.options||[]).forEach(opt=>{
-            const row = document.createElement('label'); row.className='check';
-            const input = document.createElement('input'); input.type='radio'; input.name=`opt-${group.key}-${m.id}`;
-            input.checked = (m.opts[group.key]===opt);
-            const txt = document.createElement('span'); txt.textContent = opt;
-            input.onchange = ()=>{ m.opts[group.key] = opt; updateReport(); };
+      function renderLesionOptions(){
+        if(!lesionOptions) return;
+        lesionOptions.innerHTML = '';
+        if(!activeMarkerId){
+          activeMarkerLabel.textContent = '—';
+          lesionOptions.innerHTML = `<div class="label">Sélectionnez ou ajoutez une lésion pour voir ses options.</div>`;
+          return;
+        }
+        const m = markers.find(x=>x.id===activeMarkerId);
+        if(!m){ activeMarkerLabel.textContent='—'; return; }
+        const cfg = FORM_CFG[m.type] || [];
+        activeMarkerLabel.textContent = `(${LMAP[m.type].label})`;
+
+        cfg.forEach(group=>{
+          const wrap = document.createElement('div');
+          wrap.className='opt-group';
+          const h5 = document.createElement('h5');
+          h5.textContent = group.label;
+          wrap.appendChild(h5);
+
+          if(group.kind==='checkbox'){
+            const row = document.createElement('label');
+            row.className='check';
+            const input = document.createElement('input');
+            input.type='checkbox';
+            input.checked = !!m.opts[group.key];
+            const txt = document.createElement('span');
+            txt.textContent = group.label;
+            input.onchange = ()=>{
+              m.opts[group.key] = input.checked ? true : undefined;
+              updateReport();
+            };
             row.append(input, txt);
             wrap.appendChild(row);
+          } else if(group.kind==='radio'){
+            (group.options||[]).forEach(opt=>{
+              const row = document.createElement('label');
+              row.className='check';
+              const input = document.createElement('input');
+              input.type='radio';
+              input.name=`opt-${group.key}-${m.id}`;
+              input.checked = (m.opts[group.key]===opt);
+              const txt = document.createElement('span');
+              txt.textContent = opt;
+              input.onchange = ()=>{
+                m.opts[group.key] = opt;
+                updateReport();
+              };
+              row.append(input, txt);
+              wrap.appendChild(row);
+            });
+          }
+          lesionOptions.appendChild(wrap);
+        });
+
+        if(cfg.length===0){
+          lesionOptions.innerHTML = `<div class="label">Aucune option spécifique pour cette lésion.</div>`;
+        }
+      }
+
+      function markerText(m){
+        const zone = regionFrom(m.x,m.y) || 'zone non précisée';
+        const o = m.opts || {};
+        switch(m.type){
+          case 'fracture':
+            return `Fracture ${o.type||'non précisée'} ${o.deplacement?('('+o.deplacement+') '):''}${o.ouverte?'avec plaie ouverte, ':''}au niveau de la ${zone.toLowerCase()}.`;
+          case 'entorse':
+            return `Entorse ${o.stade?('stade '+o.stade):'—'} ${o.oedeme?('avec œdème '+o.oedeme):''}${o.instabilite?' et instabilité':''} au niveau de la ${zone.toLowerCase()}.`;
+          case 'luxation':
+            return `Luxation ${o.reduction?('('+o.reduction+') '):''}avec douleur ${o.douleur||'—'} au niveau de la ${zone.toLowerCase()}.`;
+          case 'contusion':
+            return `Contusion ${o.hematome?('avec hématome '+o.hematome):''}${o.douleur?(' et douleur '+o.douleur):''} au niveau de la ${zone.toLowerCase()}.`;
+          case 'plaie_blanche':
+            return `Plaie par arme blanche ${o.longueur||''}${o.berges?(', berges '+o.berges):''}${o.saign?' avec saignement actif':''} au niveau de la ${zone.toLowerCase()}.`;
+          case 'plaie_feu':
+            return `Plaie par arme à feu, orifice ${o.orifice||'—'}, trajectoire ${o.traj||'—'}${o.hemorragie?' avec hémorragie':''} au niveau de la ${zone.toLowerCase()}.`;
+          case 'brulure':
+            return `Brûlure ${o.degre||'—'} (${o.surface||'surface —'})${o.phlyctenes?(', phlyctènes '+o.phlyctenes):''} au niveau de la ${zone.toLowerCase()}.`;
+          default:
+            return `Lésion ${LMAP[m.type].label} au niveau de la ${zone.toLowerCase()}.`;
+        }
+      }
+
+      function updatePAFBadge(){
+        const has = markers.some(m => m.type === 'plaie_feu');
+        if (has) pafBadge.classList.remove('paf-hidden');
+        else pafBadge.classList.add('paf-hidden');
+      }
+
+      function updateReport(){
+        const now = new Date().toLocaleString();
+        if(reportMeta) reportMeta.textContent = `Patient : ${patientId.value || '—'} • Médecin : ${doctorName.value || '—'} • Date : ${now}${comments.value ? ' • Notes : ' + comments.value : ''}`;
+
+        if(reportList){
+          reportList.innerHTML = '';
+          const perTypeIndex = {};
+          markers.forEach(m => {
+            perTypeIndex[m.type]=(perTypeIndex[m.type]||0)+1;
+            const idx = perTypeIndex[m.type];
+            const li = document.createElement('li');
+            li.innerHTML = `<span class="badge"><span class="bdot" style="background:${LMAP[m.type].color}"></span>${LMAP[m.type].label} — N°${idx}</span> ${markerText(m)}`;
+            reportList.appendChild(li);
           });
         }
-        lesionOptions.appendChild(wrap);
-      });
 
-      if(cfg.length===0){
-        lesionOptions.innerHTML = `<div class="label">Aucune option spécifique pour cette lésion.</div>`;
-      }
-    }
-
-    function markerText(m){
-      const zone = regionFrom(m.x,m.y) || 'zone non précisée';
-      const o = m.opts || {};
-      switch(m.type){
-        case 'fracture':
-          return `Fracture ${o.type||'non précisée'} ${o.deplacement?('('+o.deplacement+') '):''}${o.ouverte?'avec plaie ouverte, ':''}au niveau de la ${zone.toLowerCase()}.`;
-        case 'entorse':
-          return `Entorse ${o.stade?('stade '+o.stade):'—'} ${o.oedeme?('avec œdème '+o.oedeme):''}${o.instabilite?' et instabilité':''} au niveau de la ${zone.toLowerCase()}.`;
-        case 'luxation':
-          return `Luxation ${o.reduction?('('+o.reduction+') '):''}avec douleur ${o.douleur||'—'} au niveau de la ${zone.toLowerCase()}.`;
-        case 'contusion':
-          return `Contusion ${o.hematome?('avec hématome '+o.hematome):''}${o.douleur?(' et douleur '+o.douleur):''} au niveau de la ${zone.toLowerCase()}.`;
-        case 'plaie_blanche':
-          return `Plaie par arme blanche ${o.longueur||''}${o.berges?(', berges '+o.berges):''}${o.saign?' avec saignement actif':''} au niveau de la ${zone.toLowerCase()}.`;
-        case 'plaie_feu':
-          return `Plaie par arme à feu, orifice ${o.orifice||'—'}, trajectoire ${o.traj||'—'}${o.hemorragie?' avec hémorragie':''} au niveau de la ${zone.toLowerCase()}.`;
-        case 'brulure':
-          return `Brûlure ${o.degre||'—'} (${o.surface||'surface —'})${o.phlyctenes?(', phlyctènes '+o.phlyctenes):''} au niveau de la ${zone.toLowerCase()}.`;
-        default:
-          return `Lésion ${LMAP[m.type].label} au niveau de la ${zone.toLowerCase()}.`;
-      }
-    }
-
-    function updateReport(){
-      const now = new Date().toLocaleString();
-      if(reportMeta) reportMeta.textContent = `Patient : ${patientId.value || '—'} • Médecin : ${doctorName.value || '—'} • Date : ${now}${comments.value ? ' • Notes : ' + comments.value : ''}`;
-
-      if(reportList){
-        reportList.innerHTML = '';
-        const perTypeIndex = {};
-        markers.forEach(m => {
-          perTypeIndex[m.type]=(perTypeIndex[m.type]||0)+1;
-          const idx = perTypeIndex[m.type];
-          const li = document.createElement('li');
-          li.innerHTML = `<span class="badge"><span class="bdot" style="background:${LMAP[m.type].color}"></span>${LMAP[m.type].label} — N°${idx}</span> ${markerText(m)}`;
-          reportList.appendChild(li);
-        });
-      }
-
-      const counts = {};
-      markers.forEach(m => counts[m.type]=(counts[m.type]||0)+1);
-      if(reportSummary){
-        const summary = LESIONS.map(l=>{
-          const n = counts[l.key]||0;
-          return `<span class="badge"><span class="bdot" style="background:${l.color}"></span>${l.label} : ${n}</span>`;
-        }).join(' ');
-        reportSummary.innerHTML = summary || '<small>Aucune lésion renseignée.</small>';
-      }
-
-      if(reportTreat) reportTreat.innerHTML = selectedMeds.size
-        ? `<h4 style="margin:10px 0 6px">Traitement médicamenteux</h4><ul style="margin:0 0 0 18px; padding:0">${[...selectedMeds].map(x=>`<li>${x}</li>`).join('')}</ul>`
-        : '';
-      if(reportRecs) reportRecs.innerHTML = selectedRecs.size
-        ? `<h4 style="margin:10px 0 6px">Préconisations</h4><ul style="margin:0 0 0 18px; padding:0">${[...selectedRecs].map(x=>`<li>${x}</li>`).join('')}</ul>`
-        : '';
-    }
-
-    function redrawNumbers(){
-      const perType = {};
-      markers.forEach(m => {
-        perType[m.type]=(perType[m.type]||0)+1;
-        const n = perType[m.type];
-        const node = markersLayer?.querySelector(`g.marker[data-id="${m.id}"] text`);
-        if(node) node.textContent = showNumbers ? String(n) : '';
-      });
-    }
-
-    function loadImage(src, {cross=false}={}){
-      return new Promise((resolve,reject)=>{
-        const img = new Image();
-        if(cross) img.crossOrigin = 'anonymous';
-        img.onload = ()=>resolve(img);
-        img.onerror = reject;
-        img.src = src;
-      });
-    }
-    function wrapText(context, text, x, y, maxWidth, fontSize, lineHeight){
-      const words = String(text).split(/\s+/);
-      let line = '', cy=y;
-      for(let n=0;n<words.length;n++){
-        const test = line + (line? ' ':'') + words[n];
-        const w = context.measureText(test).width;
-        if(w > maxWidth && n>0){ context.fillText(line, x, cy); line = words[n]; cy += lineHeight; }
-        else { line = test; }
-      }
-      context.fillText(line, x, cy);
-      return cy - y + lineHeight;
-    }
-
-    /* ——— Mesure/Export PNG (identique à la version précédente) ——— */
-    function wrapHeight(ctx, text, maxWidth, lineHeight){
-      const words = String(text).split(/\s+/);
-      let line = '', used = lineHeight;
-      for(let n=0;n<words.length;n++){
-        const test = line + (line? ' ':'') + words[n];
-        const w = ctx.measureText(test).width;
-        if(w > maxWidth && n>0){ line = words[n]; used += lineHeight; }
-        else { line = test; }
-      }
-      return used;
-    }
-
-    function measureRightCardHeight(scale, rightW){
-      const paddingX = 16*scale, headerH = 72*scale;
-      const line14 = 18*scale, line13 = 16*scale, line12 = 16*scale;
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      let y = headerH + 16*scale;
-
-      ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
-      y += line14 * 3;
-
-      if(comments.value){
-        ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
-        y += wrapHeight(ctx, `Notes : ${comments.value}`, rightW - paddingX*2, 18*scale) + 6*scale;
-      }
-
-      const counts = {}; markers.forEach(m=>counts[m.type]=(counts[m.type]||0)+1);
-      let bx = paddingX, by = y + 12*scale;
-      ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
-      LESIONS.forEach(l=>{
-        const txt = `${l.label} : ${counts[l.key]||0}`;
-        const w = ctx.measureText(txt).width + 24*scale + 20*scale;
-        if(bx + w > rightW - paddingX){ bx = paddingX; by += 30*scale; }
-        bx += w + 8*scale;
-      });
-      y = by + 24*scale;
-      y += 16*scale;
-
-      const perTypeIndex = {};
-      if(!markers.length){
-        y += line13 + 10*scale;
-      } else {
-        markers.forEach(m=>{
-          perTypeIndex[m.type]=(perTypeIndex[m.type]||0)+1;
-          const ch = markerText(m);
-          ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
-          y += line13 + 12*scale;
-          y += wrapHeight(ctx, ch, rightW - (paddingX*2 + 50*scale), line12) + 10*scale;
-        });
-      }
-
-      if(selectedMeds.size){
-        y += 20*scale;
-        selectedMeds.forEach(txt=>{
-          ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
-          y += wrapHeight(ctx, txt, rightW - (paddingX*2 + 20*scale), line12) + 6*scale;
-        });
-      }
-      if(selectedRecs.size){
-        y += 20*scale;
-        selectedRecs.forEach(txt=>{
-          ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
-          y += wrapHeight(ctx, txt, rightW - (paddingX*2 + 20*scale), line12) + 6*scale;
-        });
-      }
-
-      y += 24*scale;
-      return y;
-    }
-
-    async function exportReportPNG(scale=2){
-      const rightW = 640*scale, sideGap = 20*scale, figPad = 20*scale;
-      const measuredCardH = measureRightCardHeight(scale, rightW);
-      const Hmin = 940*scale;
-      const H = Math.max(Hmin, figPad*2 + measuredCardH);
-
-      const canvas = document.createElement('canvas');
-      const figH = H - figPad*2;
-      const s = figH / 940;
-      const figW = 418 * s;
-      const W = Math.round(figPad + figW + sideGap + rightW + figPad);
-
-      canvas.width = W; canvas.height = H;
-      const ctx = canvas.getContext('2d');
-
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,W,H);
-
-      const bgSrc = document.querySelector('.body-bg').src;
-      const bgImg = await loadImage(bgSrc);
-      const figX = figPad, figY = figPad;
-      ctx.drawImage(bgImg, figX, figY, figW, figH);
-
-      const perTypeNums = {};
-      markers.forEach(m=>{
-        perTypeNums[m.type]=(perTypeNums[m.type]||0)+1;
-        const n = perTypeNums[m.type];
-        const x = Math.round(figX + m.x*s);
-        const y = Math.round(figY + m.y*s);
-        ctx.beginPath();
-        ctx.fillStyle = LMAP[m.type].color;
-        ctx.strokeStyle = '#0b1223';
-        ctx.lineWidth = 2*scale;
-        ctx.arc(x, y, 10*scale, 0, Math.PI*2);
-        ctx.fill(); ctx.stroke();
-        if(showNumbers){
-          ctx.fillStyle = '#0b1223';
-          ctx.font = `${10*scale}px ui-sans-serif, system-ui`;
-          ctx.textAlign='center'; ctx.textBaseline='middle';
-          ctx.fillText(String(n), x, y);
+        const counts = {};
+        markers.forEach(m => counts[m.type]=(counts[m.type]||0)+1);
+        if(reportSummary){
+          const summary = LESIONS.map(l=>{
+            const n = counts[l.key]||0;
+            return `<span class="badge"><span class="bdot" style="background:${l.color}"></span>${l.label} : ${n}</span>`;
+          }).join(' ');
+          reportSummary.innerHTML = summary || '<small>Aucune lésion renseignée.</small>';
         }
-      });
 
-      const rightX = Math.round(figX + figW + sideGap);
-      const cardY  = figPad;
-      const cardW  = rightW;
-      const cardH  = measureRightCardHeight(scale, rightW);
+        if(reportTreat)
+          reportTreat.innerHTML = selectedMeds.size
+            ? `<h4 style="margin:10px 0 6px">Traitement médicamenteux</h4><ul style="margin:0 0 0 18px; padding:0">${[...selectedMeds].map(x=>`<li>${x}</li>`).join('')}</ul>`
+            : '';
 
-      function roundRect(ctx, x, y, w, h, r){
-        const rr = Math.min(r, w/2, h/2);
-        ctx.beginPath();
-        ctx.moveTo(x+rr,y);
-        ctx.arcTo(x+w,y,x+w,y+h,rr);
-        ctx.arcTo(x+w,y+h,x,y+h,rr);
-        ctx.arcTo(x,y+h,x,y,rr);
-        ctx.arcTo(x,y,x+w,y,rr);
-        ctx.closePath();
-      }
-      roundRect(ctx, rightX, cardY, cardW, cardH, 16*scale);
-      ctx.fillStyle = '#f8fafc'; ctx.fill();
-      ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1*scale; ctx.stroke();
+        if(reportRecs)
+          reportRecs.innerHTML = selectedRecs.size
+            ? `<h4 style="margin:10px 0 6px">Préconisations</h4><ul style="margin:0 0 0 18px; padding:0">${[...selectedRecs].map(x=>`<li>${x}</li>`).join('')}</ul>`
+            : '';
 
-      const headerH = 72*scale;
-      const grad = ctx.createLinearGradient(0, cardY, 0, cardY+headerH);
-      grad.addColorStop(0, '#0ea5e9'); grad.addColorStop(1, '#0284c7');
-      roundRect(ctx, rightX, cardY, cardW, headerH, 16*scale);
-      ctx.fillStyle = grad; ctx.fill();
-
-      try{
-        let logoImg;
-        try { logoImg = await loadImage(LOGO_PATH); }
-        catch { logoImg = await loadImage(LOGO_FALLBACK, {cross:true}); }
-        ctx.drawImage(logoImg, rightX+16*scale, cardY+14*scale, 44*scale, 44*scale);
-      }catch{}
-
-      ctx.fillStyle = '#001019';
-      ctx.font = `${20*scale}px ui-sans-serif, system-ui`;
-      ctx.textAlign='left'; ctx.textBaseline='middle';
-      ctx.fillText('Constat lésionnel — OMC', rightX+72*scale, cardY+headerH/2);
-
-      const metaY = cardY + headerH + 16*scale;
-      const dateStr = new Date().toLocaleString();
-      ctx.fillStyle = '#0f172a';
-      ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
-      ctx.fillText(`Patient : ${patientId.value || '—'}`, rightX+16*scale, metaY);
-      ctx.fillText(`Médecin : ${doctorName.value || '—'}`, rightX+16*scale, metaY + 20*scale);
-      ctx.fillText(`Date : ${dateStr}`, rightX+16*scale, metaY + 40*scale);
-      if(comments.value){
-        ctx.fillStyle = '#334155';
-        wrapText(ctx, `Notes : ${comments.value}`, rightX+16*scale, metaY + 64*scale, cardW-32*scale, 14*scale, 18*scale);
+        updatePAFBadge();
       }
 
-      const counts = {}; markers.forEach(m=>counts[m.type]=(counts[m.type]||0)+1);
-      let badgeX = rightX+16*scale, badgeY = metaY + (comments.value? 114*scale : 90*scale);
-      ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
-      LESIONS.forEach(l=>{
-        const txt = `${l.label} : ${counts[l.key]||0}`;
-        const w = ctx.measureText(txt).width + 24*scale + 20*scale;
-        if(badgeX + w > rightX + cardW - 16*scale){ badgeX = rightX+16*scale; badgeY += 30*scale; }
-        roundRect(ctx, badgeX, badgeY, w, 24*scale, 999);
-        ctx.fillStyle = '#ffffff'; ctx.fill();
-        ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1*scale; ctx.stroke();
-        ctx.beginPath(); ctx.fillStyle = l.color; ctx.arc(badgeX+12*scale, badgeY+12*scale, 5*scale, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#0f172a'; ctx.fillText(txt, badgeX+24*scale, badgeY+15*scale);
-        badgeX += w + 8*scale;
-      });
+      function redrawNumbers(){
+        const perType = {};
+        markers.forEach(m => {
+          perType[m.type]=(perType[m.type]||0)+1;
+          const n = perType[m.type];
+          const node = markersLayer?.querySelector(`g.marker[data-id="${m.id}"] text`);
+          if(node) node.textContent = showNumbers ? String(n) : '';
+        });
+      }
 
-      let listTop = badgeY + 36*scale;
-      ctx.fillStyle = '#0f172a';
-      ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
-      ctx.fillText('Constatations :', rightX+16*scale, listTop);
-      listTop += 16*scale;
+      function loadImage(src, {cross=false}={}){
+        return new Promise((resolve,reject)=>{
+          const img = new Image();
+          if(cross) img.crossOrigin = 'anonymous';
+          img.onload = ()=>resolve(img);
+          img.onerror = reject;
+          img.src = src;
+        });
+      }
 
-      const perTypeIndex = {};
-      if(!markers.length){
-        ctx.fillStyle = '#334155';
-        ctx.font = `${13*scale}px ui-sans-serif, system-ui`;
-        ctx.fillText('— Aucune lésion renseignée —', rightX+24*scale, listTop+6*scale);
-      }else{
+      function wrapText(context, text, x, y, maxWidth, fontSize, lineHeight){
+        const words = String(text).split(/\s+/);
+        let line = '', cy=y;
+        for(let n=0;n<words.length;n++){
+          const test = line + (line? ' ':'') + words[n];
+          const w = context.measureText(test).width;
+          if(w > maxWidth && n>0){ context.fillText(line, x, cy); line = words[n]; cy += lineHeight; }
+          else { line = test; }
+        }
+        context.fillText(line, x, cy);
+        return cy - y + lineHeight;
+      }
+
+      function wrapHeight(ctx, text, maxWidth, lineHeight){
+        const words = String(text).split(/\s+/);
+        let line = '', used = lineHeight;
+        for(let n=0;n<words.length;n++){
+          const test = line + (line? ' ':'') + words[n];
+          const w = ctx.measureText(test).width;
+          if(w > maxWidth && n>0){ line = words[n]; used += lineHeight; }
+          else { line = test; }
+        }
+        return used;
+      }
+
+      function measureRightCardHeight(scale, rightW){
+        const paddingX = 16*scale, headerH = 72*scale;
+        const line14 = 18*scale, line13 = 16*scale, line12 = 16*scale;
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        let y = headerH + 16*scale;
+
+        ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
+        y += line14 * 3;
+
+        if(comments.value){
+          ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
+          y += wrapHeight(ctx, `Notes : ${comments.value}`, rightW - paddingX*2, 18*scale) + 6*scale;
+        }
+
+        const counts = {};
+        markers.forEach(m=>counts[m.type]=(counts[m.type]||0)+1);
+        let bx = paddingX, by = y + 12*scale;
+        ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
+        LESIONS.forEach(l=>{
+          const txt = `${l.label} : ${counts[l.key]||0}`;
+          const w = ctx.measureText(txt).width + 24*scale + 20*scale;
+          if(bx + w > rightW - paddingX){ bx = paddingX; by += 30*scale; }
+          bx += w + 8*scale;
+        });
+        y = by + 24*scale;
+
+        y += 16*scale;
+        const perTypeIndex = {};
+        if(!markers.length){
+          y += line13 + 10*scale;
+        } else {
+          markers.forEach(m=>{
+            perTypeIndex[m.type]=(perTypeIndex[m.type]||0)+1;
+            const ch = markerText(m);
+            ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
+            y += line13 + 12*scale;
+            y += wrapHeight(ctx, ch, rightW - (paddingX*2 + 50*scale), line12) + 10*scale;
+          });
+        }
+        if(selectedMeds.size){
+          y += 20*scale;
+          selectedMeds.forEach(txt=>{
+            ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
+            y += wrapHeight(ctx, txt, rightW - (paddingX*2 + 20*scale), line12) + 6*scale;
+          });
+        }
+        if(selectedRecs.size){
+          y += 20*scale;
+          selectedRecs.forEach(txt=>{
+            ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
+            y += wrapHeight(ctx, txt, rightW - (paddingX*2 + 20*scale), line12) + 6*scale;
+          });
+        }
+        y += 24*scale;
+        return y;
+      }
+
+      async function exportReportPNG(scale=2){
+        const rightW = 640*scale, sideGap = 20*scale, figPad = 20*scale;
+        const measuredCardH = measureRightCardHeight(scale, rightW);
+        const Hmin = 940*scale;
+        const H = Math.max(Hmin, figPad*2 + measuredCardH);
+        const canvas = document.createElement('canvas');
+        const figH = H - figPad*2;
+        const s = figH / 940;
+        const figW = 418 * s;
+        const W = Math.round(figPad + figW + sideGap + rightW + figPad);
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0,0,W,H);
+
+        const bgSrc = document.querySelector('.body-bg').src;
+        const bgImg = await loadImage(bgSrc);
+        const figX = figPad, figY = figPad;
+        ctx.drawImage(bgImg, figX, figY, figW, figH);
+
+        const perTypeNums = {};
         markers.forEach(m=>{
-          perTypeIndex[m.type]=(perTypeIndex[m.type]||0)+1;
-          const idx  = perTypeIndex[m.type];
-
+          perTypeNums[m.type]=(perTypeNums[m.type]||0)+1;
+          const n = perTypeNums[m.type];
+          const x = Math.round(figX + m.x*s);
+          const y = Math.round(figY + m.y*s);
           ctx.beginPath();
           ctx.fillStyle = LMAP[m.type].color;
-          ctx.arc(rightX+22*scale, listTop+8*scale, 4*scale, 0, Math.PI*2); ctx.fill();
-
-          ctx.fillStyle = '#0f172a';
-          ctx.font = `${13*scale}px ui-sans-serif, system-ui`;
-          const line = `${LMAP[m.type].label} — N°${idx}`;
-          ctx.fillText(line, rightX+34*scale, listTop+12*scale);
-
-          ctx.fillStyle = '#475569';
-          ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
-          const ch = markerText(m);
-          listTop += wrapText(ctx, ch, rightX+34*scale, listTop+28*scale, cardW-50*scale, 12*scale, 16*scale) + 16*scale;
+          ctx.strokeStyle = '#0b1223';
+          ctx.lineWidth = 2*scale;
+          ctx.arc(x, y, 10*scale, 0, Math.PI*2);
+          ctx.fill();
+          ctx.stroke();
+          if(showNumbers){
+            ctx.fillStyle = '#0b1223';
+            ctx.font = `${10*scale}px ui-sans-serif, system-ui`;
+            ctx.textAlign='center';
+            ctx.textBaseline='middle';
+            ctx.fillText(String(n), x, y);
+          }
         });
-      }
 
-      if(selectedMeds.size){
-        listTop += 16*scale;
+        const rightX = Math.round(figX + figW + sideGap);
+        const cardY = figPad;
+        const cardW = rightW;
+        const cardH = measureRightCardHeight(scale, rightW);
+
+        function roundRect(ctx, x, y, w, h, r){
+          const rr = Math.min(r, w/2, h/2);
+          ctx.beginPath();
+          ctx.moveTo(x+rr,y);
+          ctx.arcTo(x+w,y,x+w,y+h,rr);
+          ctx.arcTo(x+w,y+h,x,y+h,rr);
+          ctx.arcTo(x,y+h,x,y,rr);
+          ctx.arcTo(x,y,x+w,y,rr);
+          ctx.closePath();
+        }
+
+        roundRect(ctx, rightX, cardY, cardW, cardH, 16*scale);
+        ctx.fillStyle = '#f8fafc';
+        ctx.fill();
+        ctx.strokeStyle = '#e5e7eb';
+        ctx.lineWidth = 1*scale;
+        ctx.stroke();
+
+        const headerH = 72*scale;
+        const grad = ctx.createLinearGradient(0, cardY, 0, cardY+headerH);
+        grad.addColorStop(0, '#0ea5e9'); grad.addColorStop(1, '#0284c7');
+        roundRect(ctx, rightX, cardY, cardW, headerH, 16*scale);
+        ctx.fillStyle = grad; ctx.fill();
+
+        try{
+          let logoImg;
+          try { logoImg = await loadImage(LOGO_PATH); }
+          catch { logoImg = await loadImage(LOGO_FALLBACK, {cross:true}); }
+          ctx.drawImage(logoImg, rightX+16*scale, cardY+14*scale, 44*scale, 44*scale);
+        }catch{}
+
+        ctx.fillStyle = '#001019';
+        ctx.font = `${20*scale}px ui-sans-serif, system-ui`;
+        ctx.textAlign='left'; ctx.textBaseline='middle';
+        ctx.fillText('Constat lésionnel — OMC', rightX+72*scale, cardY+headerH/2);
+
+        const metaY = cardY + headerH + 16*scale;
+        const dateStr = new Date().toLocaleString();
         ctx.fillStyle = '#0f172a';
         ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
-        ctx.fillText('Traitement médicamenteux :', rightX+16*scale, listTop);
-        listTop += 16*scale;
-        ctx.fillStyle = '#475569';
+        ctx.fillText(`Patient : ${patientId.value || '—'}`, rightX+16*scale, metaY);
+        ctx.fillText(`Médecin : ${doctorName.value || '—'}`, rightX+16*scale, metaY + 20*scale);
+        ctx.fillText(`Date : ${dateStr}`, rightX+16*scale, metaY + 40*scale);
+
+        if(comments.value){
+          ctx.fillStyle = '#334155';
+          wrapText(ctx, `Notes : ${comments.value}`, rightX+16*scale, metaY + 64*scale, cardW-32*scale, 14*scale, 18*scale);
+        }
+
+        const counts2 = {};
+        markers.forEach(m=>counts2[m.type]=(counts2[m.type]||0)+1);
+        let badgeX = rightX+16*scale, badgeY = metaY + (comments.value? 114*scale : 90*scale);
         ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
-        [...selectedMeds].forEach(txt=>{
-          ctx.beginPath(); ctx.fillStyle='#0f172a';
-          ctx.arc(rightX+22*scale, listTop-4*scale, 3*scale, 0, Math.PI*2); ctx.fill();
-          ctx.fillStyle='#475569';
-          listTop += wrapText(ctx, txt, rightX+34*scale, listTop, cardW-50*scale, 12*scale, 16*scale) + 8*scale;
+        LESIONS.forEach(l=>{
+          const txt = `${l.label} : ${counts2[l.key]||0}`;
+          const w = ctx.measureText(txt).width + 24*scale + 20*scale;
+          if(badgeX + w > rightX + cardW - 16*scale){ badgeX = rightX+16*scale; badgeY += 30*scale; }
+          roundRect(ctx, badgeX, badgeY, w, 24*scale, 999);
+          ctx.fillStyle = '#ffffff'; ctx.fill();
+          ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1*scale; ctx.stroke();
+          ctx.beginPath(); ctx.fillStyle = l.color; ctx.arc(badgeX+12*scale, badgeY+12*scale, 5*scale, 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle = '#0f172a'; ctx.fillText(txt, badgeX+24*scale, badgeY+15*scale);
+          badgeX += w + 8*scale;
         });
-      }
-      if(selectedRecs.size){
-        listTop += 8*scale;
+
+        let listTop = badgeY + 36*scale;
         ctx.fillStyle = '#0f172a';
         ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
-        ctx.fillText('Préconisations :', rightX+16*scale, listTop);
+        ctx.fillText('Constatations :', rightX+16*scale, listTop);
         listTop += 16*scale;
-        ctx.fillStyle = '#475569';
-        ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
-        [...selectedRecs].forEach(txt=>{
-          ctx.beginPath(); ctx.fillStyle='#0f172a';
-          ctx.arc(rightX+22*scale, listTop-4*scale, 3*scale, 0, Math.PI*2); ctx.fill();
-          ctx.fillStyle='#475569';
-          listTop += wrapText(ctx, txt, rightX+34*scale, listTop, cardW-50*scale, 12*scale, 16*scale) + 8*scale;
-        });
-      }
 
-      return await new Promise(res=> canvas.toBlob(b=>res(b),'image/png'));
-    }
-
-    /* ======= Upload + Discord (texte + lien) ======= */
-    async function uploadToVps(blob, ref){
-      const fd = new FormData();
-      fd.append('file', blob, `imagerie_${ref}.png`);
-      const res = await fetch(API_UPLOAD_URL, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${API_TOKEN}` },
-        body: fd
-      });
-      if(!res.ok){
-        const txt = await res.text().catch(()=> ''); throw new Error('Upload VPS ' + res.status + ' — ' + txt);
-      }
-      const data = await res.json().catch(()=> ({}));
-      if(!data?.url) throw new Error('Réponse API VPS inattendue (pas d’url).');
-      return data.url; // https://img.ocean-medical-center.ovh/...
-    }
-
-    function makeDiscordContent() {
-      const p = patientId.value?.trim() || '—';
-      const d = doctorName.value?.trim() || '—';
-      const dateStr = new Date().toLocaleString();
-      const lines = [];
-      lines.push(`**🩺 OMC — Imagerie**`);
-      lines.push(`**Patient :** ${p}  •  **Médecin :** ${d}  •  **Date :** ${dateStr}`);
-      lines.push(``);
-      lines.push(`**🧾 Constat lésionnel**`);
-      if (!markers.length) {
-        lines.push(`— Aucune lésion renseignée`);
-      } else {
         const perTypeIndex = {};
-        markers.forEach(m => {
-          perTypeIndex[m.type] = (perTypeIndex[m.type] || 0) + 1;
-          const idx = perTypeIndex[m.type];
-          lines.push(`• **${LMAP[m.type].label} — N°${idx}** — ${markerText(m)}`);
-        });
+        if(!markers.length){
+          ctx.fillStyle = '#334155';
+          ctx.font = `${13*scale}px ui-sans-serif, system-ui`;
+          ctx.fillText('— Aucune lésion renseignée —', rightX+24*scale, listTop+6*scale);
+        }else{
+          markers.forEach(m=>{
+            perTypeIndex[m.type]=(perTypeIndex[m.type]||0)+1;
+            const idx = perTypeIndex[m.type];
+            ctx.beginPath(); ctx.fillStyle = LMAP[m.type].color; ctx.arc(rightX+22*scale, listTop+8*scale, 4*scale, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#0f172a';
+            ctx.font = `${13*scale}px ui-sans-serif, system-ui`;
+            const line = `${LMAP[m.type].label} — N°${idx}`;
+            ctx.fillText(line, rightX+34*scale, listTop+12*scale);
+            ctx.fillStyle = '#475569'; ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
+            const ch = markerText(m);
+            listTop += wrapText(ctx, ch, rightX+34*scale, listTop+28*scale, cardW-50*scale, 12*scale, 16*scale) + 16*scale;
+          });
+        }
+
+        if(selectedMeds.size){
+          listTop += 16*scale;
+          ctx.fillStyle = '#0f172a';
+          ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
+          ctx.fillText('Traitement médicamenteux :', rightX+16*scale, listTop);
+          listTop += 16*scale;
+          ctx.fillStyle = '#475569'; ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
+          [...selectedMeds].forEach(txt=>{
+            ctx.beginPath(); ctx.fillStyle='#0f172a'; ctx.arc(rightX+22*scale, listTop-4*scale, 3*scale, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle='#475569';
+            listTop += wrapText(ctx, txt, rightX+34*scale, listTop, cardW-50*scale, 12*scale, 16*scale) + 8*scale;
+          });
+        }
+
+        if(selectedRecs.size){
+          listTop += 8*scale;
+          ctx.fillStyle = '#0f172a';
+          ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
+          ctx.fillText('Préconisations :', rightX+16*scale, listTop);
+          listTop += 16*scale;
+          ctx.fillStyle = '#475569'; ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
+          [...selectedRecs].forEach(txt=>{
+            ctx.beginPath(); ctx.fillStyle='#0f172a'; ctx.arc(rightX+22*scale, listTop-4*scale, 3*scale, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle='#475569';
+            listTop += wrapText(ctx, txt, rightX+34*scale, listTop, cardW-50*scale, 12*scale, 16*scale) + 8*scale;
+          });
+        }
+
+        return await new Promise(res=> canvas.toBlob(b=>res(b),'image/png'));
       }
-      if (comments.value?.trim()) {
+
+      /* ======= Upload + Discord (texte + lien) ======= */
+      async function uploadToVps(blob, ref){
+        const fd = new FormData();
+        fd.append('file', blob, `imagerie_${ref}.png`);
+        const res = await fetch(API_UPLOAD_URL, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${API_TOKEN}` },
+          body: fd
+        });
+        if(!res.ok){
+          const txt = await res.text().catch(()=> '');
+          throw new Error('Upload VPS ' + res.status + ' — ' + txt);
+        }
+        const data = await res.json().catch(()=> ({}));
+        if(!data?.url) throw new Error('Réponse API VPS inattendue (pas d’url).');
+        return data.url; // https://img.ocean-medical-center.ovh/...
+      }
+
+      function makeDiscordContent() {
+        const p = patientId.value?.trim() || '—';
+        const d = doctorName.value?.trim() || '—';
+        const dateStr = new Date().toLocaleString();
+        const lines = [];
+
+        lines.push(`**🩺 OMC — Imagerie**`);
+        lines.push(`**Patient :** ${p} • **Médecin :** ${d} • **Date :** ${dateStr}`);
         lines.push(``);
-        lines.push(`_Notes : ${comments.value.trim()}_`);
-      }
-      lines.push(``);
-      lines.push(`**💊 Traitement médicamenteux**`);
-      if (selectedMeds.size) {
-        [...selectedMeds].forEach(t => lines.push(`• ${t}`));
-      } else {
-        lines.push(`—`);
-      }
-      lines.push(``);
-      lines.push(`**🧭 Préconisations**`);
-      if (selectedRecs.size) {
-        [...selectedRecs].forEach(t => lines.push(`• ${t}`));
-      } else {
-        lines.push(`—`);
-      }
-      let out = lines.join('\n');
-      if (out.length > 1990) out = out.slice(0, 1985) + '…';
-      return out;
-    }
+        lines.push(`**🧾 Constat lésionnel**`);
 
-    async function postTextToDiscord(threadName, publicUrl){
-      if(!WEBHOOK_FORUM_URL) throw new Error('Webhook Discord non configuré.');
-      if(!publicUrl) throw new Error('URL publique absente — upload requis avant envoi Discord.');
-      const content = [`**${threadName}**`, publicUrl, '', makeDiscordContent()].join('\n');
-      const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ thread_name: threadName, content })
-      });
-      if(!res.ok){
-        const txt = await res.text().catch(()=> ''); throw new Error('Discord ' + res.status + ' — ' + txt);
-      }
-    }
-
-    async function sendToDiscordForum(){
-      try{
-        btnPrint.disabled = true; btnPrint.textContent = 'Génération…';
-        const imgBlob = await exportReportPNG(2);
-        const now = new Date();
-        const ref = `${String(now.getDate()).padStart(2,'0')}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`; // JJMMHHMM
-        const who = patientId.value || 'Sans nom';
-        const threadName = `${FORUM_THREAD_PREFIX} — ${who} — Ref ${ref}`.slice(0,100);
-
-        btnPrint.textContent = 'Envoi vers le serveur…';
-        const publicUrl = await uploadToVps(imgBlob, ref);
-
-        btnPrint.textContent = 'Publication Discord…';
-        await postTextToDiscord(threadName, publicUrl);
-
-        try{ await navigator.clipboard.writeText(publicUrl); }catch{}
-        openPopup(publicUrl);
-        logH('Image hébergée + message Discord publié.');
-      }catch(e){
-        console.error(e);
-        openPopup('❌ Échec : ' + e.message);
-      }finally{
-        btnPrint.disabled = false; btnPrint.textContent = 'Imprimer sur copieur';
-      }
-    }
-
-    /* ======= Interactions ======= */
-    function addMarker(pt, type){
-      const m = { id: 'm'+(crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)), type, x: pt.x, y: pt.y, opts:{} };
-      markers.push(m);
-      const g = document.createElementNS('http://www.w3.org/2000/svg','g');
-      g.setAttribute('class','marker'); g.setAttribute('data-id', m.id); g.setAttribute('transform', `translate(${m.x},${m.y})`);
-      const c = document.createElementNS('http://www.w3.org/2000/svg','circle'); c.setAttribute('r','10'); c.setAttribute('fill', LMAP[m.type].color); c.setAttribute('stroke','#0b1223'); c.setAttribute('stroke-width','2');
-      const t = document.createElementNS('http://www.w3.org/2000/svg','text'); t.setAttribute('x','0'); t.setAttribute('y','3'); t.setAttribute('text-anchor','middle'); t.textContent = '';
-      g.appendChild(c); g.appendChild(t);
-
-      let dragging=false;
-      g.addEventListener('pointerdown', (e)=>{ g.setPointerCapture(e.pointerId); dragging=true; g.dataset.dx = m.x - svgPoint(e).x; g.dataset.dy = m.y - svgPoint(e).y; });
-      g.addEventListener('pointermove', (e)=>{ if(!dragging) return; const p=svgPoint(e); m.x=Math.max(0,Math.min(418,p.x+Number(g.dataset.dx))); m.y=Math.max(0,Math.min(940,p.y+Number(g.dataset.dy))); g.setAttribute('transform', `translate(${m.x},${m.y})`); });
-      g.addEventListener('pointerup', ()=>{ dragging=false; updateReport(); });
-      g.addEventListener('click', (e)=>{
-        if(e.altKey){
-          const idx = markers.findIndex(mm => mm.id===m.id);
-          if(idx>-1){ markers.splice(idx,1); }
-          if(activeMarkerId===m.id) activeMarkerId=null;
-          markersLayer.removeChild(g);
-          redrawNumbers(); updateReport(); redrawLegend(); updateTPPanels(); renderLesionOptions();
-          logH(`Marqueur supprimé — ${LMAP[m.type].label}`);
+        if (!markers.length) {
+          lines.push(`— Aucune lésion renseignée`);
         } else {
-          setActiveMarker(m.id);
+          const perTypeIndex = {};
+          markers.forEach(m => {
+            perTypeIndex[m.type] = (perTypeIndex[m.type] || 0) + 1;
+            const idx = perTypeIndex[m.type];
+            lines.push(`• **${LMAP[m.type].label} — N°${idx}** — ${markerText(m)}`);
+          });
+        }
+
+        if (comments.value?.trim()) {
+          lines.push(``);
+          lines.push(`_Notes : ${comments.value.trim()}_`);
+        }
+
+        lines.push(``);
+        lines.push(`**💊 Traitement médicamenteux**`);
+        if (selectedMeds.size) {
+          [...selectedMeds].forEach(t => lines.push(`• ${t}`));
+        } else {
+          lines.push(`—`);
+        }
+
+        lines.push(``);
+        lines.push(`**🧭 Préconisations**`);
+        if (selectedRecs.size) {
+          [...selectedRecs].forEach(t => lines.push(`• ${t}`));
+        } else {
+          lines.push(`—`);
+        }
+
+        let out = lines.join('\n');
+        if (out.length > 1990) out = out.slice(0, 1985) + '…';
+        return out;
+      }
+
+      async function postTextToDiscord(threadName, publicUrl){
+        if(!WEBHOOK_FORUM_URL) throw new Error('Webhook Discord non configuré.');
+        if(!publicUrl) throw new Error('URL publique absente — upload requis avant envoi Discord.');
+        const content = [`**${threadName}**`, publicUrl, '', makeDiscordContent()].join('\n');
+        const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ thread_name: threadName, content })
+        });
+        if(!res.ok){
+          const txt = await res.text().catch(()=> '');
+          throw new Error('Discord ' + res.status + ' — ' + txt);
+        }
+      }
+
+      /* ======= Déclaration PAF (LSPD/BCSO) ======= */
+      function hasGunshot(){ return markers.some(m => m.type === 'plaie_feu'); }
+
+      function makeDeclarationMessage(publicUrl) {
+        const p = patientId.value?.trim() || '—';
+        const d = doctorName.value?.trim() || '—';
+        const dateStr = new Date().toLocaleString();
+
+        const pafs = markers.filter(m => m.type === 'plaie_feu');
+        const perTypeIndex = {};
+        const lines = [];
+
+        lines.push(`📣 **OMC → LSPD / BCSO — Déclaration blessure par arme à feu (copie)**`);
+        lines.push(`**Patient :** ${p} • **Médecin :** ${d} • **Date :** ${dateStr}`);
+        lines.push(``);
+        lines.push(`**🧾 Constat PAF (extraits)**`);
+        if (!pafs.length) {
+          lines.push(`— Aucune PAF détectée (rien à déclarer).`);
+        } else {
+          pafs.forEach(m => {
+            perTypeIndex[m.type] = (perTypeIndex[m.type] || 0) + 1;
+            const idx = perTypeIndex[m.type];
+            lines.push(`• **PAF — N°${idx}** — ${markerText(m)}`);
+          });
+        }
+        lines.push(``);
+        lines.push(`**Pièce jointe (copie de l’acte)**`);
+        lines.push(publicUrl);
+        lines.push(``);
+        lines.push(`_Conformément aux procédures, l’OMC transmet une copie de l’acte. Le personnel hospitalier prendra en charge le patient qui sera dans l’obligation d’effectuer cette déclaration auprès de vos services._`);
+
+        let out = lines.join('\n');
+        if (out.length > 1990) out = out.slice(0, 1985) + '…';
+        return out;
+      }
+
+      async function postToWebhookRaw(url, content) {
+        const res = await fetch(url + '?wait=true', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ content })
+        });
+        if (!res.ok) {
+          const txt = await res.text().catch(()=> '');
+          throw new Error('Déclaration Discord ' + res.status + ' — ' + txt);
+        }
+      }
+
+      async function sendDeclarationIfNeeded(publicUrl) {
+        if (!chkDecl || !chkDecl.checked) {
+          logH("Déclaration LSPD/BCSO non cochée — aucun envoi inter-services.");
+          return;
+        }
+        if (!hasGunshot()) {
+          logH("Déclaration cochée mais aucune PAF — aucun envoi LSPD/BCSO.");
+          return;
+        }
+        const content = makeDeclarationMessage(publicUrl);
+        await Promise.all([
+          postToWebhookRaw(LSPD_WEBHOOK_URL, content),
+          postToWebhookRaw(BCSO_WEBHOOK_URL, content),
+        ]);
+        logH("Déclaration PAF envoyée à LSPD + BCSO.");
+      }
+
+      /* ======= Envoi principal ======= */
+      async function sendToDiscordForum(){
+        try{
+          btnPrint.disabled = true;
+          btnPrint.textContent = 'Génération…';
+
+          const imgBlob = await exportReportPNG(2);
+          const now = new Date();
+          const ref = `${String(now.getDate()).padStart(2,'0')}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`; // JJMMHHMM
+          const who = patientId.value || 'Sans nom';
+          const threadName = `${FORUM_THREAD_PREFIX} — ${who} — Ref ${ref}`.slice(0,100);
+
+          btnPrint.textContent = 'Envoi vers le serveur…';
+          const publicUrl = await uploadToVps(imgBlob, ref);
+
+          btnPrint.textContent = 'Publication Discord…';
+          await postTextToDiscord(threadName, publicUrl);
+
+          // ⬇️ Déclaration inter-services si applicable
+          await sendDeclarationIfNeeded(publicUrl);
+
+          try{ await navigator.clipboard.writeText(publicUrl); }catch{}
+          openPopup(publicUrl);
+          logH('Image hébergée + message Discord publié.');
+        }catch(e){
+          console.error(e);
+          openPopup('❌ Échec : ' + e.message);
+        }finally{
+          btnPrint.disabled = false;
+          btnPrint.textContent = 'Imprimer sur copieur';
+        }
+      }
+
+      /* ======= Interactions ======= */
+      function addMarker(pt, type){
+        const m = {
+          id: 'm'+(crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)),
+          type, x: pt.x, y: pt.y, opts:{}
+        };
+        markers.push(m);
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.setAttribute('class','marker');
+        g.setAttribute('data-id', m.id);
+        g.setAttribute('transform', `translate(${m.x},${m.y})`);
+
+        const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        c.setAttribute('r','10'); c.setAttribute('fill', LMAP[m.type].color);
+        c.setAttribute('stroke','#0b1223'); c.setAttribute('stroke-width','2');
+
+        const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+        t.setAttribute('x','0'); t.setAttribute('y','3');
+        t.setAttribute('text-anchor','middle');
+        t.textContent = '';
+
+        g.appendChild(c); g.appendChild(t);
+
+        let dragging=false;
+        g.addEventListener('pointerdown', (e)=>{
+          g.setPointerCapture(e.pointerId);
+          dragging=true;
+          const p = svgPoint(e);
+          g.dataset.dx = m.x - p.x;
+          g.dataset.dy = m.y - p.y;
+        });
+        g.addEventListener('pointermove', (e)=>{
+          if(!dragging) return;
+          const p=svgPoint(e);
+          m.x=Math.max(0,Math.min(418,p.x+Number(g.dataset.dx)));
+          m.y=Math.max(0,Math.min(940,p.y+Number(g.dataset.dy)));
+          g.setAttribute('transform', `translate(${m.x},${m.y})`);
+        });
+        g.addEventListener('pointerup', ()=>{
+          dragging=false;
+          updateReport();
+        });
+        g.addEventListener('click', (e)=>{
+          if(e.altKey){
+            const idx = markers.findIndex(mm => mm.id===m.id);
+            if(idx>-1){ markers.splice(idx,1); }
+            if(activeMarkerId===m.id) activeMarkerId=null;
+            markersLayer.removeChild(g);
+            redrawNumbers(); updateReport(); redrawLegend(); updateTPPanels(); renderLesionOptions();
+            logH(`Marqueur supprimé — ${LMAP[m.type].label}`);
+          } else {
+            setActiveMarker(m.id);
+          }
+        });
+
+        markersLayer.appendChild(g);
+        setActiveMarker(m.id);
+        redrawNumbers(); updateReport(); redrawLegend(); updateTPPanels();
+        logH(`Ajout ${LMAP[type].label} @ x:${Math.round(pt.x)} y:${Math.round(pt.y)}`);
+      }
+
+      function updateTPPanels(){
+        const types = [...new Set(markers.map(m=>m.type))];
+        const meds = new Set();
+        types.forEach(t => (MEDS_CFG[t]||[]).forEach(x=>meds.add(x)));
+        const recs = new Set();
+        types.forEach(t => (RECS_CFG[t]||[]).forEach(x=>recs.add(x)));
+        if(types.length>0){ recs.add(EXTRA_REC); }
+
+        const renderList = (box, items, setStore) => {
+          const prev = new Set([...setStore]);
+          box.innerHTML = '';
+          if(items.size===0){
+            box.innerHTML = `<div class="label">Aucune proposition (ajoutez des lésions).</div>`;
+            setStore.clear(); updateReport(); return;
+          }
+          [...items].forEach(txt=>{
+            const row = document.createElement('label');
+            row.className='check';
+            const input = document.createElement('input');
+            input.type='checkbox';
+            input.checked = prev.has(txt);
+            input.onchange = ()=>{ input.checked ? setStore.add(txt) : setStore.delete(txt); updateReport(); };
+            const span = document.createElement('span'); span.textContent = txt;
+            row.append(input, span);
+            box.appendChild(row);
+          });
+          setStore.clear();
+          prev.forEach(v => { if(items.has(v)) setStore.add(v); });
+          updateReport();
+        };
+
+        renderList(medsChoices, meds, selectedMeds);
+        renderList(recsChoices, recs, selectedRecs);
+      }
+
+      /* ======= Listeners ======= */
+      overlay?.addEventListener('click', (e)=> addMarker(svgPoint(e), activeType));
+
+      btnUndo?.addEventListener('click', ()=>{
+        const last = markers.pop();
+        if(!last) return;
+        const node = markersLayer?.querySelector(`g.marker[data-id="${last.id}"]`);
+        if(node) markersLayer.removeChild(node);
+        if(activeMarkerId===last.id) activeMarkerId=null;
+        redrawNumbers(); updateReport(); redrawLegend(); updateTPPanels(); renderLesionOptions();
+        logH(`Annulé — ${last ? LMAP[last.type].label : ''}`);
+      });
+
+      btnClear?.addEventListener('click', ()=>{
+        if(!markers.length) return;
+        markers.splice(0, markers.length);
+        if(markersLayer) markersLayer.innerHTML='';
+        activeMarkerId=null;
+        selectedMeds.clear(); selectedRecs.clear();
+        redrawNumbers(); updateReport(); redrawLegend(); updateTPPanels(); renderLesionOptions();
+        logH('Tous les marqueurs ont été effacés');
+      });
+
+      btnToggleNumbers?.addEventListener('click', ()=>{
+        showNumbers = !showNumbers;
+        redrawNumbers();
+        logH(`Numéros ${showNumbers?'affichés':'masqués'}`);
+      });
+
+      btnDebug?.addEventListener('click', ()=>{
+        debugOn = !debugOn;
+        if(zonesDebugLayer){
+          zonesDebugLayer.style.display = debugOn ? '' : 'none';
+          btnDebug.textContent = debugOn ? 'Zones (debug ON)' : 'Zones (debug)';
+          zonesDebugLayer.innerHTML = '';
+          if(!debugOn) return;
+          REGIONS.forEach(r=>{
+            const pg = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+            pg.setAttribute('points', r.points.map(p=>p.join(',')).join(' '));
+            zonesDebugLayer.appendChild(pg);
+            const cx = r.points.reduce((s,p)=>s+p[0],0)/r.points.length;
+            const cy = r.points.reduce((s,p)=>s+p[1],0)/r.points.length;
+            const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+            label.setAttribute('x', cx); label.setAttribute('y', cy);
+            label.setAttribute('text-anchor','middle'); label.textContent = r.label;
+            zonesDebugLayer.appendChild(label);
+          });
         }
       });
-      markersLayer.appendChild(g);
-      setActiveMarker(m.id);
-      redrawNumbers(); updateReport(); redrawLegend(); updateTPPanels();
-      logH(`Ajout ${LMAP[type].label} @ x:${Math.round(pt.x)} y:${Math.round(pt.y)}`);
-    }
 
-    function updateTPPanels(){
-      const types = [...new Set(markers.map(m=>m.type))];
-      const meds = new Set(); types.forEach(t => (MEDS_CFG[t]||[]).forEach(x=>meds.add(x)));
-      const recs = new Set(); types.forEach(t => (RECS_CFG[t]||[]).forEach(x=>recs.add(x)));
-      if(types.length>0){ recs.add(EXTRA_REC); }
+      btnPrint?.addEventListener('click', sendToDiscordForum);
+      [patientId, doctorName, comments].forEach(el => el?.addEventListener('input', updateReport));
 
-      const renderList = (box, items, setStore) => {
-        const prev = new Set([...setStore]);
-        box.innerHTML = '';
-        if(items.size===0){
-          box.innerHTML = `<div class="label">Aucune proposition (ajoutez des lésions).</div>`;
-          setStore.clear(); updateReport(); return;
-        }
-        [...items].forEach(txt=>{
-          const row = document.createElement('label'); row.className='check';
-          const input = document.createElement('input'); input.type='checkbox'; input.checked = prev.has(txt);
-          input.onchange = ()=>{ input.checked ? setStore.add(txt) : setStore.delete(txt); updateReport(); };
-          const span = document.createElement('span'); span.textContent = txt;
-          row.append(input, span);
-          box.appendChild(row);
-        });
-        setStore.clear(); prev.forEach(v => { if(items.has(v)) setStore.add(v); });
-        updateReport();
-      };
-      renderList(medsChoices, meds, selectedMeds);
-      renderList(recsChoices, recs, selectedRecs);
-    }
-
-    /* ======= Listeners ======= */
-    overlay?.addEventListener('click', (e)=> addMarker(svgPoint(e), activeType));
-    btnUndo?.addEventListener('click', ()=>{
-      const last = markers.pop(); if(!last) return;
-      const node = markersLayer?.querySelector(`g.marker[data-id="${last.id}"]`);
-      if(node) markersLayer.removeChild(node);
-      if(activeMarkerId===last.id) activeMarkerId=null;
-      redrawNumbers(); updateReport(); redrawLegend(); updateTPPanels(); renderLesionOptions();
-      logH(`Annulé — ${last ? LMAP[last.type].label : ''}`);
+      /* ======= Init ======= */
+      buildPalette(); redrawLegend(); updateReport(); updateTPPanels(); renderLesionOptions();
+      if(frame) frame.style.cursor='crosshair';
+      logH('Prêt — choisissez un type puis cliquez sur l’image pour placer une lésion. (Alt+clic = supprimer, cliquer pour sélectionner, glisser pour déplacer)');
     });
-    btnClear?.addEventListener('click', ()=>{
-      if(!markers.length) return;
-      markers.splice(0, markers.length);
-      if(markersLayer) markersLayer.innerHTML='';
-      activeMarkerId=null;
-      selectedMeds.clear(); selectedRecs.clear();
-      redrawNumbers(); updateReport(); redrawLegend(); updateTPPanels(); renderLesionOptions();
-      logH('Tous les marqueurs ont été effacés');
-    });
-    btnToggleNumbers?.addEventListener('click', ()=>{
-      showNumbers = !showNumbers; redrawNumbers();
-      logH(`Numéros ${showNumbers?'affichés':'masqués'}`);
-    });
-    btnDebug?.addEventListener('click', ()=>{
-      debugOn = !debugOn;
-      if(zonesDebugLayer){
-        zonesDebugLayer.style.display = debugOn ? '' : 'none';
-        btnDebug.textContent = debugOn ? 'Zones (debug ON)' : 'Zones (debug)';
-        zonesDebugLayer.innerHTML = '';
-        if(!debugOn) return;
-        REGIONS.forEach(r=>{
-          const pg = document.createElementNS('http://www.w3.org/2000/svg','polygon');
-          pg.setAttribute('points', r.points.map(p=>p.join(',')).join(' '));
-          zonesDebugLayer.appendChild(pg);
-          const cx = r.points.reduce((s,p)=>s+p[0],0)/r.points.length;
-          const cy = r.points.reduce((s,p)=>s+p[1],0)/r.points.length;
-          const label = document.createElementNS('http://www.w3.org/2000/svg','text');
-          label.setAttribute('x', cx); label.setAttribute('y', cy);
-          label.setAttribute('text-anchor','middle'); label.textContent = r.label;
-          zonesDebugLayer.appendChild(label);
-        });
-      }
-    });
-    btnPrint?.addEventListener('click', sendToDiscordForum);
-    [patientId, doctorName, comments].forEach(el => el?.addEventListener('input', updateReport));
-
-    /* ======= Init ======= */
-    buildPalette();
-    redrawLegend();
-    updateReport();
-    updateTPPanels();
-    renderLesionOptions();
-    if(frame) frame.style.cursor='crosshair';
-    logH('Prêt — choisissez un type puis cliquez sur l’image pour placer une lésion. (Alt+clic = supprimer, cliquer pour sélectionner, glisser pour déplacer)');
-  });
   </script>
 </body>
 </html>
