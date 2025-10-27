@@ -144,7 +144,7 @@
           <div class="options" id="optionsBox">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap">
               <h4 style="margin:0 0 10px">Options de la lésion <span id="activeMarkerLabel">—</span></h4>
-              <!-- Badge PAF (auto-visible si PAF détectée) -->
+              <!-- Badge PAF -->
               <div id="pafBadge" class="paf-badge paf-hidden" title="Au moins une lésion PAF est présente">
                 <span class="bd"></span> PAF détectée — pensez à la déclaration
               </div>
@@ -280,14 +280,14 @@
     })();
   </script>
 
-  <!-- ===== Script applicatif ===== -->
+  <!-- ===== Script applicatif (fusion zones polygonales + modèle « nouveau ») ===== -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       /* ======= CONFIG API + DISCORD ======= */
       const API_UPLOAD_URL = 'https://api.ocean-medical-center.ovh/api/upload';
       const API_TOKEN = 'super-secret-token'; // sécuriser côté serveur
 
-      // Forum / fil principal (inchangé)
+      // Forum / fil principal
       const WEBHOOK_FORUM_URL = "https://discord.com/api/webhooks/1421780761731928194/ZFSpiLTHfytIGT02QBf5SBOIEDzWMaf_PMHtDB9sd-GmF5chHnQqQic-9YpLnYHJIRPo";
       const FORUM_THREAD_PREFIX = "Imagerie";
 
@@ -390,10 +390,34 @@
 
       const EXTRA_REC = 'Suivi par un kinésithérapeute pour rééducation';
 
-      /* Zones anatomiques (si disponibles) */
-      const REGIONS_RAW = [];
+      /* ======= Zones anatomiques — tes polygones « anciens » réintégrés ======= */
+      const REGIONS_RAW = [
+        {"id":"tete","label":"Tête","type":"poly","points":[[215,20],[235,30],[245,45],[250,60],[250,75],[255,80],[255,95],[245,105],[240,120],[185,120],[180,105],[175,95],[170,80],[174,60],[175,45],[190,30],[200,20],[215,20],[215,20]]},
+        {"id":"cou","label":"Cou","type":"poly","points":[[185,125],[240,123],[240,146],[185,145],[185,125]]},
+        {"id":"epaule_droite","label":"Épaule Droite","type":"poly","points":[[175,155],[140,170],[95,195],[135,265],[160,220],[175,175]]},
+        {"id":"epaule_gauche","label":"Épaule Gauche","type":"poly","points":[[250,150],[300,175],[320,185],[325,190],[290,265],[260,205],[250,150]]},
+        {"id":"thorax","label":"Thorax","type":"poly","points":[[180,155],[240,155],[253,217],[279,266],[275,305],[149,301],[145,265],[170,220]]},
+        {"id":"abdomen","label":"Abdomen","type":"poly","points":[[150,310],[275,314],[280,360],[285,395],[145,395],[145,315]]},
+        {"id":"hanche","label":"Hanche","type":"poly","points":[[140,400],[285,405],[295,440],[295,470],[130,470],[135,425]]},
+        {"id":"cuisse_gauche","label":"Cuisse Gauche","type":"poly","points":[[215,475],[295,475],[290,575],[285,620],[230,620],[220,540],[220,505]]},
+        {"id":"cuisse_droite","label":"Cuisse Droite","type":"poly","points":[[130,475],[205,475],[205,515],[200,575],[195,620],[140,620],[135,575],[130,525]]},
+        {"id":"genoux_gauche","label":"Genou Gauche","type":"poly","points":[[230,626],[285,626],[285,661],[235,656],[235,646]]},
+        {"id":"genoux_droit","label":"Genou Droit","type":"poly","points":[[140,625],[190,625],[190,660],[140,660],[140,640]]},
+        {"id":"jambe_gauche","label":"Jambe Gauche","type":"poly","points":[[235,664],[285,670],[285,750],[270,815],[270,825],[245,820],[240,765],[235,730],[235,695]]},
+        {"id":"jambe_droite","label":"Jambe Droite","type":"poly","points":[[140,665],[190,665],[190,730],[185,760],[180,795],[180,820],[155,815],[145,760],[140,725],[140,675]]},
+        {"id":"cheville_gauche","label":"Cheville Gauche","type":"poly","points":[[245,825],[270,830],[275,860],[245,875],[240,855],[245,835]]},
+        {"id":"cheville_droite","label":"Cheville Droite","type":"poly","points":[[155,825],[180,825],[185,855],[150,855],[155,840]]},
+        {"id":"pied_gauche","label":"Pied Gauche","type":"poly","points":[[280,860],[300,885],[295,895],[280,905],[260,905],[250,890],[250,880],[260,870]]},
+        {"id":"pied_droit","label":"Pied Droit","type":"poly","points":[[160,905],[135,900],[125,890],[130,875],[145,860],[165,860],[185,860],[180,875],[175,895],[170,900]]},
+        {"id":"bras_gauche","label":"Bras Gauche","type":"poly","points":[[335,425],[310,355],[305,310],[295,270],[330,195],[335,235],[335,285],[340,310],[350,340],[360,410],[365,430],[340,435]]},
+        {"id":"poignet_gauche","label":"Poignet Gauche","type":"poly","points":[[340,460],[380,455],[365,445],[365,435],[350,435],[340,445]]},
+        {"id":"main_gauche","label":"Main Gauche","type":"poly","points":[[385,530],[355,530],[345,520],[340,480],[340,465],[355,460],[370,460],[385,465],[400,485],[400,495],[385,485]]},
+        {"id":"bras_droit","label":"Bras Droit","type":"poly","points":[[90,430],[65,425],[70,385],[75,345],[85,315],[90,265],[95,220],[95,205],[130,270],[125,310],[120,345],[110,380]]},
+        {"id":"poignet_droit","label":"Poignet Droit","type":"poly","points":[[85,460],[50,450],[60,440],[60,430],[75,430],[80,430],[85,440]]},
+        {"id":"main_droite","label":"Main Droite","type":"poly","points":[[80,520],[70,530],[55,530],[40,525],[45,495],[45,480],[35,495],[25,495],[30,480],[45,455],[60,455],[75,460],[85,470],[85,505],[85,515]]}
+      ];
       function polyArea(pts){ let a=0; for(let i=0,j=pts.length-1;i<pts.length;j=i++) a += (pts[j][0]*pts[i][1] - pts[i][0]*pts[j][1]); return Math.abs(a/2); }
-      const REGIONS = (REGIONS_RAW||[]).slice().sort((a,b)=> polyArea(a.points) - polyArea(b.points));
+      const REGIONS = REGIONS_RAW.slice().sort((a,b)=> polyArea(a.points) - polyArea(b.points));
 
       /* ======= Sélecteurs ======= */
       const overlay = document.getElementById('overlay');
@@ -421,7 +445,6 @@
       const activeMarkerLabel = document.getElementById('activeMarkerLabel');
       const medsChoices = document.getElementById('medsChoices');
       const recsChoices = document.getElementById('recsChoices');
-
       const chkDecl = document.getElementById('chkDecl');
       const pafBadge = document.getElementById('pafBadge');
 
@@ -463,9 +486,8 @@
         return null;
       }
 
-      /* ======= UI: liste des lésions (chips) ======= */
+      /* ======= UI: palette + légende ======= */
       function buildPalette(){
-        if(!lesionsGrid){ console.warn('lesionsGrid introuvable'); return; }
         lesionsGrid.innerHTML='';
         LESIONS.forEach(l=>{
           const chip = document.createElement('div');
@@ -475,15 +497,13 @@
             [...lesionsGrid.children].forEach(c=>c.classList.remove('active'));
             chip.classList.add('active');
             activeType = l.key;
-            if(frame) frame.style.cursor='crosshair';
+            frame.style.cursor='crosshair';
             logH(`Type sélectionné — ${l.label}. Cliquez sur l'image pour placer.`);
           });
           lesionsGrid.appendChild(chip);
         });
       }
-
       function redrawLegend(){
-        if(!legendBox) return;
         const counts = {};
         markers.forEach(m => counts[m.type]=(counts[m.type]||0)+1);
         legendBox.innerHTML='';
@@ -495,6 +515,7 @@
         });
       }
 
+      /* ======= Lésion active ======= */
       function setActiveMarker(id){
         activeMarkerId = id;
         markersLayer?.querySelectorAll('.marker').forEach(g=>g.classList.remove('active'));
@@ -504,9 +525,7 @@
         }
         renderLesionOptions();
       }
-
       function renderLesionOptions(){
-        if(!lesionOptions) return;
         lesionOptions.innerHTML = '';
         if(!activeMarkerId){
           activeMarkerLabel.textContent = '—';
@@ -565,6 +584,7 @@
         }
       }
 
+      /* ======= Texte constat ======= */
       function markerText(m){
         const zone = regionFrom(m.x,m.y) || 'zone non précisée';
         const o = m.opts || {};
@@ -594,45 +614,77 @@
         else pafBadge.classList.add('paf-hidden');
       }
 
+      /* ======= Report (UI) ======= */
       function updateReport(){
         const now = new Date().toLocaleString();
-        if(reportMeta) reportMeta.textContent = `Patient : ${patientId.value || '—'} • Médecin : ${doctorName.value || '—'} • Date : ${now}${comments.value ? ' • Notes : ' + comments.value : ''}`;
+        reportMeta.textContent = `Patient : ${patientId.value || '—'} • Médecin : ${doctorName.value || '—'} • Date : ${now}${comments.value ? ' • Notes : ' + comments.value : ''}`;
 
-        if(reportList){
-          reportList.innerHTML = '';
-          const perTypeIndex = {};
-          markers.forEach(m => {
-            perTypeIndex[m.type]=(perTypeIndex[m.type]||0)+1;
-            const idx = perTypeIndex[m.type];
-            const li = document.createElement('li');
-            li.innerHTML = `<span class="badge"><span class="bdot" style="background:${LMAP[m.type].color}"></span>${LMAP[m.type].label} — N°${idx}</span> ${markerText(m)}`;
-            reportList.appendChild(li);
-          });
-        }
+        reportList.innerHTML = '';
+        const perTypeIndex = {};
+        markers.forEach(m => {
+          perTypeIndex[m.type]=(perTypeIndex[m.type]||0)+1;
+          const idx = perTypeIndex[m.type];
+          const li = document.createElement('li');
+          li.innerHTML = `<span class="badge"><span class="bdot" style="background:${LMAP[m.type].color}"></span>${LMAP[m.type].label} — N°${idx}</span> ${markerText(m)}`;
+          reportList.appendChild(li);
+        });
 
         const counts = {};
         markers.forEach(m => counts[m.type]=(counts[m.type]||0)+1);
-        if(reportSummary){
-          const summary = LESIONS.map(l=>{
-            const n = counts[l.key]||0;
-            return `<span class="badge"><span class="bdot" style="background:${l.color}"></span>${l.label} : ${n}</span>`;
-          }).join(' ');
-          reportSummary.innerHTML = summary || '<small>Aucune lésion renseignée.</small>';
-        }
+        const summary = LESIONS.map(l=>{
+          const n = counts[l.key]||0;
+          return `<span class="badge"><span class="bdot" style="background:${l.color}"></span>${l.label} : ${n}</span>`;
+        }).join(' ');
+        reportSummary.innerHTML = summary || '<small>Aucune lésion renseignée.</small>';
 
-        if(reportTreat)
-          reportTreat.innerHTML = selectedMeds.size
-            ? `<h4 style="margin:10px 0 6px">Traitement médicamenteux</h4><ul style="margin:0 0 0 18px; padding:0">${[...selectedMeds].map(x=>`<li>${x}</li>`).join('')}</ul>`
-            : '';
+        reportTreat.innerHTML = selectedMeds.size
+          ? `<h4 style="margin:10px 0 6px">Traitement médicamenteux</h4><ul style="margin:0 0 0 18px; padding:0">${[...selectedMeds].map(x=>`<li>${x}</li>`).join('')}</ul>`
+          : '';
 
-        if(reportRecs)
-          reportRecs.innerHTML = selectedRecs.size
-            ? `<h4 style="margin:10px 0 6px">Préconisations</h4><ul style="margin:0 0 0 18px; padding:0">${[...selectedRecs].map(x=>`<li>${x}</li>`).join('')}</ul>`
-            : '';
+        reportRecs.innerHTML = selectedRecs.size
+          ? `<h4 style="margin:10px 0 6px">Préconisations</h4><ul style="margin:0 0 0 18px; padding:0">${[...selectedRecs].map(x=>`<li>${x}</li>`).join('')}</ul>`
+          : '';
 
         updatePAFBadge();
       }
 
+      /* ======= Traitements & Préconisations (agrégés) ======= */
+      function updateTPPanels(){
+        const types = [...new Set(markers.map(m=>m.type))];
+        const meds = new Set();
+        types.forEach(t => (MEDS_CFG[t]||[]).forEach(x=>meds.add(x)));
+        const recs = new Set();
+        types.forEach(t => (RECS_CFG[t]||[]).forEach(x=>recs.add(x)));
+        if(types.length>0){ recs.add(EXTRA_REC); }
+
+        const renderList = (box, items, setStore) => {
+          const prev = new Set([...setStore]);
+          box.innerHTML = '';
+          if(items.size===0){
+            box.innerHTML = `<div class="label">Aucune proposition (ajoutez des lésions).</div>`;
+            setStore.clear(); updateReport(); return;
+          }
+          [...items].forEach(txt=>{
+            const row = document.createElement('label');
+            row.className='check';
+            const input = document.createElement('input');
+            input.type='checkbox';
+            input.checked = prev.has(txt);
+            input.onchange = ()=>{ input.checked ? setStore.add(txt) : setStore.delete(txt); updateReport(); };
+            const span = document.createElement('span'); span.textContent = txt;
+            row.append(input, span);
+            box.appendChild(row);
+          });
+          setStore.clear();
+          prev.forEach(v => { if(items.has(v)) setStore.add(v); });
+          updateReport();
+        };
+
+        renderList(medsChoices, meds, selectedMeds);
+        renderList(recsChoices, recs, selectedRecs);
+      }
+
+      /* ======= Marqueurs ======= */
       function redrawNumbers(){
         const perType = {};
         markers.forEach(m => {
@@ -642,7 +694,121 @@
           if(node) node.textContent = showNumbers ? String(n) : '';
         });
       }
+      function addMarker(pt, type){
+        const m = {
+          id: 'm'+(crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)),
+          type, x: pt.x, y: pt.y, opts:{}
+        };
+        markers.push(m);
 
+        const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+        g.setAttribute('class','marker');
+        g.setAttribute('data-id', m.id);
+        g.setAttribute('transform', `translate(${m.x},${m.y})`);
+
+        const c = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        c.setAttribute('r','10'); c.setAttribute('fill', LMAP[m.type].color);
+        c.setAttribute('stroke','#0b1223'); c.setAttribute('stroke-width','2');
+
+        const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+        t.setAttribute('x','0'); t.setAttribute('y','3');
+        t.setAttribute('text-anchor','middle');
+        t.textContent = '';
+
+        g.appendChild(c); g.appendChild(t);
+
+        let dragging=false;
+        g.addEventListener('pointerdown', (e)=>{
+          g.setPointerCapture(e.pointerId);
+          dragging=true;
+          const p = svgPoint(e);
+          g.dataset.dx = m.x - p.x;
+          g.dataset.dy = m.y - p.y;
+        });
+        g.addEventListener('pointermove', (e)=>{
+          if(!dragging) return;
+          const p=svgPoint(e);
+          m.x=Math.max(0,Math.min(418,p.x+Number(g.dataset.dx)));
+          m.y=Math.max(0,Math.min(940,p.y+Number(g.dataset.dy)));
+          g.setAttribute('transform', `translate(${m.x},${m.y})`);
+        });
+        g.addEventListener('pointerup', ()=>{ dragging=false; updateReport(); });
+        g.addEventListener('click', (e)=>{
+          if(e.altKey){
+            const idx = markers.findIndex(mm => mm.id===m.id);
+            if(idx>-1){ markers.splice(idx,1); }
+            if(activeMarkerId===m.id) activeMarkerId=null;
+            markersLayer.removeChild(g);
+            redrawNumbers(); updateReport(); redrawLegend(); updateTPPanels(); renderLesionOptions();
+            logH(`Marqueur supprimé — ${LMAP[m.type].label}`);
+          } else {
+            setActiveMarker(m.id);
+          }
+        });
+
+        markersLayer.appendChild(g);
+        setActiveMarker(m.id);
+        redrawNumbers(); updateReport(); redrawLegend(); updateTPPanels();
+        logH(`Ajout ${LMAP[type].label} @ x:${Math.round(pt.x)} y:${Math.round(pt.y)}`);
+      }
+
+      /* ======= Tooltip localisation ======= */
+      function moveCursorTip(evt){
+        const rect = frame.getBoundingClientRect();
+        const p = svgPoint(evt);
+        const label = regionFrom(p.x, p.y);
+
+        if(!label){
+          cursorTip.style.transform = 'translate(-9999px,-9999px)';
+          cursorTip.setAttribute('aria-hidden','true');
+          return;
+        }
+        cursorTip.textContent = label;
+        cursorTip.setAttribute('aria-hidden','false');
+
+        let x = evt.clientX - rect.left + 12;
+        let y = evt.clientY - rect.top + 12;
+        const tw = cursorTip.offsetWidth || 120;
+        const th = cursorTip.offsetHeight || 28;
+        const fw = rect.width, fh = rect.height;
+        if(x + tw + 4 > fw) x = fw - tw - 4;
+        if(y + th + 4 > fh) y = fh - th - 4;
+        cursorTip.style.transform = `translate(${x}px, ${y}px)`;
+      }
+      overlay?.addEventListener('pointermove', moveCursorTip);
+      overlay?.addEventListener('pointerleave', ()=>{
+        cursorTip.style.transform = 'translate(-9999px,-9999px)';
+        cursorTip.setAttribute('aria-hidden','true');
+      });
+
+      /* ======= Zones debug overlay ======= */
+      function drawZonesDebug(){
+        zonesDebugLayer.innerHTML = '';
+        if(!debugOn) return;
+        REGIONS.forEach(r=>{
+          const pg = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+          pg.setAttribute('points', r.points.map(p=>p.join(',')).join(' '));
+          zonesDebugLayer.appendChild(pg);
+          const cx = r.points.reduce((s,p)=>s+p[0],0)/r.points.length;
+          const cy = r.points.reduce((s,p)=>s+p[1],0)/r.points.length;
+          const label = document.createElementNS('http://www.w3.org/2000/svg','text');
+          label.setAttribute('x', cx); label.setAttribute('y', cy);
+          label.setAttribute('text-anchor','middle'); label.textContent = r.label;
+          zonesDebugLayer.appendChild(label);
+        });
+      }
+
+      /* ======= Export PNG ======= */
+      function roundRect(ctx, x, y, w, h, r){
+        const rr = Math.min(r, w/2, h/2);
+        ctx.beginPath();
+        ctx.moveTo(x+rr,y);
+        ctx.arcTo(x+w,y,x+w,y+h,rr);
+        ctx.arcTo(x+w,y+h,x,y+h,rr);
+        ctx.arcTo(x,y+h,x,y,rr);
+        ctx.arcTo(x,y,x+w,y,rr);
+        ctx.closePath();
+      }
       function loadImage(src, {cross=false}={}){
         return new Promise((resolve,reject)=>{
           const img = new Image();
@@ -652,7 +818,6 @@
           img.src = src;
         });
       }
-
       function wrapText(context, text, x, y, maxWidth, fontSize, lineHeight){
         const words = String(text).split(/\s+/);
         let line = '', cy=y;
@@ -665,7 +830,6 @@
         context.fillText(line, x, cy);
         return cy - y + lineHeight;
       }
-
       function wrapHeight(ctx, text, maxWidth, lineHeight){
         const words = String(text).split(/\s+/);
         let line = '', used = lineHeight;
@@ -677,7 +841,6 @@
         }
         return used;
       }
-
       function measureRightCardHeight(scale, rightW){
         const paddingX = 16*scale, headerH = 72*scale;
         const line14 = 18*scale, line13 = 16*scale, line12 = 16*scale;
