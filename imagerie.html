@@ -88,6 +88,7 @@
     .btn-plain { background: var(--accent); border:none; color:#fff; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; }
     .btn-plain:hover { filter: brightness(0.95); }
     .btn-secondary { background:#0b1223; border:1px solid var(--ring); color:var(--text); padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; }
+
     .btn-secondary:hover { background:#0e1a2e; }
 
     /* Badge PAF */
@@ -343,7 +344,6 @@
       ],
       entorse_luxation: [
         'Antalgique','Anti inflammatoire','Attelle'
-        
       ]
     };
 
@@ -369,7 +369,6 @@
       ],
       entorse_luxation: [
         "Restriction d'activité","Séances Kiné",'Controle imagerie'
-        
       ]
     };
 
@@ -631,14 +630,14 @@
         wrap.className='opt-group';
         const h5 = document.createElement('h5'); h5.textContent = group.label; wrap.appendChild(h5);
 
-        if(group.kind==='checkbox'){ // case unique (héritage)
+        if(group.kind==='checkbox'){
           const row = document.createElement('label'); row.className='check';
           const input = document.createElement('input'); input.type='checkbox'; input.checked = !!m.opts[group.key];
           const txt = document.createElement('span'); txt.textContent = group.label;
           input.onchange = ()=>{ m.opts[group.key] = input.checked ? true : undefined; updateReport(); };
           row.append(input, txt); wrap.appendChild(row);
 
-        } else if(group.kind==='radio'){ // un choix
+        } else if(group.kind==='radio'){
           (group.options||[]).forEach(opt=>{
             const row = document.createElement('label'); row.className='check';
             const input = document.createElement('input'); input.type='radio'; input.name=`opt-${group.key}-${m.id}`;
@@ -648,7 +647,7 @@
             row.append(input, txt); wrap.appendChild(row);
           });
 
-        } else if(group.kind==='checks'){ // plusieurs choix
+        } else if(group.kind==='checks'){
           const sel = new Set(Array.isArray(m.opts[group.key]) ? m.opts[group.key] : []);
           (group.options||[]).forEach(opt=>{
             const row = document.createElement('label'); row.className='check';
@@ -681,7 +680,7 @@
 
       const recs = new Set();
       types.forEach(t => (RECS_CFG[t]||[]).forEach(x=>recs.add(x)));
-      
+
       const renderList = (box, items, setStore) => {
         const prev = new Set([...setStore]);
         box.innerHTML = '';
@@ -861,6 +860,30 @@
       return cy - y + lineHeight;
     }
 
+    /* === Helpers panneau Notes (mesure + rendu) === */
+    function measureNotePanelHeight(ctx, text, rightW, scale){
+      const pad = 12*scale;
+      const titleH = 18*scale;
+      const boxW = rightW - 32*scale; // marges latérales 16px
+      ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
+      const textH = wrapHeight(ctx, text, boxW - pad*2, 20*scale);
+      const boxH = titleH + textH + pad*2;
+      return { boxW, boxH, pad, titleH };
+    }
+    function drawNotePanel(ctx, text, x, y, boxW, boxH, pad, scale){
+      const r = 10*scale;
+      roundRect(ctx, x, y, boxW, boxH, r);
+      ctx.fillStyle = '#f1f5f9'; ctx.fill();
+      ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1*scale; ctx.stroke();
+      ctx.fillStyle = '#0f172a';
+      ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
+      ctx.textAlign='left'; ctx.textBaseline='top';
+      ctx.fillText('Notes :', x + pad, y + pad);
+      ctx.fillStyle = '#334155';
+      ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
+      wrapText(ctx, text, x + pad, y + pad + 18*scale, boxW - pad*2, 14*scale, 20*scale);
+    }
+
     function measureRightCardHeight(scale, rightW){
       const paddingX = 16*scale, headerH = 72*scale;
       const line14 = 18*scale, line13 = 16*scale, line12 = 16*scale;
@@ -872,9 +895,10 @@
       ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
       y += line14 * 3;
 
+      // Panneau Notes (mesure)
       if(comments.value){
-        ctx.font = `${14*scale}px ui-sans-serif, system-ui`;
-        y += wrapHeight(ctx, `Notes : ${comments.value}`, rightW - paddingX*2, 18*scale) + 6*scale;
+        const m = measureNotePanelHeight(ctx, comments.value, rightW, scale);
+        y += m.boxH + 12*scale; // marge sous le panneau
       }
 
       const counts = {}; markers.forEach(m=>counts[m.type]=(counts[m.type]||0)+1);
@@ -944,18 +968,18 @@
         perTypeNums[m.type]=(perTypeNums[m.type]||0)+1;
         const n = perTypeNums[m.type];
         const x = Math.round(figX + m.x*s);
-        aconst_y = Math.round(figY + m.y*s);
+        const y2 = Math.round(figY + m.y*s);
         ctx.beginPath();
         ctx.fillStyle = LMAP[m.type].color;
         ctx.strokeStyle = '#0b1223';
         ctx.lineWidth = 2*scale;
-        ctx.arc(x, aconst_y, 10*scale, 0, Math.PI*2);
+        ctx.arc(x, y2, 10*scale, 0, Math.PI*2);
         ctx.fill(); ctx.stroke();
         if(showNumbers){
           ctx.fillStyle = '#0b1223';
           ctx.font = `${10*scale}px ui-sans-serif, system-ui`;
           ctx.textAlign='center'; ctx.textBaseline='middle';
-          ctx.fillText(String(n), x, aconst_y);
+          ctx.fillText(String(n), x, y2);
         }
       });
 
@@ -993,13 +1017,20 @@
       ctx.fillText(`Patient : ${patientId.value || '—'}`, rightX+16*scale, metaY);
       ctx.fillText(`Médecin : ${doctorName.value || '—'}`, rightX+16*scale, metaY + 20*scale);
       ctx.fillText(`Date : ${dateStr}`, rightX+16*scale, metaY + 40*scale);
+
+      // Panneau Notes (rendu)
+      let notesBottomY = metaY + 64*scale;
       if(comments.value){
-        ctx.fillStyle = '#334155';
-        wrapText(ctx, `Notes : ${comments.value}`, rightX+16*scale, metaY + 64*scale, cardW-32*scale, 14*scale, 18*scale);
+        const m = measureNotePanelHeight(ctx, comments.value, cardW, scale);
+        const boxX = rightX + 16*scale;
+        const boxY = metaY + 64*scale;
+        drawNotePanel(ctx, comments.value, boxX, boxY, m.boxW, m.boxH, m.pad, scale);
+        notesBottomY = boxY + m.boxH;
       }
 
       const counts = {}; markers.forEach(m=>counts[m.type]=(counts[m.type]||0)+1);
-      let badgeX = rightX+16*scale, badgeY = metaY + (comments.value? 114*scale : 90*scale);
+      let badgeX = rightX+16*scale;
+      let badgeY = comments.value ? (notesBottomY + 12*scale) : (metaY + 90*scale);
       ctx.font = `${12*scale}px ui-sans-serif, system-ui`;
       LESIONS.forEach(l=>{
         const txt = `${l.label} : ${counts[l.key]||0}`;
