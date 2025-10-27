@@ -6,7 +6,7 @@
   <title>OMC — Imagerie (Discord uniquement)</title>
   <link rel="icon" href="assets/logo_omc.png" type="image/png">
   <style>
-    :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; }
+    :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; --accent:#3b82f6; }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{background:var(--bg); color:var(--text); font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica Neue,Arial; margin:0}
@@ -77,6 +77,27 @@
     .check{display:flex; gap:8px; align-items:center; padding:8px; border:1px solid var(--ring); border-radius:10px; background:#0b1223}
     .check input{width:auto}
     @media (max-width: 800px){ .choices{grid-template-columns:1fr} }
+
+    /* Popup (Copier / OK) */
+    .popup { position: fixed; inset: 0; z-index: 999; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.6); visibility: hidden; opacity: 0; transition: all .2s; }
+    .popup.active { visibility: visible; opacity: 1; }
+    .popup-content { background: var(--panel); border:1px solid var(--ring); border-radius:16px; width: 90%; max-width: 520px; padding: 20px; text-align:center; box-shadow: 0 0 20px rgba(0,0,0,.35); }
+    .popup-content h2 { margin: 0 0 10px; color: var(--accent); font-size: 18px; }
+    .popup-content p { word-break: break-all; background: var(--panel-2); border-radius: 10px; padding: 12px; font-size: .92em; color: var(--muted); }
+    .popup-buttons { display:flex; justify-content:center; gap:10px; margin-top:14px; }
+    .btn-plain { background: var(--accent); border:none; color:#fff; padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; }
+    .btn-plain:hover { filter: brightness(0.95); }
+    .btn-secondary { background:#0b1223; border:1px solid var(--ring); color:var(--text); padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; }
+    .btn-secondary:hover { background:#0e1a2e; }
+
+    /* Badge PAF */
+    .paf-badge{
+      display:inline-flex; align-items:center; gap:8px; padding:6px 10px;
+      background:rgba(185,28,28,.15); border:1px solid rgba(185,28,28,.35);
+      color:#fecaca; border-radius:999px; font-size:12px; font-weight:700;
+    }
+    .paf-badge .bd{ width:8px; height:8px; border-radius:50%; background:#b91c1c; }
+    .paf-hidden{ display:none; }
   </style>
 </head>
 <body>
@@ -132,10 +153,25 @@
             <div class="lesions-grid" id="lesionsGrid"></div>
           </div>
 
-          <!-- Options de la lésion active -->
+          <!-- Options de la lésion active + badge PAF -->
           <div class="options" id="optionsBox">
-            <h4 style="margin:0 0 10px">Options de la lésion <span id="activeMarkerLabel">—</span></h4>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap">
+              <h4 style="margin:0 0 10px">Options de la lésion <span id="activeMarkerLabel">—</span></h4>
+              <div id="pafBadge" class="paf-badge paf-hidden" title="Au moins une lésion PAF est présente">
+                <span class="bd"></span> PAF détectée — pensez à la déclaration
+              </div>
+            </div>
             <div id="lesionOptions" class="choices"></div>
+          </div>
+
+          <!-- Déclaration LSPD/BCSO -->
+          <div class="options">
+            <h4 style="margin:0 0 8px">Déclaration inter-services</h4>
+            <label class="check" style="margin-top:6px">
+              <input id="chkDecl" type="checkbox">
+              <span><strong>Déclaration LSPD / BCSO pour blessure par arme à feu</strong> — enverra une copie de l’acte aux salons concernés si au moins une PAF est renseignée.</span>
+            </label>
+            <small class="label">Salons cibles : <code>#1383858830336720966</code> (LSPD) et <code>#1383858851719155842</code> (BCSO)</small>
           </div>
 
           <div class="actions">
@@ -175,11 +211,32 @@
     </div>
   </div>
 
+  <!-- Popup URL hébergement -->
+  <div id="popup" class="popup" aria-hidden="true">
+    <div class="popup-content" role="dialog" aria-modal="true" aria-labelledby="popupTitle">
+      <h2 id="popupTitle">Adresse d’hébergement</h2>
+      <p id="popupText"></p>
+      <div class="popup-buttons">
+        <button id="copyBtn" class="btn-plain">Copier</button>
+        <button id="okBtn" class="btn-secondary">OK</button>
+      </div>
+    </div>
+  </div>
+
   <script>
   document.addEventListener('DOMContentLoaded', () => {
-    /* ========= CONFIG DISCORD ========= */
+    /* ========= CONFIG VPS + DISCORD ========= */
+    const API_UPLOAD_URL = 'https://api.ocean-medical-center.ovh/api/upload';
+    const API_TOKEN = 'super-secret-token'; // ⚠️ à sécuriser côté serveur
+
+    // Forum / fil principal
     const WEBHOOK_FORUM_URL = "https://discord.com/api/webhooks/1421780761731928194/ZFSpiLTHfytIGT02QBf5SBOIEDzWMaf_PMHtDB9sd-GmF5chHnQqQic-9YpLnYHJIRPo";
     const FORUM_THREAD_PREFIX = "Imagerie";
+
+    // Déclaration inter-services (PAF)
+    const LSPD_WEBHOOK_URL = "https://discord.com/api/webhooks/1430453882412208129/SpEVn_7BNqSrIwxuXyZLvKXChzXxIO6_M1hTkoIUZ1xXnHO8V1u3CTtuPMUnRLOnTHsM";
+    const BCSO_WEBHOOK_URL = "https://discord.com/api/webhooks/1430454984616575068/8z9kN8yzmkrVZmnXbE5fYFJeIIQjsEdsDZvfVkGqgGCAb824kS_mE6hagWHP0EhUqlZQ";
+
     const LOGO_PATH = "assets/Logo-omc.png";
     const LOGO_FALLBACK = "https://i.ibb.co/LzwcCLfN/logo-omc-nord.png";
 
@@ -377,6 +434,15 @@
     const medsChoices = document.getElementById('medsChoices');
     const recsChoices = document.getElementById('recsChoices');
 
+    const chkDecl = document.getElementById('chkDecl');
+    const pafBadge = document.getElementById('pafBadge');
+
+    /* Popup refs */
+    const popup = document.getElementById('popup');
+    const popupText = document.getElementById('popupText');
+    const copyBtn = document.getElementById('copyBtn');
+    const okBtn = document.getElementById('okBtn');
+
     /* ========= ÉTAT ========= */
     let activeType = LESIONS[0].key;
     let showNumbers = true;
@@ -412,6 +478,23 @@
     function regionFrom(x,y){
       for(const r of REGIONS){ if(inPoly(x,y,r.points)) return r.label; }
       return null;
+    }
+
+    function openPopup(url){
+      popupText.textContent = url || '—';
+      popup.classList.add('active');
+      popup.setAttribute('aria-hidden','false');
+      copyBtn.onclick = async ()=>{
+        try{
+          await navigator.clipboard.writeText(url||'');
+          copyBtn.textContent='Copié ✅';
+          setTimeout(()=>copyBtn.textContent='Copier',1600);
+        }catch{}
+      };
+      okBtn.onclick = ()=>{
+        popup.classList.remove('active');
+        popup.setAttribute('aria-hidden','true');
+      };
     }
 
     /* ========= Texte description (rapport) ========= */
@@ -454,6 +537,11 @@
     }
 
     /* ========= Report (UI) ========= */
+    function updatePAFBadge(){
+      const has = markers.some(m => m.type === 'plaie_feu');
+      if (has) pafBadge.classList.remove('paf-hidden');
+      else pafBadge.classList.add('paf-hidden');
+    }
     function updateReport(){
       const now = new Date().toLocaleString();
       reportMeta.textContent = `Patient : ${patientId.value || '—'} • Médecin : ${doctorName.value || '—'} • Date : ${now}${comments.value ? ' • Notes : ' + comments.value : ''}`;
@@ -482,6 +570,8 @@
       reportRecs.innerHTML = selectedRecs.size
         ? `<h4 style="margin:10px 0 6px">Préconisations</h4><ul style="margin:0 0 0 18px; padding:0">${[...selectedRecs].map(x=>`<li>${x}</li>`).join('')}</ul>`
         : '';
+
+      updatePAFBadge();
     }
 
     /* ========= Palette + Légende ========= */
@@ -855,18 +945,18 @@
         perTypeNums[m.type]=(perTypeNums[m.type]||0)+1;
         const n = perTypeNums[m.type];
         const x = Math.round(figX + m.x*s);
-        const y = Math.round(figY + m.y*s);
+        aconst_y = Math.round(figY + m.y*s);
         ctx.beginPath();
         ctx.fillStyle = LMAP[m.type].color;
         ctx.strokeStyle = '#0b1223';
         ctx.lineWidth = 2*scale;
-        ctx.arc(x, y, 10*scale, 0, Math.PI*2);
+        ctx.arc(x, aconst_y, 10*scale, 0, Math.PI*2);
         ctx.fill(); ctx.stroke();
         if(showNumbers){
           ctx.fillStyle = '#0b1223';
           ctx.font = `${10*scale}px ui-sans-serif, system-ui`;
           ctx.textAlign='center'; ctx.textBaseline='middle';
-          ctx.fillText(String(n), x, y);
+          ctx.fillText(String(n), x, aconst_y);
         }
       });
 
@@ -990,7 +1080,24 @@
       return await new Promise(res=> canvas.toBlob(b=>res(b),'image/png'));
     }
 
-    /* ========= Contenu Discord ========= */
+    /* ========= Upload + Discord + Déclaration PAF ========= */
+    async function uploadToVps(blob, ref){
+      const fd = new FormData();
+      fd.append('file', blob, `imagerie_${ref}.png`);
+      const res = await fetch(API_UPLOAD_URL, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${API_TOKEN}` },
+        body: fd
+      });
+      if(!res.ok){
+        const txt = await res.text().catch(()=> '');
+        throw new Error('Upload VPS ' + res.status + ' — ' + txt);
+      }
+      const data = await res.json().catch(()=> ({}));
+      if(!data?.url) throw new Error('Réponse API VPS inattendue (pas d’url).');
+      return data.url; // https://img.ocean-medical-center.ovh/...
+    }
+
     function makeDiscordContent() {
       const p = patientId.value?.trim() || '—';
       const d = doctorName.value?.trim() || '—';
@@ -1018,44 +1125,124 @@
 
       lines.push(``);
       lines.push(`**💊 Traitement médicamenteux**`);
-      if (selectedMeds.size) {
-        [...selectedMeds].forEach(t => lines.push(`• ${t}`));
-      } else {
-        lines.push(`—`);
-      }
+      if (selectedMeds.size) [...selectedMeds].forEach(t => lines.push(`• ${t}`)); else lines.push(`—`);
 
       lines.push(``);
       lines.push(`**🧭 Préconisations**`);
-      if (selectedRecs.size) {
-        [...selectedRecs].forEach(t => lines.push(`• ${t}`));
-      } else {
-        lines.push(`—`);
-      }
+      if (selectedRecs.size) [...selectedRecs].forEach(t => lines.push(`• ${t}`)); else lines.push(`—`);
 
       let out = lines.join('\n');
       if (out.length > 1990) out = out.slice(0, 1985) + '…';
       return out;
     }
 
+    async function postTextToDiscord(threadName, publicUrl){
+      if(!WEBHOOK_FORUM_URL) throw new Error('Webhook Discord non configuré.');
+      if(!publicUrl) throw new Error('URL publique absente — upload requis avant envoi Discord.');
+      const content = [`**${threadName}**`, publicUrl, '', makeDiscordContent()].join('\n');
+      const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ thread_name: threadName, content })
+      });
+      if(!res.ok){
+        const txt = await res.text().catch(()=> '');
+        throw new Error('Discord ' + res.status + ' — ' + txt);
+      }
+    }
+
+    function hasGunshot(){ return markers.some(m => m.type === 'plaie_feu'); }
+
+    function makeDeclarationMessage(publicUrl) {
+      const p = patientId.value?.trim() || '—';
+      const d = doctorName.value?.trim() || '—';
+      const dateStr = new Date().toLocaleString();
+
+      const pafs = markers.filter(m => m.type === 'plaie_feu');
+      const perTypeIndex = {};
+      const lines = [];
+
+      lines.push(`📣 **OMC → LSPD / BCSO — Déclaration blessure par arme à feu (copie)**`);
+      lines.push(`**Patient :** ${p} • **Médecin :** ${d} • **Date :** ${dateStr}`);
+      lines.push(``);
+      lines.push(`**🧾 Constat PAF (extraits)**`);
+      if (!pafs.length) {
+        lines.push(`— Aucune PAF détectée (rien à déclarer).`);
+      } else {
+        pafs.forEach(m => {
+          perTypeIndex[m.type] = (perTypeIndex[m.type] || 0) + 1;
+          const idx = perTypeIndex[m.type];
+          lines.push(`• **PAF — N°${idx}** — ${markerText(m)}`);
+        });
+      }
+      lines.push(``);
+      lines.push(`**Pièce jointe (copie de l’acte)**`);
+      lines.push(publicUrl);
+      lines.push(``);
+      lines.push(`_Conformément aux procédures, l’OMC transmet une copie de l’acte. Le personnel hospitalier prendra en charge le patient qui sera dans l’obligation d’effectuer cette déclaration auprès de vos services._`);
+
+      let out = lines.join('\n');
+      if (out.length > 1990) out = out.slice(0, 1985) + '…';
+      return out;
+    }
+
+    async function postToWebhookRaw(url, content) {
+      const res = await fetch(url + '?wait=true', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ content })
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(()=> '');
+        throw new Error('Déclaration Discord ' + res.status + ' — ' + txt);
+      }
+    }
+
+    async function sendDeclarationIfNeeded(publicUrl) {
+      if (!chkDecl || !chkDecl.checked) {
+        logH("Déclaration LSPD/BCSO non cochée — aucun envoi inter-services.");
+        return;
+      }
+      if (!hasGunshot()) {
+        logH("Déclaration cochée mais aucune PAF — aucun envoi LSPD/BCSO.");
+        return;
+      }
+      const content = makeDeclarationMessage(publicUrl);
+      await Promise.all([
+        postToWebhookRaw(LSPD_WEBHOOK_URL, content),
+        postToWebhookRaw(BCSO_WEBHOOK_URL, content),
+      ]);
+      logH("Déclaration PAF envoyée à LSPD + BCSO.");
+    }
+
     async function sendToDiscordForum(){
-      if(!WEBHOOK_FORUM_URL){ alert('Webhook Discord non configuré.'); return; }
       try{
+        btnPrint.disabled = true;
+        btnPrint.textContent = 'Génération…';
+
         const imgBlob = await exportReportPNG(2);
-        const threadName = `${FORUM_THREAD_PREFIX} — ${patientId.value || 'Sans nom'} — ${new Date().toLocaleDateString()}`;
+        const now = new Date();
+        const ref = `${String(now.getDate()).padStart(2,'0')}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`; // JJMMHHMM
+        const who = patientId.value || 'Sans nom';
+        const threadName = `${FORUM_THREAD_PREFIX} — ${who} — Ref ${ref}`.slice(0,100);
 
-        const fd = new FormData();
-        fd.append('payload_json', JSON.stringify({ thread_name: threadName, content: makeDiscordContent() }));
-        fd.append('file', imgBlob, `imagerie-omc-${Date.now()}.png`);
+        btnPrint.textContent = 'Upload vers serveur…';
+        const publicUrl = await uploadToVps(imgBlob, ref);
 
-        const res = await fetch(WEBHOOK_FORUM_URL + '?wait=true', { method:'POST', body: fd });
-        if(!res.ok){
-          const txt = await res.text().catch(()=> ''); throw new Error('HTTP '+res.status+' '+txt);
-        }
-        logH('Canevas + texte envoyés sur Discord (forum “imagerie”).');
-        alert('Canevas envoyé sur le copieur imagerie (Discord).');
+        btnPrint.textContent = 'Publication Discord…';
+        await postTextToDiscord(threadName, publicUrl);
+
+        await sendDeclarationIfNeeded(publicUrl);
+
+        try{ await navigator.clipboard.writeText(publicUrl); }catch{}
+        openPopup(publicUrl);
+        logH('Image hébergée + message Discord publié.');
       }catch(e){
         console.error(e);
-        alert('Envoi Discord échoué. Vérifie le webhook et le logo.');
+        openPopup('❌ Échec : ' + e.message);
+      }finally{
+        btnPrint.disabled = false;
+        btnPrint.textContent = 'Imprimer sur copieur imagerie';
       }
     }
 
