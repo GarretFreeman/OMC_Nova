@@ -372,7 +372,7 @@
         
       ]
     };
-    </script>
+
 
     /* ========= Zones (polygones) — réintégrées ========= */
     const REGIONS_RAW = [
@@ -681,8 +681,7 @@
 
       const recs = new Set();
       types.forEach(t => (RECS_CFG[t]||[]).forEach(x=>recs.add(x)));
-      if(types.length>0){ recs.add(EXTRA_REC); }
-
+      
       const renderList = (box, items, setStore) => {
         const prev = new Set([...setStore]);
         box.innerHTML = '';
