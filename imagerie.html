@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OMC — Imagerie (Discord uniquement)</title>
+  <title>OMC — Contastat Lésionel</title>
   <link rel="icon" href="assets/logo_omc.png" type="image/png">
   <style>
     :root{ --bg:#0f172a; --panel:#111827; --panel-2:#0b1223; --text:#e5e7eb; --muted:#9ca3af; --ring:#1f2937; --radius:16px; --accent:#3b82f6; }
@@ -136,7 +136,7 @@
           <div class="controls">
             <div class="field">
               <label class="label">Nom / ID patient</label>
-              <input id="patientId" type="text" placeholder="Ex: Garret Freeman #SS-204">
+              <input id="patientId" type="text" placeholder="Ex: Garret Freeman">
             </div>
             <div class="field">
               <label class="label">Nom du médecin</label>
@@ -324,26 +324,26 @@
     const MEDS_CFG = {
       fracture: [
         'Antalgique','Anti inflammatoire','Rappel Tétanos','Anticoagulants',
-        'Antibiotiques','Plâtre','Attelle','Transfusion'
+        'Antibiotiques','Plâtre','Attelle','Transfusion','Pansement stérile'
       ],
       plaie_laceration: [
         'Antalgique','Anti inflammatoire','Rappel Tétanos','Anticoagulants',
-        'Antibiotiques','Transfusion'
+        'Antibiotiques','Transfusion','Pansement stérile','Oxygène','Sonde naso-gastrique','Sonde urinaire','Poche de stomie'
       ],
       brulure: [
-        'Antalgique','Anti inflammatoire','Pansement stérile','Pansement gras'
+        'Antalgique','Anti inflammatoire','Antibiotiques','Pansement stérile','Pansement gras','Oxygène'
       ],
       contusion_trauma: [
         'Antalgique','Anti inflammatoire','Anti coagulants','Transfusion',
-        'Pansement stérile','Anticonvulsifs'
+        'Pansement stérile','Anticonvulsifs','Oxygène'
       ],
       plaie_feu: [
         'Antalgique','Anti inflammatoire','Rappel tétanos','Anti coagulants',
-        'Antibiotiques','Transfusion','Pansement stérile'
+        'Antibiotiques','Transfusion','Pansement stérile','Oxygène','Sonde naso-gastrique','Sonde urinaire','Poche de stomie'
       ],
       entorse_luxation: [
-        'Antalgique','Anti inflammatoire','Rappel tétanos','Anti coagulants',
-        'Antibiotiques','Transfusion','Pansement stérile'
+        'Antalgique','Anti inflammatoire','Attelle'
+        
       ]
     };
 
@@ -354,22 +354,22 @@
       ],
       plaie_laceration: [
         "Restriction d'activité","Séances Kiné",'Consigne pansement',
-        'Éviter eau','Éviter exposition au soleil'
+        'Éviter eau','Éviter exposition au soleil','Restriction alimentaire'
       ],
       brulure: [
         "Restriction d'activité","Séances Kiné",'Consigne pansement',
         'Éviter eau','Éviter exposition au soleil','Suivi esthétique'
       ],
       contusion_trauma: [
-        "Restriction d'activité"
+        "Restriction d'activité",'Glace 15min/2h','Surélévation'
       ],
       plaie_feu: [
         "Restriction d'activité","Séances Kiné",'Consignes pansements',
-        'Éviter eau','Éviter exposition au soleil'
+        'Éviter eau','Éviter exposition au soleil','Restriction alimentaire'
       ],
       entorse_luxation: [
-        "Restriction d'activité","Séances Kiné",'Consignes pansements',
-        'Éviter eau','Éviter exposition au soleil'
+        "Restriction d'activité","Séances Kiné",'Controle imagerie'
+        
       ]
     };
     const EXTRA_REC = 'Suivi par un kinésithérapeute pour rééducation';
